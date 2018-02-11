@@ -1,0 +1,1 @@
+This folder contains demos for SQL Server on Linux. These are freely available to use by the public
