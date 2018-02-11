@@ -1,1 +1,0 @@
-This is a demo to show the Automatic Plan Correct features of SQL Server as part of the Automatic Tuning family.
