@@ -4,11 +4,11 @@ This repro is for SQL Server 2017 on Linux using feature of SQL Server Operation
 
 This demo assumes:
 
-You have SQL Server 2017 installed on Linux (requires Developer or Enteprise Edition
-)
-You have downloaded and installed SQL Server Operations Studio on your client. See https://docs.microsoft.com/en-us/sql/sql-operations-studio/download for more information. This demo assumes Jan 2018 version at minimum.
+- You have SQL Server 2017 installed on Linux (requires Developer or Enteprise Edition)
 
-You have downloaded the WideWorldImporters-Full.bak database from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak
+- You have downloaded and installed SQL Server Operations Studio on your client. See https://docs.microsoft.com/en-us/sql/sql-operations-studio/download for more information. This demo assumes Jan 2018 version at minimum.
+
+- You have downloaded the WideWorldImporters-Full.bak database from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak
 
 In this demo, you will use SQL Operations Studio on your preferred platform to perform the demo to showcase automatic tuning (automatic plan correction). NOTE: To connect with SQL Ops Studio you may be connecting with an IP address. If so, be sure to use  <IP Address>:1433 to connect to SQL Server.
 
@@ -20,12 +20,15 @@ In this demo, you will use SQL Operations Studio on your preferred platform to p
 
 4. Open up the following SQL Server script files. I recommend you open up each file one at a time.
 
-batchrequests_perf_collector.sql
-batchrequests.sql
-report.sql
-regression.sql
-recommendations.sql
+- batchrequests_perf_collector.sql
 
+- batchrequests.sql
+
+- report.sql
+
+- regression.sql
+
+- recommendations.sql
 
 5. Start the query in batchrequests_perf_collector.sql
 
