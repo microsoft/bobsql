@@ -1,0 +1,1 @@
+This folder all demos I've created to SQL Server, SQL Server on Linux, SQL Server on Azure Virtual Machine, Azure SQL Database. All of these are freely available to use by the public.
