@@ -1,0 +1,1 @@
+Enjoy these demos from my talks at SQLBits 2018 including Adaptive Query Processing (aqp), SQL Server 2017, and SQL Server on Linux
