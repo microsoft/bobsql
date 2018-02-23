@@ -1,0 +1,1 @@
+These folders contain demos for my presentation at SQLBits 2018 for SQL Server on Linux
