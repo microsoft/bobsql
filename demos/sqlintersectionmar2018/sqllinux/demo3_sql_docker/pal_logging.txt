@@ -1,0 +1,10 @@
+/var/opt/mssql/logger.ini
+   
+[Output.FileOutput]
+type=File
+filename=/var/opt/mssql/log/palstart_$(_pid).log
+   
+[Logger]
+level=debug
+outputs=FileOutput 
+ 
