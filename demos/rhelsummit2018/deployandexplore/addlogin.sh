@@ -1,0 +1,1 @@
+sqlcmd -Usa -iaddlogin.sql
