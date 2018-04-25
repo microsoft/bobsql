@@ -56,16 +56,19 @@ sudo ls /opt/mssql/bin
 sqlcmd -Usqllinux -P<your password from addlogin.sql>
 
 > SELECT * FROM sys.databases
+
 > GO
 
 ..[ Results will show up here ]
 
 > USE WideWorldImporters
+
 > GO
 
 ..[ Results will show up here ]
 
 > SELECT * FROM [Application].[People]
+
 > GO
 
 ..[ Results will show up here ]
@@ -75,4 +78,3 @@ sqlcmd -Usqllinux -P<your password from addlogin.sql>
 - Use mssql-cli to run the same queries. mssql-cli does not have a -P parameter so you will be prompted for the password. Notice how Intellisense works and the output of the queries are in a vertical format so it is easier to read each row
 - Use SQL Operations Studio to connect to your SQL Server on Linux. Look at Object Explorer, Server Extensions, and run Queries
 - If you installed SSMS, connect to your Linux Server and explore the basic features of running queries and Object Explorer. Use the XEProfiler to trace queries.
-
