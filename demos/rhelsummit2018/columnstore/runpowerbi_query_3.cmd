@@ -1,0 +1,1 @@
+ostress -S%1 -Usa -P%2 -ipowerbi_qdb_query_3.sql -d%3 -n%4 -r10 -q
