@@ -70,7 +70,7 @@ Execute dockervolumeremove.cmd
 
 docker images
 
-docker rmi <IMAGE ID>
+docker rmi [IMAGE ID]
 
 MacOS Users
 
@@ -142,4 +142,4 @@ Execute dockervolumeremove.sh
 
 docker images
 
-docker rmi <IMAGE ID>
+docker rmi [IMAGE ID]
