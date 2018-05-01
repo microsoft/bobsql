@@ -23,6 +23,7 @@ docker ps
 The output should look something like this
 
 CONTAINER ID        IMAGE                                      COMMAND                  CREATED             STATUS              PORTS                    NAMES
+
 07d24d9ac18c        microsoft/mssql-server-linux:2017-latest   "/opt/mssql/bin/sqls…"   2 seconds ago       Up 1 second         0.0.0.0:1401->1433/tcp   sql1
 
 6. Interact with the container through a bash shell by executing dockerbash.cmd
@@ -56,14 +57,19 @@ Execute the dockerquery.cmd script to connect to the container and run a query t
 12. Start a new container using the same volume to show another container can use the persisted database
 
 Execute dockerrun2.cmd
+
 Execute dockerquery.cmd to connect and query a table in the database
 
 13. To clean up demo to run again, follow these steps
 
 Execute dockerstop2.cmd
+
 Execute dockerremove2.cmd
+
 Execute dockervolumeremove.cmd
+
 docker images
+
 docker rmi <IMAGE ID>
 
 MacOS Users
@@ -89,6 +95,7 @@ docker ps
 The output should look something like this
 
 CONTAINER ID        IMAGE                                      COMMAND                  CREATED             STATUS              PORTS                    NAMES
+
 07d24d9ac18c        microsoft/mssql-server-linux:2017-latest   "/opt/mssql/bin/sqls…"   2 seconds ago       Up 1 second         0.0.0.0:1401->1433/tcp   sql1
 
 6. Interact with the container through a bash shell by executing dockerbash.sh
@@ -122,18 +129,17 @@ Execute the dockerquery.sh script to connect to the container and run a query to
 12. Start a new container using the same volume to show another container can use the persisted database
 
 Execute dockerrun2.sh
+
 Execute dockerquery.sh to connect and query a table in the database
 
 13. To clean up demo to run again, follow these steps
 
 Execute dockerstop2.sh
-Execute dockerremove2.sh
-Execute dockervolumeremove.sh
-docker images
-docker rmi <IMAGE ID>13. To clean up demo to run again, follow these steps
 
-Execute dockerstop2.cmd
-Execute dockerremove2.cmd
-Execute dockervolumeremove.cmd
+Execute dockerremove2.sh
+
+Execute dockervolumeremove.sh
+
 docker images
+
 docker rmi <IMAGE ID>
