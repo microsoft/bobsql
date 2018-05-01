@@ -9,6 +9,10 @@ I recommend you install the following tools to use throughout these demos
 
 For these demos, you can use any Red Hat Enterprise Linux 7 Server. We used Virtual Machines for our demos with 8Gb of RAM and at least 100Gb of disk space (needed for the columnstore performance demo)
 
+The columnstore demo requires a windows computer to use PowerBI as a client.
+
+The container demo can be run on Windows or macOS
+
 We have the following demos to showcase SQL Server on Red Hat Enterprise Linux. 
 
 deployandexplore - Deploy and show the basics of interacting with SQL Server on RHEL
@@ -21,4 +25,4 @@ security - Show Dynamnic Data Masking and tools for Vulnerabiltiy Assessments an
 
 hadr - TBD
 
-container - Show the basics of SQL Server with Docker Containers
+container - Show the basics of SQL Server with Docker Containers on Windows or macOS
