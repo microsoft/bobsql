@@ -80,7 +80,7 @@ chmod u+x docker*.sh
 
 1. Install Docker for MacOS from https://docs.docker.com/docker-for-mac/install/
 
-Install SQL Command Utilities for macOS from https://blogs.technet.microsoft.com/dataplatforminsider/2017/05/16/sql-server-command-line-tools-for-macos-released/
+Install SQL Command Utilities for macOS from https://docs.microsoft.com/en-us/sql/linux/sql-server-linux-setup-tools?view=sql-server-linux-2017#macos
 
 2. Pull the latest SQL Server Docker Image by executing dockerpull.sh. This requires your computer be connected to the internet
 
