@@ -9,6 +9,9 @@ CREATE TABLE ##tblPerfCount (
        [cntr_value] float NULL,
        );
 
+SET NOCOUNT ON
+GO
+
 WHILE 1=1
 BEGIN
        INSERT INTO ##tblPerfCount
