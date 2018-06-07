@@ -7,6 +7,9 @@ GO
 ALTER DATABASE [WideWorldImportersDW] SET COMPATIBILITY_LEVEL = 140
 go
 
+USE [WideWorldImportersDW]
+GO
+
 -- Intentionally forcing a row underestimate
 DROP PROCEDURE IF EXISTS [FactOrderByLineageKey];
 GO

@@ -7,6 +7,9 @@ GO
 ALTER DATABASE [WideWorldImportersDW] SET COMPATIBILITY_LEVEL = 140;
 GO
 
+USE [WideWorldImportersDW]
+GO
+
 -- Show live query stats
 SELECT  [fo].[Order Key], [si].[Lead Time Days], [fo].[Quantity]
 FROM    [Fact].[Order] AS [fo]
