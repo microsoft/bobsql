@@ -1,0 +1,1 @@
+ostress -E -itempstress.sql -n10 -r100000 -q
