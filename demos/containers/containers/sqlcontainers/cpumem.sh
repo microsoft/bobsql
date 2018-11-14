@@ -1,0 +1,2 @@
+cat /proc/meminfo
+lscpu
