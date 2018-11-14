@@ -1,0 +1,11 @@
+USE MASTER
+GO
+IF EXISTS (SELECT * FROM sys.server_audits WHERE name = 'AuditSQLServer')
+BEGIN
+    ALTER SERVER AUDIT AuditSQLServer WITH (STATE = OFF)
+    DROP SERVER AUDIT AuditSQLServer
+END
+GO
+CREATE SERVER AUDIT AuditSQLServer  
+    TO FILE (FILEPATH ='/var/opt/mssql')  
+GO

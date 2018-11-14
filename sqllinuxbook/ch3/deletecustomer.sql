@@ -1,0 +1,7 @@
+USE [WideWorldImporters]
+GO
+BEGIN TRANSACTION
+DELETE FROM [Sales].[Customers]
+WHERE CustomerName = 'WeLoveSQLOnLinux'
+ROLLBACK TRANSACTION
+GO

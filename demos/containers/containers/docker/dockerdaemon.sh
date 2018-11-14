@@ -1,3 +1,0 @@
-
-ps -axf | grep docker
-

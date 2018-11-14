@@ -1,0 +1,6 @@
+USE [WideWorldImporters]
+GO
+SET STATISTICS XML ON
+GO
+SELECT COUNT(*) FROM Sales.Invoices WITH (INDEX=1)
+GO

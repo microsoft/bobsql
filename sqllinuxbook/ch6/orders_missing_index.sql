@@ -1,0 +1,11 @@
+USE [WideWorldImporters]
+GO
+SET STATISTICS XML ON
+GO
+SET STATISTICS IO ON
+GO
+SELECT CustomerID, COUNT(*) 
+FROM [Sales].[Orders]
+WHERE [OrderDate] = '2013-01-01'
+GROUP BY CustomerID
+GO

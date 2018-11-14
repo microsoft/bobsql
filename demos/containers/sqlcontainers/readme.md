@@ -1,8 +1,12 @@
-1. Run dockerruncu8.sh to start a container with SQL Server 2017 CU8. This container is called sql1
+0. Run createdockernet.sh to create a user defined network
 
-2. Run dockercopy.sh and docker_restorewwi.sh to restore the WWI into the sql1 container.
+1. Run dockerruncu10.sh to start a container with SQL Server 2017 CU8. This container is called sql2017cu10
+
+2. Run dockercopy.sh and docker_restorewwi.sh to restore the WWI into the sql2017cu10 container.
 
 3. Run dockerrun2.sh to start another SQL container with the latest SQL 2017 update. This container is called sql2
+3a. Run sudo docker ps to see the 2 containers running
+3b. Run sudo docker inspect sqlnet to see the containers in the same network
 
 4. Run ps -axf to see all the SQL Server child proceses under the docker daemon. Note the process IDs of the sqlservr processes
 
@@ -12,11 +16,18 @@
 
 7. Now let's dive into one of the containers by running
 
-sudo docker exec -it sql1 bash
+sudo docker exec -it sql2017cu10 bash
 
 8. Run ps -axf to see the list of processes. Note how few procs are there and how sqlservr has different PIDs
 
-9. Run cat /proc/meminfo and lscppu to see memory and CPUs within the container. By default each container has access to all memory and CPUs.
+9. Run cat /proc/meminfo and lscpu to see memory and CPUs within the container. By default each container has access to all memory and CPUs.
+9a.Let's connect to the other container
+
+/opt/mssql-tools/bin/sqlcmd -Usa -Ssql2
+SELECT @@VERSION
+SELECT @@SERVERNAME
+
+9b.Go look at what is inside the container by inspecting files and ERRORLOG
 
 10. Type 'exit' to leave the container
 
@@ -35,7 +46,7 @@ sudo ls -l /var/lib/docker/volumes/sqlvolume2/_data/data
 
 Notice the WWI database is only in sqlvolume and not sqlvolume2
 
-14. Optional: If you have SQL Server already installed try this
+14. If you have SQL Server already installed try this
 
 sudo systemctl stop mssql-server
 sudo /opt/mssql/bin/sqlservr --help

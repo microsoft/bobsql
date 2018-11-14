@@ -1,2 +1,2 @@
 
-sudo docker exec -it sql1 bash
+sudo docker exec -it sql2017cu10 bash

@@ -1,0 +1,4 @@
+USE master
+GO
+ALTER DATABASE WideWorldImporters SET RECOVERY FULL
+GO

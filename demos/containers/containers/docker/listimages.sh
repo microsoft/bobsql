@@ -1,2 +1,0 @@
-sudo docker images
-

@@ -1,4 +1,4 @@
-# SQL Containers demo showing updates and controlling resources
+q# SQL Containers demo showing updates and controlling resources
 
 This demo assumes you have completed the steps in the sqlcontainers demo to run the sql1 and sql2 containers
 

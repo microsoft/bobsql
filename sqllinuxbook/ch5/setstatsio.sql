@@ -1,0 +1,4 @@
+SET STATISTICS IO ON
+GO
+SELECT * FROM sys.databases
+GO

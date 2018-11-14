@@ -1,0 +1,24 @@
+CREATE AVAILABILITY GROUP [footballag] 
+   WITH (CLUSTER_TYPE = EXTERNAL) 
+   FOR REPLICA ON 
+    N'bwsqllinuxag1' WITH ( 
+       ENDPOINT_URL = N'tcp://bwsqllinuxag1:5022', 
+       AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, 
+       FAILOVER_MODE = EXTERNAL, 
+       SEEDING_MODE = AUTOMATIC,
+       SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
+       ), 
+    N'bwsqllinuxag2' WITH (  
+       ENDPOINT_URL = N'tcp://bwsqllinuxag2:5022',  
+       AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, 
+       FAILOVER_MODE = EXTERNAL, 
+       SEEDING_MODE = AUTOMATIC,
+       SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
+       ), 
+    N'sqllinuxcfgag' WITH ( 
+       ENDPOINT_URL = N'tcp://sqllinuxcfgag:5022', 
+       AVAILABILITY_MODE = CONFIGURATION_ONLY  
+       )
+GO
+ALTER AVAILABILITY GROUP [footballag] GRANT CREATE ANY DATABASE
+GO
