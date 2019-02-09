@@ -1,3 +1,5 @@
+In order to run this exercise and the ones in sqlcontainerupdate you must first download the WideWorldImporters backup into this folder. You can do this by using the **pullwwi.sh** script.
+
 1. Run **step1_dockerruncu10.sh** to start a container with SQL Server 2017 CU8. This container is called sql2017cu10
 
 2. Run **step2_dockercopy.sh** to copy the WWI backyup into the container.
