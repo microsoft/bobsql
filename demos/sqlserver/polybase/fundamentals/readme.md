@@ -34,12 +34,16 @@ I then used the sp_polybase_join_group procedure per the documentation on bwpoly
 
 ## Check the Polybase configuration
 
-Run the T-SQL commands in the script **polybase_status.sql** to see configuration of the scale out group and details of the head and compute nodes
+1. Run the T-SQL commands in the script **polybase_status.sql** to see configuration of the scale out group and details of the head and compute nodes
+
+2. Use SSMS to browse tables in the DWConfiguration, DWDiagnostics, and DWQueue databases which are installed on all nodes.
 
 ## Create an external table and track query and polybase execution
 
-1. For my demo, I simply setup an Azure storage container using the instructions as found at https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal (note I did not create a blog just the storage account and container).
+1. Download and restore the WideWorldImporters backup from https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/wide-world-importers
 
-2. Run all the T-SQL commands in **hdfs_external_table.sql**. You will need to edit the appropriate details to point to your Azure storage container including the credential and location for the data source
+2. For my demo, I simply setup an Azure storage container using the instructions as found at https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal (note I did not create a blog just the storage account and container).
 
-3. The the T-SQL commands in **trace_pb_query_execution.sql** to trace the execution of a query in Polybase.
+3. Run all the T-SQL commands in **hdfs_external_table.sql**. You will need to edit the appropriate details to point to your Azure storage container including the credential and location for the data source
+
+4. The the T-SQL commands in **trace_pb_query_execution.sql** to trace the execution of a query in Polybase.

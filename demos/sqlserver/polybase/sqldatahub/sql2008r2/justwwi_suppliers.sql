@@ -39,6 +39,11 @@ CREATE TABLE [Suppliers](
 	[SupplierName] ASC
 )
 )
+-- Insert some data
+--
+TRUNCATE TABLE [Suppliers]
 GO
-SELECT CONVERT (varchar, SERVERPROPERTY('collation'))
+INSERT INTO [Suppliers]
+VALUES (-1, 'Brooks Brothers', 4, -1, -2, 1, 24161, 24161, 'First US Clothing', 'Bank of New York Mellon', 'New York', NULL, '123456789', NULL, 30, '2121111111', '2121112222', 'brooksbrothers.com', '1 Broadway', NULL, '10004', '1 Broadway', NULL, '10004', 1)
 GO
+

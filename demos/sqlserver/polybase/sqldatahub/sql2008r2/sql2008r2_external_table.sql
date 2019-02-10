@@ -68,9 +68,22 @@ CREATE EXTERNAL TABLE sqlserver.suppliers
 GO
 CREATE STATISTICS SupplierNameStatistics ON sqlserver.suppliers ([SupplierName]) WITH FULLSCAN
 GO
-
-BEGIN DISTRIBUTED TRANSACTION
-select * from sqlserver.suppliers where SupplierID = 1
-rollback transaction
+-- Scan the table to make sure it works
+--
+SELECT * FROM sqlserver.suppliers
 GO
-dbcc show_statistics('sqlserver.supppliers')
+
+-- Find a specific supplier
+--
+SELECT * FROM sqlserver.suppliers where SupplierName = 'Brooks Brothers'
+GO
+--
+-- Find all former clothing suppliers and their city
+SELECT s.SupplierName, s.SupplierReference, c.cityname
+FROM sqlserver.suppliers s
+JOIN [Purchasing].[SupplierCategories] sc
+on s.SupplierCategoryID = sc.SupplierCategoryID
+and sc.SupplierCategoryName = 'Clothing Supplier'
+JOIN [Application].[Cities] c
+ON s.DeliveryCityID = c.CityID
+GO

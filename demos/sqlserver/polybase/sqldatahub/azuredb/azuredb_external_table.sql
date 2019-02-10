@@ -28,25 +28,25 @@ DROP SCHEMA azuresqldb
 go
 CREATE SCHEMA azuresqldb
 GO
-/*  LOCATION: sql server table/view in 'database_name.schema_name.object_name' format
-*  DATA_SOURCE: the external data source, created above.
-*/
+-- WWI was created with Latin1_General_100_CI_AS collation so I need to make my columns that
+-- if I want to support UNION.
+--
 DROP EXTERNAL TABLE azuresqldb.ModernStockItems
 GO
 CREATE EXTERNAL TABLE azuresqldb.ModernStockItems
 (
 	[StockItemID] [int] NOT NULL,
-	[StockItemName] [nvarchar](100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[StockItemName] [nvarchar](100) COLLATE Latin1_General_100_CI_AS NOT NULL,
 	[SupplierID] [int] NOT NULL,
 	[ColorID] [int] NULL,
 	[UnitPackageID] [int] NOT NULL,
 	[OuterPackageID] [int] NOT NULL,
-	[Brand] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	[Size] [nvarchar](20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Brand] [nvarchar](50) COLLATE Latin1_General_100_CI_AS NULL,
+	[Size] [nvarchar](20) COLLATE Latin1_General_100_CI_AS NULL,
 	[LeadTimeDays] [int] NOT NULL,
 	[QuantityPerOuter] [int] NOT NULL,
 	[IsChillerStock] [bit] NOT NULL,
-	[Barcode] [nvarchar](50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Barcode] [nvarchar](50) COLLATE Latin1_General_100_CI_AS NULL,
 	[TaxRate] [decimal](18, 3) NOT NULL,
 	[UnitPrice] [decimal](18, 2) NOT NULL,
 	[RecommendedRetailPrice] [decimal](18, 2) NULL,
@@ -66,5 +66,29 @@ CREATE EXTERNAL TABLE azuresqldb.ModernStockItems
 GO
 CREATE STATISTICS ModernStockItemsStats ON azuresqldb.ModernStockItems ([StockItemID]) WITH FULLSCAN
 GO
-
+-- Let's scan the table first to make sure it works
+--
 SELECT * FROM azuresqldb.ModernStockItems
+GO
+-- Now try to filter on just the stockitemid
+--
+SELECT * FROM azuresqldb.ModernStockItems WHERE StockItemID = 100000
+GO
+-- Find all stockitems from the Graphic Design Institute supplier
+--
+SELECT msi.StockItemName, msi.Brand, c.ColorName
+FROM azuresqldb.ModernStockItems msi
+JOIN [Purchasing].[Suppliers] s
+ON msi.SupplierID = s.SupplierID
+and s.SupplierName = 'Graphic Design Institute'
+JOIN [Warehouse].[Colors] c
+ON msi.ColorID = c.ColorID
+UNION
+SELECT si.StockItemName, si.Brand, c.ColorName
+FROM [Warehouse].[StockItems] si
+JOIN [Purchasing].[Suppliers] s
+ON si.SupplierID = s.SupplierID
+and s.SupplierName = 'Graphic Design Institute'
+JOIN [Warehouse].[Colors] c
+ON si.ColorID = c.ColorID
+GO
