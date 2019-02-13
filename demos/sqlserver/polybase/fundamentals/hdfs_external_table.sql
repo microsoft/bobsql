@@ -45,10 +45,16 @@ CREATE EXTERNAL FILE FORMAT TextFileFormat WITH (
       FORMAT_OPTIONS (FIELD_TERMINATOR ='|',
             USE_TYPE_DEFAULT = TRUE))
 GO
--- LOCATION: path to file or directory that contains the data (relative to HDFS root).
-DROP EXTERNAL TABLE [WWI_Order_Reviews]
+-- Create a schema called hdfs
+--
+DROP SCHEMA hdfs
 GO
-CREATE EXTERNAL TABLE [dbo].[WWI_Order_Reviews] (  
+CREATE SCHEMA hdfs
+GO
+-- LOCATION: path to file or directory that contains the data (relative to HDFS root).
+DROP EXTERNAL TABLE [hdfs].[WWI_Order_Reviews]
+GO
+CREATE EXTERNAL TABLE [hdfs].[WWI_Order_Reviews] (  
       [OrderID] int NOT NULL,
       [CustomerID] int NOT NULL,
       [Rating] int NULL,
@@ -62,18 +68,30 @@ GO
 
 -- Ingest some data
 --
-INSERT INTO [dbo].[WWI_Order_Reviews] VALUES (1, 1, 10, 'I had a great experience with my order')
+INSERT INTO [hdfs].[WWI_Order_Reviews] VALUES (1, 832, 10, 'I had a great experience with my order')
 GO
-CREATE STATISTICS StatsforReviews on WWI_Order_Reviews(OrderID, CustomerID)
+CREATE STATISTICS StatsforReviews on [hdfs].[WWI_Order_Reviews](OrderID, CustomerID)
 GO
 
 -- Now query the external table
 --
-SELECT * FROM [dbo].[WWI_Order_Reviews]
+SELECT * FROM [hdfs].[WWI_Order_Reviews]
 GO
 
 -- Let's do a filter to enable pushdown
 --
-SELECT * FROM [dbo].[WWI_Order_Reviews]
+SELECT * FROM [hdfs].[WWI_Order_Reviews]
 WHERE OrderID = 1
+GO
+
+-- Let's join the review with our order and customer data
+--
+SELECT o.OrderDate, c.CustomerName, p.FullName as SalesPerson, wor.Rating, wor.Review_Comments
+FROM [Sales].[Orders] o
+JOIN [hdfs].[WWI_Order_Reviews] wor
+ON o.OrderID = wor.OrderID
+JOIN [Application].[People] p
+ON p.PersonID = o.SalespersonPersonID
+JOIN [Sales].[Customers] c
+ON c.CustomerID = wor.CustomerID
 GO
