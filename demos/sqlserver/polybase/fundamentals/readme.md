@@ -42,7 +42,7 @@ I then used the sp_polybase_join_group procedure per the documentation on bwpoly
 
 1. Download and restore the WideWorldImporters backup from https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/wide-world-importers
 
-2. For my demo, I simply setup an Azure storage container using the instructions as found at https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal (note I did not create a blog just the storage account and container).
+2. For my demo, I simply setup an Azure storage container using the instructions as found at https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-portal (note I did not create a blob just the storage account and container which in my case I named **wwi**).
 
 3. Run all the T-SQL commands in **hdfs_external_table.sql**. You will need to edit the appropriate details to point to your Azure storage container including the credential and location for the data source
 
