@@ -36,7 +36,7 @@ GO
 CREATE EXTERNAL TABLE oracle.accountsreceivable
 (
 arid int,
-ardate datetime,
+ardate date,
 ardesc varchar(100) COLLATE Latin1_General_100_CI_AS,
 arref int,
 aramt decimal(10,2)
@@ -49,4 +49,19 @@ aramt decimal(10,2)
 GO
 CREATE STATISTICS arrefstats ON oracle.accountsreceivable ([arref]) WITH FULLSCAN
 GO
+-- Let's scan the table to make sure it works
 SELECT * FROM oracle.accountsreceivable
+GO
+
+-- Try a simple filter
+SELECT * FROM oracle.accountsreceivable
+WHERE arref = 336252
+GO
+
+-- Join with a local table
+--
+SELECT ct.*, oa.arid, oa.ardesc
+FROM oracle.accountsreceivable oa
+JOIN [Sales].[CustomerTransactions] ct
+ON oa.arref = ct.CustomerTransactionID
+GO
