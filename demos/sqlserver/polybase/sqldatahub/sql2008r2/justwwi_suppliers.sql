@@ -47,3 +47,26 @@ INSERT INTO [Suppliers]
 VALUES (-1, 'Brooks Brothers', 4, -1, -2, 1, 24161, 24161, 'First US Clothing', 'Bank of New York Mellon', 'New York', NULL, '123456789', NULL, 30, '2121111111', '2121112222', 'brooksbrothers.com', '1 Broadway', NULL, '10004', '1 Broadway', NULL, '10004', 1)
 GO
 
+
+-- Let's go insert 1M fake suppliers
+--
+SET NOCOUNT ON
+GO
+BEGIN TRAN
+GO
+DECLARE @x int
+DECLARE @y nvarchar(100)
+SET @x = -2
+WHILE @x > -1000001
+BEGIN
+	SET @y = 'Old Supplier'+CAST(@X as nvarchar(10))
+	INSERT INTO Suppliers VALUES (@x, @Y, 4, -1, -2, 1, 24161, 24161, 'Unknown', 'Unknown', 'Unknown', NULL, '123456789', NULL, 0, '2121111111', '2121112222', 'Unknown', 'Unknown', NULL, '00000', 'Unknown', NULL, '00000', 1)
+	SET @x = @x - 1
+	--SELECT @x
+END
+GO
+COMMIT TRAN
+GO
+SET NOCOUNT OFF
+GO
+
