@@ -53,8 +53,9 @@ GO
 
 
 -- Let's go insert 1M fake suppliers
+-- This is commented out for now due to an issue scanning a large result set against a SQL 2008R2 serverr
 --
-SET NOCOUNT ON
+/* SET NOCOUNT ON
 GO
 BEGIN TRAN
 GO
@@ -72,5 +73,5 @@ GO
 COMMIT TRAN
 GO
 SET NOCOUNT OFF
-GO
+GO */
 
