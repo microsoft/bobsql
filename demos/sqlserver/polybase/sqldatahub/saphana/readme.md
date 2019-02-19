@@ -33,6 +33,8 @@ and found these docs on how to setup the driver on Windows
 
 https://help.sap.com/viewer/e9146b36040844d0b1f309bc8c1ba6ab/2.5.0.0/en-US/321ff67a31f54654af30dad9f82347dc.html
 
+**Note: You must install the driver on all nodes for the Polybase scale out group and configure them all with the same server and port. If you don't install this on the compute nodes you may get intermittent errors when querying the external table because Polybase may redirect your query through a compute node where the driver doesn't exist.**
+
 The experience was interesting and here our some tips:
 
 - Run the installer from a powershell or cmd window as Administrator
