@@ -4,7 +4,7 @@ This folder contains demo scripts to show the basic funcionality of Polybase by 
 
 ## Install and Configure Polybase
 
-These demos require that you install SQL Server 2019 on Windows Server and configure a head node and at least one compute node (i.e. a scale out group)
+These demos require that you install SQL Server 2019 on Windows Server and configure a head node and at least one compute node (i.e. a scale out group). This demo currently requires SQL Server 2019 CTP 2.3 or higher.
 
 I used the installation instructions in the documentation from:
 

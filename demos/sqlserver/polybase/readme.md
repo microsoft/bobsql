@@ -18,3 +18,5 @@ These demos show an example of using the WideWorldImporters database as a hub in
 - Oracle
 - CosmosDB
 - SAP HANA
+
+**Note: These demos all require you to setup Polybase on SQL Server 2019 CTP 2.3 or higher with all of the steps from the Fundamentals folder.**

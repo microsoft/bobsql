@@ -66,12 +66,17 @@ CREATE EXTERNAL TABLE sqlserver.suppliers
  DATA_SOURCE=SqlServerInstance
 )
 GO
-CREATE STATISTICS SupplierNameStatistics ON sqlserver.suppliers ([SupplierName]) WITH FULLSCAN
-GO
+-- Note: NOt doing the scan because with CTP 2.3 against a SQL 2008R2 server
+-- the query fails when the data source has a large number of rows like 1M
+-- This is still being investigated.
+--CREATE STATISTICS SupplierNameStatistics ON sqlserver.suppliers ([SupplierName]) WITH FULLSCAN
+--0GO
 -- Scan the table to make sure it works
---
-SELECT * FROM sqlserver.suppliers
-GO
+-- Note: NOt doing the scan because with CTP 2.3 against a SQL 2008R2 server
+-- the query fails when the data source has a large number of rows like 1M
+-- This is still being investigated.
+--SELECT * FROM sqlserver.suppliers
+--GO
 
 -- Find a specific supplier
 --

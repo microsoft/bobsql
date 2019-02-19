@@ -2,7 +2,7 @@
 
 This is a demo to show how to connect to a SAP HANA database using the odbc connector shipped with SQL Server 2019.
 
-This demo assumes you have setup a Polybase scale out group as shown in the fundamentals folder above this folder.
+This demo assumes you have setup a Polybase scale out group as shown in the fundamentals folder above this folder. NOTE: You must be running SQL Server 2019 CTP 2.3 or higher in order to use this SAP HANA demo.
 
 ## SAP HANA setup
 
@@ -36,7 +36,7 @@ https://help.sap.com/viewer/e9146b36040844d0b1f309bc8c1ba6ab/2.5.0.0/en-US/321ff
 The experience was interesting and here our some tips:
 
 - Run the installer from a powershell or cmd window as Administrator
-- Depending on what version of Windows Server, you may get an error on the VC++ runtime install. This driver depends on installing the VC++ runtime for VS 2015. I had a the VS 2017 runtime so it failed. The solution is to first uninstall the VS 2017 VC++ runtime, install the ODBC driver, and the reinstall the VS 2017 VC++ runtime.
+- Depending on what version of Windows Server, you may get an error on the VC++ runtime install like "Program terminated with exit code 1638". This driver depends on installing the VC++ runtime for VS 2015. I had a the VS 2017 runtime so it failed. The solution is to first uninstall the VS 2017 VC++ runtime, install the ODBC driver, and the reinstall the VS 2017 VC++ runtime.
 - You want your System DSN to use the right port for SAP HANA. The port is based on the instance number and tenant (database) of the SAP HANA Server. The port will always be 3XXYY where XX = instance number and YY = number for the database. The instance number was 90 from the default Azure template install for me. But what about the VANDELAY database? Turns out there is a view called sys_databases.m_services in the SYSTEMDB database which tells you the SQL port for each database. When I ran a query against this view logged in as SYSTEM I found out the port for VANDELAY was 39041. So I used this port in the DSN configuration. 
 - Since bwsaphana is imy hosts file to point to the private IP of the SAP VM, I can use that as the host server name.
 

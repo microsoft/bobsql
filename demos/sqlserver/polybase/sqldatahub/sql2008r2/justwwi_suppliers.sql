@@ -1,5 +1,9 @@
 USE [JustWorldImporters]
 GO
+
+-- TODO: Add in partitions
+--
+
 DROP TABLE [Suppliers]
 GO
 CREATE TABLE [Suppliers](
