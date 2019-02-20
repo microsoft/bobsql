@@ -21,8 +21,8 @@ CREATE EXTERNAL DATA SOURCE SQLServerInstance
 WITH ( 
 LOCATION = 'sqlserver://bwsql2008r2',
 PUSHDOWN = ON,
-CREDENTIAL = SQLServerCredentials, -- This is a workaround for a bug in SQL 2019 CTP 2.3 under investigation.
-CONNECTION_OPTIONS = 'UseDefaultEncryptionOptions=false'
+CREDENTIAL = SQLServerCredentials,
+CONNECTION_OPTIONS = 'UseDefaultEncryptionOptions=false' -- This is a workaround for a bug in SQL 2019 CTP 2.3 under investigation.
 )
 GO
 DROP SCHEMA sqlserver
