@@ -4,7 +4,9 @@ This is a demo to show how to connect to a SAP HANA database using the odbc conn
 
 This demo assumes you have setup a Polybase scale out group as shown in the fundamentals folder above this folder. NOTE: You must be running SQL Server 2019 CTP 2.3 or higher in order to use this SAP HANA demo.
 
-## SAP HANA setup
+## Requirements - SAP HANA setup
+
+### SAP HANA Server Setup
 
 You can use an existing SAP HANA system. For purposes of this demo I created an SAP HANA server using the SAP HANA Express Edition template from Azure which you can read more at https://azuremarketplace.microsoft.com/ja-/marketplace/apps/sap.hanaexpress?tab=Overview. This is a SUSE Linux VM with SAP HANA installed. I created this VM in the resource group of the polybase head node, bwsql2019demos, so I would be on the same virtual net. I also took the private IP address of the SAP VM and put this in c:\windows\system32\drivers\etc\hosts as bwsaphana so I could just refer to that hostname on my polybase head node.
 
@@ -23,7 +25,7 @@ https://developers.sap.com/tutorials/hxe-ms-azure-marketplace-getting-started.ht
 
 7. Execute **insertdata.sh** which will insert a row into the Customers table. I used a CustomerID of 100000 because this is far bigger than what the WideWorldImporters database would have in its Sales.Customer table set of ID values.
 
-## Install the SAP HANA Driver
+### Install the SAP HANA Driver
 
 In order to use the general odbc connector built into SQL Server 2019 you must install the driver to connect to your ODBC data source. Since I am going to show you how to connect to SAP HANA, I found the official 64bit ODBC Driver for SAP HANA called HDBODBC. In order to support a scale out group you need to install this on each of the Polybase nodes. For purposes of this demo, I will only install this on the head node, bwpolybase.
 
@@ -42,7 +44,7 @@ The experience was interesting and here our some tips:
 - You want your System DSN to use the right port for SAP HANA. The port is based on the instance number and tenant (database) of the SAP HANA Server. The port will always be 3XXYY where XX = instance number and YY = number for the database. The instance number was 90 from the default Azure template install for me. But what about the VANDELAY database? Turns out there is a view called sys_databases.m_services in the SYSTEMDB database which tells you the SQL port for each database. When I ran a query against this view logged in as SYSTEM I found out the port for VANDELAY was 39041. So I used this port in the DSN configuration. 
 - Since bwsaphana is imy hosts file to point to the private IP of the SAP VM, I can use that as the host server name.
 
-## Using the external table
+## Demo Steps
 
 1. All the instructions are in the **sap_external_table.sql** script to create the credential, data source, external table, and query against the remote table.
 
@@ -56,4 +58,3 @@ PUSHDOWN = ON,
 CREDENTIAL = SAPHANACredentials
 )
 GO
-

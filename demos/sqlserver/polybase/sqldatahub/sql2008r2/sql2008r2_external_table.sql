@@ -21,7 +21,8 @@ CREATE EXTERNAL DATA SOURCE SQLServerInstance
 WITH ( 
 LOCATION = 'sqlserver://bwsql2008r2',
 PUSHDOWN = ON,
-CREDENTIAL = SQLServerCredentials
+CREDENTIAL = SQLServerCredentials, -- This is a workaround for a bug in SQL 2019 CTP 2.3 under investigation.
+CONNECTION_OPTIONS = 'UseDefaultEncryptionOptions=false'
 )
 GO
 DROP SCHEMA sqlserver
@@ -68,8 +69,7 @@ CREATE EXTERNAL TABLE sqlserver.suppliers
 GO
 CREATE STATISTICS SupplierNameStatistics ON sqlserver.suppliers ([SupplierName]) WITH FULLSCAN
 GO
-
--- Do a quick scan to test it
+-- Scan the table to make sure it works
 --
 SELECT * FROM sqlserver.suppliers
 GO

@@ -1,9 +1,19 @@
 USE [JustWorldImporters]
 GO
-
--- TODO: Add in partitions
+-- Create a partition function
 --
-
+CREATE PARTITION FUNCTION [PF_Supplier_Names](nvarchar(100))
+AS RANGE RIGHT FOR VALUES (N'Brooks Brothers', N'Old Suppliers -1', N'Old Suppliers -250000', 
+N'Old Suppliers -500000', N'Old Suppliers -750000')
+GO
+-- Create the partition scheme
+--
+CREATE PARTITION SCHEME [PS_Supplier_Names] 
+AS PARTITION [PF_Supplier_Names] 
+TO ([PRIMARY], [PRIMARY], [PRIMARY], [PRIMARY], [PRIMARY], [PRIMARY])
+GO
+-- Create the table
+--
 DROP TABLE [Suppliers]
 GO
 CREATE TABLE [Suppliers](
@@ -36,12 +46,12 @@ CREATE TABLE [Suppliers](
 	[LastEditedBy] [int] NOT NULL
  CONSTRAINT [PK_Purchasing_Suppliers] PRIMARY KEY CLUSTERED 
 (
-	[SupplierID] ASC
-),
- CONSTRAINT [UQ_Purchasing_Suppliers_SupplierName] UNIQUE NONCLUSTERED 
-(
 	[SupplierName] ASC
-)
+) ON [PS_Supplier_names]([SupplierName]),
+-- CONSTRAINT [UQ_Purchasing_Suppliers_ID] UNIQUE NONCLUSTERED 
+--(
+--	[SupplierID] ASC
+--)
 )
 -- Insert some data
 --
@@ -51,11 +61,9 @@ INSERT INTO [Suppliers]
 VALUES (-1, 'Brooks Brothers', 4, -1, -2, 1, 24161, 24161, 'First US Clothing', 'Bank of New York Mellon', 'New York', NULL, '123456789', NULL, 30, '2121111111', '2121112222', 'brooksbrothers.com', '1 Broadway', NULL, '10004', '1 Broadway', NULL, '10004', 1)
 GO
 
-
 -- Let's go insert 1M fake suppliers
--- This is commented out for now due to an issue scanning a large result set against a SQL 2008R2 serverr
 --
-/* SET NOCOUNT ON
+SET NOCOUNT ON
 GO
 BEGIN TRAN
 GO
@@ -67,11 +75,9 @@ BEGIN
 	SET @y = 'Old Supplier'+CAST(@X as nvarchar(10))
 	INSERT INTO Suppliers VALUES (@x, @Y, 4, -1, -2, 1, 24161, 24161, 'Unknown', 'Unknown', 'Unknown', NULL, '123456789', NULL, 0, '2121111111', '2121112222', 'Unknown', 'Unknown', NULL, '00000', 'Unknown', NULL, '00000', 1)
 	SET @x = @x - 1
-	--SELECT @x
 END
 GO
 COMMIT TRAN
 GO
 SET NOCOUNT OFF
-GO */
-
+GO

@@ -6,7 +6,7 @@ The demos are organized into the following folders
 
 ## fundamentals
 
-Use these demos to show basics of Polybase head and compute nodes and the execution lifecycle of an external table to HDFS files
+Use these demos to show basics of Polybase head and compute nodes and the execution lifecycle of an external table to HDFS files. Yout must go through this demo to setup Polybase to be able to run the demos in the sqldatahub folder, unless you already have a SQL Server 2019 CTP 2.3 or higher Polybase cluster.
 
 ## sqldatahub
 

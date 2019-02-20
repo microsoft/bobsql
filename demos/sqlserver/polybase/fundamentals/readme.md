@@ -2,7 +2,7 @@
 
 This folder contains demo scripts to show the basic funcionality of Polybase by examining the configuration of nodes through DMV, creating an external table over HDFS, and monitoring execution details through DMVs.
 
-## Install and Configure Polybase
+## Requirements - Install and Configure Polybase
 
 These demos require that you install SQL Server 2019 on Windows Server and configure a head node and at least one compute node (i.e. a scale out group). This demo currently requires SQL Server 2019 CTP 2.3 or higher.
 
@@ -32,13 +32,15 @@ I also first ensured that the Windows Firewall was configured for SQL Server and
 
 I then used the sp_polybase_join_group procedure per the documentation on bwpolybase2 and bwpolybase3 to join the scale out group. This required restarting the Polybase services on each machine.
 
-## Check the Polybase configuration
+## Demo Steps
+
+### Check the Polybase configuration
 
 1. Run the T-SQL commands in the script **polybase_status.sql** to see configuration of the scale out group and details of the head and compute nodes
 
 2. Use SSMS to browse tables in the DWConfiguration, DWDiagnostics, and DWQueue databases which are installed on all nodes.
 
-## Create an external table and track query and polybase execution
+### Create an external table and track query and polybase execution
 
 1. Download and restore the WideWorldImporters backup from https://github.com/Microsoft/sql-server-samples/tree/master/samples/databases/wide-world-importers
 
