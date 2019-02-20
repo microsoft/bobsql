@@ -1,4 +1,6 @@
-# SQL Server demos to show capabilities in performance, data virtualization, Linux, and other general SQL Server capablities. Each demo folder can be run on its own. See requirements for version of SQL Server for each demo
+# SQL Server demos
+
+SQL Server demos to show capabilities in performance, data virtualization, Linux, and other general SQL Server capablities. Each demo folder can be run on its own. See requirements for version of SQL Server for each demo.
 
 ## aqp
 
@@ -14,7 +16,7 @@ This ia a demo for the Polybase feature of SQL Server to show data virtualizatio
 
 ## sqllinux
 
-This is a set of demos to show the capabilities of SQL Server on Linux. This demos can run on SQL Server 2017 or higher.
+This is a set of demos to show the capabilities of SQL Server on Linux. This demos can run on SQL Server 2017 or higher. For a more detailed set of demos for SQL Server on Linux and containers, go to https://github.com/Microsoft/sqllinuxlabs.
 
 ## iqp
 
