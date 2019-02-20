@@ -19,3 +19,7 @@ This is a set of demos to show the capabilities of SQL Server on Linux. This dem
 ## iqp
 
 This is a demo for the Intelligent Query Processing feature of SQL Server 2019 or greater.
+
+## staticmask
+
+This is a demo for the Static Data Masking feature with SSMS 18.0 and SQL Server
