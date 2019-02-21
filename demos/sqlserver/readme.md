@@ -25,3 +25,7 @@ This is a demo for the Intelligent Query Processing feature of SQL Server 2019 o
 ## staticmask
 
 This is a demo for the Static Data Masking feature with SSMS 18.0 and SQL Server
+
+## java
+
+This is a demo to show the Java extensibility capabilities in SQL Server 2019
