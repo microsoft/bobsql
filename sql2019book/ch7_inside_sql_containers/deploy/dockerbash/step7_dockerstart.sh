@@ -1,0 +1,1 @@
+sudo docker start sql2019latest

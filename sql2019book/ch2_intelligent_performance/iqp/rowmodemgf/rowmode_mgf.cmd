@@ -1,0 +1,1 @@
+ostress -Usa -irowmode_mgf.sql -n10 -r10 -q -Sbwsql2019 -dWideWorldImportersDW

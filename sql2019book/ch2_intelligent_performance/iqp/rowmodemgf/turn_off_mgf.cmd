@@ -1,0 +1,1 @@
+sqlcmd -Usa -iturn_off_mgf.sql -dWideWorldImportersDW -Sbwsql2019
