@@ -1,5 +1,5 @@
 
-![](graphics/sql2019bookimage.png)
+![Book Graphic](./graphics/sql2019bookimage.jpg)
 
 # SQL Server 2019 Revealed
 
