@@ -52,6 +52,32 @@ It is possible to use ALL the examples in this book on a SQL Server 2019 deploym
 
 In this chapter a sentence says "Given that the client application is the only place where decryption takes place, there is no way to truly build an index with Always Encrypted". This is not the entire story. Thanks to Tom Normal from the community pointing out that the 100% accurate answer is that Always Encrypted prior to SQL Server 2019 did support indexes using deterministic encryption but not with randomized encryption. You can read more about ths in the documentation at https://docs.microsoft.com/en-us/sql/relational-databases/security/encryption/always-encrypted-database-engine?view=sql-server-ver15#selecting--deterministic-or-randomized-encryption. Always Encrypted with secure enclaves talks about new indexing capabilities at https://docs.microsoft.com/en-us/sql/relational-databases/security/encryption/always-encrypted-enclaves?view=sql-server-ver15#enclave-enabled-columns.
 
+### Chapter 7 Inside SQL Server Containers
+
+In this chapter, there are a few corrections needed to the scripts to account for non-root containers in SQL Server 2019
+
+The Dockerfile for both db1 and db2 directories does not need the RUN command so now looks like this:
+
+```docker
+FROM mcr.microsoft.com/mssql/rhel/server:2019-latest
+COPY . /
+CMD /bin/bash ./entrypoint.sh
+```
+In the db1 directory, the script **dbinit.sh** does not need the chown and chgrp commands so now looks like this:
+
+```bash
+#wait for the SQL Server to come up
+sleep 45s
+
+mkdir /var/opt/mssql/ReplData/
+
+echo "running set up script"
+#run the setup script to create the DB and the schema in the DB
+/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P MssqlPass123 -d master -i db-init.sql
+```
+
+All other scripts should work as there were documented in the book.
+
 ### Chapter 8 SQL Server on Kubernetes
 
 - Using the correct StorageClass
