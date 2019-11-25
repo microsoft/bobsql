@@ -8,10 +8,6 @@ Deploy SQL Server container example
 
 Example of how to run SQL Server container as non-root
 
-## lwp
-
-Lightweight Query Profiling examples
-
 ## sqlrepl
 
 Run SQL Server replication using containers
