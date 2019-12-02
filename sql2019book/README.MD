@@ -54,7 +54,11 @@ In this chapter a sentence says "Given that the client application is the only p
 
 ### Chapter 7 Inside SQL Server Containers
 
-In this chapter, there are a few corrections needed to the scripts to account for non-root containers in SQL Server 2019
+The book uses SQL Server 2017 images to demonstrate how to deploy containers and update them because there were no "updates" for SQL Server 2019 when I wrote the book.
+
+You can find scripts for both bash and powershell to deploy and update SQL Server 2019 containers (since an update now exists) at https://github.com/microsoft/sqlworkshops/tree/master/sql2019workshop/sql2019wks/06_Linux_and_Containers
+
+For the scripts for the **sqlrepl** folder, there are a few corrections needed to the scripts to account for non-root containers in SQL Server 2019
 
 The Dockerfile for both db1 and db2 directories does not need the RUN command so now looks like this:
 
