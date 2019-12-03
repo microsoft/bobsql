@@ -133,4 +133,8 @@ to allow the non-root container to access the PersistentVolumeClaim (PVC). The *
 
 The book makes this statement "The number of columns and their data types must match exactly with the external data source table, but you can use any name you want on the SQL side both for the column names and the name of the table itself."
 
-This was true in earlier preview releases of SQL Server 2019. However, in the General Availability release of SQL Searver 2019, the only requirement is the column name. It must match exactly to the target data source but the ordering does not matter. And, you can specify only a subset of columns from the data source.
+This was true in earlier preview releases of SQL Server 2019. However, in the General Availability release of SQL Server 2019, the only requirement is the column name. It must match exactly to the target data source but the ordering does not matter. And, you can specify only a subset of columns from the data source.
+
+- Use the Servicing Update or latest cumulative update.
+
+There were a few issues discovered with Polybase as we released SQL Server 2019 which have been addressed in the initial SQL Server 2019 Servicing Update. Be sure to apply this update or the latest cumulative update when using Polybase. You can download the SQL Server 2019 Servicing Update at https://support.microsoft.com/en-us/help/4517790/servicing-update-for-sql-server-2019-rtm.
