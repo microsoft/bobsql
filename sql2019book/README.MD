@@ -138,3 +138,13 @@ This was true in earlier preview releases of SQL Server 2019. However, in the Ge
 - Use the Servicing Update or latest cumulative update.
 
 There were a few issues discovered with Polybase as we released SQL Server 2019 which have been addressed in the initial SQL Server 2019 Servicing Update. Be sure to apply this update or the latest cumulative update when using Polybase. You can download the SQL Server 2019 Servicing Update at https://support.microsoft.com/en-us/help/4517790/servicing-update-for-sql-server-2019-rtm.
+
+## Chapter 10 Big Data Clusters
+
+Everything in this chapter was based on SQL Server 2019 Release Candidate 1 (RC1). I waited as long as I could to build out this chapter but there were a few differences that were included in BDC between RC1 and SQL Server 2019 Servicing Update (GDR1). If you deploy a Big Data Cluster using latest provided tools, you will be using the SQL Server 2019 Servicing Update (GDR1).
+
+This includes the following:
+
+- You can deploy the HA option on AKS with a pre-configured option of **aks-dev-test-ha**.
+- The SQL sa account is disabled by default for the master instance. Instead when you deploy a BDC you are prompted to enter in a AZDATA_USERNAME and AZDATA_PASSWORD. The AZDATA_USERNAME user is the cluster administrator and is a sysadmin on the master instance.
+- As I mentioned in the book Active Directory Authentication did make it into the release. You can read about it at https://docs.microsoft.com/en-us/sql/big-data-cluster/deploy-active-directory?view=sql-server-ver15.
