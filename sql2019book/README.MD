@@ -9,7 +9,7 @@
 
 Get up to speed on the game-changing developments in SQL Server 2019. No longer just a database engine, SQL Server 2019 is cutting edge with support for machine learning (ML), big data analytics, Linux, containers, Kubernetes, Java, and data virtualization to Azure. This is not a book on traditional database administration for SQL Server. It focuses on all that is new for one of the most successful modernized data platforms in the industry. It is a book for data professionals who already know the fundamentals of SQL Server and want to up their game by building their skills in some of the hottest new areas in technology.
 
-***SQL Server 2019 Revealed*** begins with a look at the project's team goal to integrate the world of big data with SQL Server into a major product release. The book then dives into the details of key new capabilities in SQL Server 2019 using a “learn by example” approach for Intelligent Performance, security, mission-critical availability, and features for the modern developer. Also covered are enhancements to SQL Server 2019 for Linux and gain a comprehensive look at SQL Server using containers and Kubernetes clusters.
+***SQL Server 2019 Revealed*** begins with a look at the project's team goal to integrate the world of big data with SQL Server into a major product release. The book then dives into the details of key new capabilities in SQL Server 2019 using a "learn by example" approach for Intelligent Performance, security, mission-critical availability, and features for the modern developer. Also covered are enhancements to SQL Server 2019 for Linux and gain a comprehensive look at SQL Server using containers and Kubernetes clusters.
 The book concludes by showing you how to virtualize your data access with Polybase to Oracle, MongoDB, Hadoop, and Azure, allowing you to reduce the need for expensive extract, transform, and load (ETL) applications. You will then learn how to take your knowledge of containers, Kubernetes, and Polybase to build a comprehensive solution called Big Data Clusters, which is a marquee feature of 2019. You will also learn how to gain access to Spark, SQL Server, and HDFS to build intelligence over your own data lake and deploy end-to-end machine learning applications.
 
 ### What You Will Learn
@@ -60,11 +60,11 @@ You can find scripts for both bash and powershell to deploy and update SQL Serve
 
 For the scripts for the **sqlrepl** folder, there are a few corrections needed to the scripts to account for non-root containers in SQL Server 2019
 
-The Dockerfile for both db1 and db2 directories does not need the RUN command so now looks like this:
+The Dockerfile for both db1 and db2 directories does not need the RUN command but need a change to the COPY command to ensure the ownership of the scripts can run as non-root. The new script looks like this:
 
 ```docker
 FROM mcr.microsoft.com/mssql/rhel/server:2019-latest
-COPY . /
+COPY --chown=10001 . /
 CMD /bin/bash ./entrypoint.sh
 ```
 In the db1 directory, the script **dbinit.sh** does not need the chown and chgrp commands so now looks like this:
