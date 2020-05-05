@@ -1,0 +1,40 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+- task: DockerCompose@0
+  displayName: 'Build any containers'
+  inputs:
+    dockerComposeFiles: docker-compose.yml
+    action: Run a Docker Compose command
+    dockerComposeCommand: build
+
+- task: DockerCompose@0
+  displayName: 'Start up SQL Server'
+  inputs:
+    dockerComposeFiles: docker-compose.yml
+    action: Run a Docker Compose command
+    dockerComposeCommand: up -d mssql
+
+- task: DockerCompose@0
+  displayName: 'Create Database'
+  inputs:
+    dockerComposeFiles: docker-compose.yml
+    action: Run a Docker Compose command
+    dockerComposeCommand: up createdb
+
+- task: DockerCompose@0
+  displayName: 'Application Test'
+  inputs:
+    dockerComposeFiles: docker-compose.yml
+    action: Run a Docker Compose command
+    dockerComposeCommand: up apptest

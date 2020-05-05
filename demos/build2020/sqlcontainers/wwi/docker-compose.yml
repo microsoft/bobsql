@@ -1,0 +1,20 @@
+version: "3"
+services:
+    mssql:
+        image: mcr.microsoft.com/mssql/server:2019-CU3-ubuntu-18.04
+        environment:
+            SA_PASSWORD: "Sql2019isfast"
+            ACCEPT_EULA: "Y"
+            MSSQL_AGENT_ENABLED: "true"
+        container_name: mssql
+        hostname: mssql
+
+    createdb:
+        build: ./createdb
+        container_name: createdb
+        hostname: createdb
+
+    apptest:
+        build: ./apptest
+        container_name: apptest
+        hostname: apptest
