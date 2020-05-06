@@ -1,6 +1,6 @@
 # SQL Server Containers
 
-In this example, you will learn how to deploy a SQL Server container. 
+In this example, you will learn how to deploy a SQL Server container. You will also learn how to restore a database into the container, interact with a SQL container, start multiple containers, and to "patch" a SQL Server containers using a "switch" method.
 
 ## Requirements
 
