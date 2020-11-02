@@ -1,0 +1,1 @@
+ostress.exe -S<server>.database.windows.net -iorder_rating_insert_single.sql -Uthewandog -d<database> -P<password> -n25 -r10 -q
