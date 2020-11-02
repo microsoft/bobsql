@@ -29,7 +29,7 @@ This book is designed to teach SQL Server in the Azure cloud to the SQL Server p
 
 <h2><img style="float: left; margin: 0px 15px 15px 0px;" src="https://github.com/microsoft/sqlworkshops/blob/master/graphics/checkmark.png?raw=true"><b>     Using the Examples</b></h2>
 
-The examples for this book are available through scripts in folders on this GitHub repo. They are provided as a reference for you to use as a compliment while reading the book. You need to read the chapters of the book to see instructions, with example output, on how to use these examples. In some cases, example commands are provide *inline* in the book itself. Many chapters have examples based on step-by-step usage of the Azure Portal and therefore there are not as many script examples. You will need an Azure subscription for all of the examples. 
+The examples for this book are available through scripts in folders on this GitHub repo. They are provided as a reference for you to use as a compliment while reading the book. You need to read the chapters of the book to see instructions, with example output, on how to use these examples. In some cases, example commands are provide *inline* in the book itself. Many chapters have examples based on step-by-step usage of the Azure Portal and therefore there are not as many script examples. You will need an Azure subscription for all of the examples.
 
 <p style="border-bottom: 1px solid lightgrey;"></p>
 
