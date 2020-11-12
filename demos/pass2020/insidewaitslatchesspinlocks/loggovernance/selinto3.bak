@@ -1,0 +1,3 @@
+SELECT * INTO howboutthemcowboys3
+FROM howboutthemcowboys;
+GO
