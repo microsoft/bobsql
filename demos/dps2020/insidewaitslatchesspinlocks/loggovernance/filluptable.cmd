@@ -1,0 +1,1 @@
+ostress -Sbwazuresqlserver.database.windows.net -ifilluptable.sql -dbwazuresqlhyper80 -n10 -q -Uthewandog -P$cprsqlserver2019
