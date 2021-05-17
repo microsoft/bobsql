@@ -1,0 +1,1 @@
+az sql mi failover -g bobazuresqlmirg -n bobazuresqlmi

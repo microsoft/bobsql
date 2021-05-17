@@ -1,0 +1,2 @@
+SELECT @@VERSION;
+go
