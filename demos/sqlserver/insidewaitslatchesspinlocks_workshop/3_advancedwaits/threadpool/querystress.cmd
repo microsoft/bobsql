@@ -1,0 +1,1 @@
+ostress -E -S. -iquery.sql -n400 -q
