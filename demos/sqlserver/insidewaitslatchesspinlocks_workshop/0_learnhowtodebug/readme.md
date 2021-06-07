@@ -10,107 +10,106 @@
 
 5. Run the following command to attach to the SQL Server process
 
-windbg -y srv*c:\public_symbols*http://msdl.microsoft.com/download/symbols -pn sqlservr.exe
+    `windbg -y srv*c:\public_symbols*http://msdl.microsoft.com/download/symbols -pn sqlservr.exe`
 
-Any loaded symbols will be cached in the local directory
+    Any loaded symbols will be cached in the local directory
 
 6. Adjust the font under the View menu. Use File/Save Workspace to make it stick.
 
 7. Since you attached to the SQL Server process, it is "frozen" so you can't connect or run queries. By default a history is dumped out of modules loaded in the process.
 
-8. Left of the prompt is the thread "number". Type in k
+8. Left of the prompt is the thread "number". Type in 
+ 
+    `k`
 
-This is the callstack for the thread that was injected to break into the process for the debugger
+    This is the callstack for the thread that was injected to break into the process for the debugger
 
-9. Type in ~
+9. Type in 
+ 
+    `~`
 
-This is a list of all threads in the process. The columns are from left to right:
+    This is a list of all threads in the process. The columns are from left to right:
 
-Thread number
-Process id
-Thread id
-Thread suspend status
-Thread Environment Block address
-Thread frozen state
+    Thread number
+    Process id
+    Thread id
+    Thread suspend status
+    Thread Environment Block address
+    Thread frozen state
 
 10. Try dumping the call stack of a specific thread
 
-~0k
+    `~0k`
 
-This could take a second while symbols get loaded
+    This could take a second while symbols get loaded
 
-This is the call stack of the "main" thread for the SQL Server process
+    This is the call stack of the "main" thread for the SQL Server process
 
 11. Use this command to "switch" to that thread
 
-~0s
+    `~0s`
 
 12. Notice the thread number changes. Type in
 
-k
+    `k`
 
-to see the same stack
+    to see the same stack
 
-type in
+    type in
 
-kv
+    `kv`
 
-and
+    and
 
-kn
+    `kn`
 
-to get more from the stack such as Arguments
+    to get more from the stack such as Arguments
 
 13. Dump out callstack for all threads (this could take a while) with this command
 
-~*k
+    `~*k`
 
 14. How about only unique callstacks
 
-!uniqstack
+    `!uniqstack`
 
 15. Let's dump out modules
 
-lm
+    `lm`
 
-Find sqlservr and click on the link. Observe the output
+    Find sqlservr and click on the link. Observe the output
 
 16. Let's browse some symbols from public symbols
 
-x kernelbase!*VirtualAlloc*
+    `x kernelbase!*VirtualAlloc*`
 
-This is a list of Windows functions to allocate virtual memory
+    This is a list of Windows functions to allocate virtual memory
 
 17. How about this one for sqlservr
 
-x sqlservr!Resource
+    `x sqlservr!Resource`
 
 18. Dump out the process environment block
 
-!peb
+    `!peb`
 
 19. Learn to dump out memory addresses
 
-Search the output of !peb and find the Environment: section.
+    Search the output of !peb and find the Environment: section.
 
-Dump out the memory at that address as bytes
+    Dump out the memory at that address as bytes
 
-dd <address>
+    `dd <address>`
 
-Now dump it out as bytes with ascii on the right
+    Now dump it out as bytes with ascii on the right
 
-db <address>
+    `db <address>`
 
 20. Type
 
-q
+    `q`
 
-to quit
-
-
-
-
-
+    to quit
 
 
 
@@ -119,9 +118,3 @@ to quit
 
 
 WAIT!!!!!! You just crashed SQL Server. Use .detach next time
-
-
-
-
-
-

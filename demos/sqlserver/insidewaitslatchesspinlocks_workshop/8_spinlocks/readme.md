@@ -1,23 +1,25 @@
 # Debugging a spinlock
 
 1. restart sql server with startsqllockhash.cmd
-1a. Create a database called lockhashme.
-1b. Create a login called test with password of test and make that dbo of the db
+- Create a database called lockhashme.
+- Create a login called test with password of test and make that dbo of the db
 2. Load up execrequests.sql and get_spinlock_stats.sql to observe waits and spinlock stats 
 3. Run start connectme.cmd. This connects a bunch of users to the same db
 4. Run resetit.cmd to run a workload to connect/disconnect
 5. Observe CPU and spinlock stats. Look at Query store to see now one query chewing up a bunch of CPU
 6. Attach windbg with public symbols like this:
 
-windbg -y srv*c:\public_symbols*http://msdl.microsoft.com/download/symbols -pn sqlservr.exe
+`windbg -y srv*c:\public_symbols*http://msdl.microsoft.com/download/symbols -pn sqlservr.exe`
 
 2. Set a breakpoint on the "backoff" code like this
 
-bp sqldk!SpinlockBase::Backoff
+`bp sqldk!SpinlockBase::Backoff`
 
-3. Hit "g" to go
+3. Type in
 
-4. Dump out callstack using k when the breakpoint is hit. It should look similiar to this:
+`g`
+
+4. Dump out callstack using k when the breakpoint is hit. It should look similar to this:
 
 00 00000000`13c5df98 00007ffd`7caae69c sqldk!SpinlockBase::Backoff
 01 00000000`13c5dfa0 00007ffd`7caae65d sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff+0x169
@@ -48,8 +50,8 @@ of the spinlock type or name. What does this map to?
 
 type in
 
-bd *
-g
+`bd *`
+`g`
 
 to disable breakpoints and go so we can run a query.
 
@@ -64,15 +66,14 @@ and you will find that the name of this spinlock is LOCK_HASH
 
 Enable the breakpoint by typing in
 
-<ctrl+break>
-be *
-g
+`be *`
+`g`
 
 6. You should hit a breakpoint pretty quickly again that looks the same as before. Let's find the "compare and swap" code
 
 Type in this to get the symbol address for sqlmin!Spinlock<129 ,7 ,1>::SpinToAcquireWithExponentialBackoff
 
-x sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff
+`x sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff`
 
 you should see something like this
 
@@ -80,7 +81,7 @@ you should see something like this
 
 Take that value and use the "uf" function to dump out the assembly
 
-uf 00007ffd`7caae500
+`uf 00007ffd``7caae500`
 
 7. Now backup and find the start of this output. Then search down until you find this instruction
 
@@ -94,7 +95,7 @@ This is the "compare and swap" instruction called cmpxchg on Intel CPUs. In our 
 
 Now this looks odd but is an example of a call to a function that is part of a DLL referenced in something called an Import Address Table (IAT). And 00007ffd`7fefeb20 is the reference to the location in the table where SpinLockBase::Backoff exists.
 
-dq 00007ffd`bf2e1ae0
+`dq 00007ffd`bf2e1ae0`
 
 You get this
 
@@ -109,13 +110,13 @@ You get this
 
 and that first value 00007ffd`bf2e1ae0 is the pointer to the function SpinlockBase::Backoff
 
-ln 00007ffd`bf2e1ae0
+`ln 00007ffd``bf2e1ae0`
 
 sqldk!SpinlockBase::Backoff
 
 NOTE: An easier way to see the function calls in this routine is through the uf command with the /c parameter like this:
 
-uf /c 00007ffd`7caae500
+`uf /c 00007ffd``7caae500`
 
 sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff (00007ffd`7caae500)
   sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff+0xbb (00007ffd`7caae5b3):
@@ -126,11 +127,3 @@ sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff (00007ffd`7caae500
     call to sqldk!SpinlockBase::Backoff (00007ffd`bf2e1ae0)
   sqlmin!Spinlock<129,7,1>::SpinToAcquireWithExponentialBackoff+0x3f (00007ffd`7cd56301):
     call to sqldk!SystemThread::MakeMiniSOSThread (00007ffd`bf2f4c00)
-
-
-
-
-
-
-
-
