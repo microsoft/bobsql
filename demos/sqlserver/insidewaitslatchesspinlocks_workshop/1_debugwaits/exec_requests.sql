@@ -1,7 +1,10 @@
 -- Look at all requests and wait information
 --
-select session_id, command, status, wait_type, wait_time, wait_resource, last_wait_type, blocking_session_id
-from sys.dm_exec_requests
+select er.session_id, command, er.status, wait_type, wait_time, wait_resource, last_wait_type, 
+blocking_session_id, es.is_user_process, es.program_name
+from sys.dm_exec_requests er
+join sys.dm_exec_sessions es
+on er.session_id = es.session_id
 go
 -- wait_time is based on ticks recorded since this worker started waiting
 -- we use ms_ticks from sys.dm_os_sys_info as the current "time" to do the calculation
