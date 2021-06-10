@@ -15,7 +15,7 @@ Steps
 1. Run queries from mem_accounting.sql to look at the locked model
 2. Now attach the debugger with the following command
 
-`windbg -y srv*c:\symbols*https://msdl.microsoft.com/download/symbols -pn sqlservr.exe`
+`windbg -y srv*c:\public_symbols*https://msdl.microsoft.com/download/symbols -pn sqlservr.exe`
 
    The debugger will come up and be at a debugger command prompt
 
@@ -35,7 +35,7 @@ g
 
 7. Disable the breakpoint and type g
 
-8. Run mem_accounting.sql again to show the full set of numbers for LOCKED model
+8. Run mem_accounting.sql again to show the full set of numbers for LOCKED model. Look at Task Manager to compare for Working Set.
 
 9. Quit the debugger by typing in .detach and q
 
@@ -61,7 +61,7 @@ Show the full stack of memory allocations now coming from VirtualAlloc instead o
 
 - type in g
 
-- Show mem_accounting.sql again to show differences
+- Show mem_accounting.sql again to show differences. Compare to Task Manager
 
 # APIs to check
 #
