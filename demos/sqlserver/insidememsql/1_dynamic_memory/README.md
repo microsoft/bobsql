@@ -3,7 +3,7 @@
 - Deploy SQL Server 2019 on Windows
 - Create a database and populate a table that will take up around 5Gb
 - Restart SQL Server
-- Load up Performance Monitor and add these counters
+- Load up Performance Monitor and add these counters (chart scale is 0 to 1000)
     - Private Bytes for SQLSERVR.EXE (Scale 0.00000001)
     - Total Server Memory (Scale 0.00001)
     - Target Server Memory (Scale 0.00001)
