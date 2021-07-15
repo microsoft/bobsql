@@ -20,6 +20,7 @@ Deploy a Azure SQL Managed Instance. Use any region but deploy the business crit
 4. How about backup and restore?
 
 - Use the portal to show available PITR and retention options
+- Show deleted databases
 - Use the XEvent trace to see backup history
 
 5. What about HA?

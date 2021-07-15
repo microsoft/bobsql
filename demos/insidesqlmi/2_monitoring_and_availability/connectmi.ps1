@@ -1,1 +1,1 @@
-ostress '-Sbobazuresqlmi.public.f7463717716a.database.windows.net,3342' -Q"select @@version" -r1000000 -Uthewandog -PCprsqlserver2019
+ostress '-Sbobazuresqlmi.public.f7463717716a.database.windows.net,3342' -Q"select @@version" -r1000000 -Uuser -PStrongPassWord$123
