@@ -10,3 +10,5 @@
 8. Load up rgcpucap.sql and execute it
 9. Show in Task Manager how dynamically we are lowering CPU across the board
 10. Run rgundocpucap.sql to put cap back to 100%
+1. Run affinity.sql to only run on the first 4 CPUs. Look at task manager
+1. Run affinity_reset.sql to reset it back to AUTO
