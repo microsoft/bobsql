@@ -23,3 +23,5 @@ FROM OPENROWSET(
        'Account=<cosmosdb account>;Database=<CosmosDBIoTDemo>;Key=<cosmosdb key>',
        IoTSignals) as IoTSignals
 ```
+
+8. Go back and run the notebook cell to ingest data for signals and re-run the Serverless SQL script. HTAP at work!
