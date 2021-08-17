@@ -27,15 +27,7 @@ Note the use of "filters" using folders and wildcards from Azure Storage
 
 5. Notice in Object Explorer it kind of looks like Azure SQL Database
 
-6. Run the following T-SQL queries
-
-```sql
-SELECT @@VERSION;
-GO
-SELECT * FROM sys.objects;
-GO
-```
-7. Run some of the following T-SQL commands to observe what works and doesn't work with this SQL front-end:
+6. Run some of the following T-SQL commands to observe what works and doesn't work with this SQL front-end:
 
 ```sql
 SELECT @@version;
@@ -49,6 +41,7 @@ GO
 sp_configure;
 GO
 ```
+
 9. Open a new query window in SSMS and run the following T-SQL query:
 
 ```sql
