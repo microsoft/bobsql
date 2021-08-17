@@ -17,7 +17,7 @@ This demo will show you the basics of how to use Serverless SQL Pools with Cosmo
 7. Now execute the following T-SQL script from Synapse Studio or any T-SQL based tool connected to the Serverless SQL Pool front-end server
 
 ```sql
-SELECT *
+SELECT TOP 100 *
 FROM OPENROWSET( 
        'CosmosDB',
        'Account=<cosmosdb account>;Database=<CosmosDBIoTDemo>;Key=<cosmosdb key>',
