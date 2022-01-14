@@ -1,0 +1,1 @@
+.\ostress -S.\sqlserver2022 -E -Q"EXEC Warehouse.GetStockItemsbySupplier 2;" -n25 -r1000 -q -dWideWorldImporters
