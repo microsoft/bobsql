@@ -1,4 +1,6 @@
--- Add StockItems to cause a data skew in Suppliers
+USE WideWorldImporters;
+GO
+=-- Add StockItems to cause a data skew in Suppliers
 --
 DECLARE @StockItemID int
 DECLARE @StockItemName varchar(100)
