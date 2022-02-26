@@ -15,7 +15,7 @@ Deploy a Azure SQL Managed Instance. Use any region but deploy the business crit
 
 3. Monitoring outside of SQL
 
-    Show the new SQL Insights Preview in the portal.
+    Show Azure Monitor basics
 
 4. How about backup and restore?
 
