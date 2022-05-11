@@ -2,10 +2,10 @@
 
 These are demos to be showcase new IQP features in SQL Server 2022.
 
-*psp*
+**psp**
 
 Demo for Parameter Sensitive Plan (PSP) optimization
 
-*dopfeedback*
+**dopfeedback**
 
 Demo for Degree of Parallelism feedback
