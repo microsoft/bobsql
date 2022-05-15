@@ -1,0 +1,1 @@
+ostress -E -Q"declare @t table (c1 varchar(100)); insert into @t values ('x');" -n%1 -r1000 -q

@@ -4,7 +4,7 @@ Here are the steps to demonstrate the new PSP optimization feature for SQL Serve
 
 ## Prerequisites
 
-- VM with at least 4 CPUs and X Gb RAM
+- VM with at least 4 CPUs and 24 Gb RAM
 - SQL Server 2022 CTP 2.0
 - SQL Server Management Studio (SSMS) Version 19 Preview
 - Download ostress.exe from https://www.microsoft.com/en-us/download/details.aspx?id=103126
