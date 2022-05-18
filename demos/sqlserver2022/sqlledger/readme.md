@@ -1,11 +1,7 @@
-# SQL Server 2022 SQL Ledger demos
+# SQL Ledger in SQL Server 2022
 
-These are demos to be showcase new IQP features in SQL Server 2022.
+These are demos to demonstrate the capabilities of SQL Ledger for SQL Server 2022
 
-**psp**
+**supplychain**
 
-Demo for Parameter Sensitive Plan (PSP) optimization
-
-**dopfeedback**
-
-Demo for Degree of Parallelism feedback
+This folder contains a read-only SQL notebook used to show SQL Ledger in a supply chain scenario.
