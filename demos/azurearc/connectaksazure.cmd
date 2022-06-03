@@ -1,0 +1,1 @@
+az connectedk8s connect --name bwazurearcaks --resource-group bwazurearcrg
