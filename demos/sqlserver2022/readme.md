@@ -2,6 +2,10 @@
 
 These are demos to be showcase new features in SQL Server 2022.
 
+**azurearc**
+
+Scripts to allow you to setup the SQL Server Extension for Azure feature in SQL Server 2022 setup.
+
 **IQP**
 
 Demos for the nextgen of Intelligent Query Processing
