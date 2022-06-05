@@ -42,6 +42,6 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 17. Let's get this workload much faster using PSP optimization. Execute the T-SQL script **dbcompat160.sql** with SSMS.
 18. Run workload_index_seek.cmd again. Should finish in a few seconds.
 19. Run workload_index_scan.cmd again.
-20. Run workload_index_seek.cmd again and see that it now finishs again in a few seconds. Observe perfmon counters and see consistent performance.
+20. Run workload_index_seek.cmd again and see that it now finish again in a few seconds. Observe perfmon counters and see consistent performance.
 21. Run Top Resource Consuming Queries report and see that there are two plans for the same stored procedure
 22. It looks like are "two" queries but these are two query "variants". Use the script query_store_dmvs.sql to see the details.
