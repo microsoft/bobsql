@@ -1,1 +1,1 @@
-.\ostress -E -Q"alter database current set compatibility_level = 150; alter database current set query_store clear;DBCC TRACEON (11091, 12619, -1);" -dWideWorldImporters -q
+.\ostress -E -Q"alter database current set compatibility_level = 150; alter database current set query_store clear;" -dWideWorldImporters -q
