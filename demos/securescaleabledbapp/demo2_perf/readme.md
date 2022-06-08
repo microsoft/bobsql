@@ -1,9 +1,5 @@
-1. Let's show easy and auto scaling first. 
-2. Show bwazuresqlgp2 and its service tier
-3. Show the code to run multiple threads to connect and run a query batch against this server
-4. Run the code and show the timings. Almost 30 seconds a query
-5. Why? Go to the portal and see high CPU
-6. Change the service tier to 8 CPUs
-7. Run the program again. See the query batches now run in around 6 seconds per batch
-8. So easy scale with no migration
-9. 
+# Demos for scalability for Azure SQL Database
+
+This demo is to show Parameter Sensitive Plan (PSP) optimization in SQL Server 2022 public preview. It is coming soon to Azure SQL Database.
+
+To see the demo for this capabilities follow the steps at https://github.com/microsoft/bobsql/tree/master/demos/sqlserver2022/IQP/psp

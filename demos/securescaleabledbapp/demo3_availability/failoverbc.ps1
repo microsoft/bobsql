@@ -1,1 +1,0 @@
-Invoke-AzSqlDatabaseFailover -ResourceGroupName bwazuresqlrg -ServerName bwazuresqlserver -DatabaseName bwazuresqldbbc

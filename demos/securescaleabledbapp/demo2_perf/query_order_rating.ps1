@@ -1,1 +1,0 @@
-.\ostress.exe '-Sbwazuresqlserver.database.windows.net' '-iquery_order_rating.sql' -Uthewandog -dbwazuresqldbgp -PCprsqlserver2019 -n25 -r100000 -q

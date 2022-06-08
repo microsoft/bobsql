@@ -66,7 +66,7 @@ namespace SQLSecurity
 
 			// Here is an example of how not to construct a query based on user input
 			// This is very suspectible to SQL Injections
-			/* using (var command = new SqlCommand())
+			using (var command = new SqlCommand())
 			{
 				Console.WriteLine("Input SalesOrderNumber: ");
 				string SalesOrderNumber = Console.ReadLine();
@@ -83,7 +83,7 @@ namespace SQLSecurity
 				}
 
 				reader.Close();
-			} */
+			} 
 
 			// Let's use parameters to avoid the injection
 			//
