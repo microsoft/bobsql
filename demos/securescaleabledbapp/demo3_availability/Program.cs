@@ -74,7 +74,7 @@ namespace SQLAvailability
 				using (var connection = new SqlConnection(connString))
 				{
 					// Set the retry logic provider on the connection instance
-					connection.RetryLogicProvider = provider;
+					//connection.RetryLogicProvider = provider;
 
 					// open the connection
 					connection.Open();
