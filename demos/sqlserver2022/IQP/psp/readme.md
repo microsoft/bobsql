@@ -13,7 +13,7 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 
 ## Setup the demo
 
-1. Create a directory at c:\sql_sample_databases to store backups and files.
+1. Create a directory called c:\sql_sample_databases to store backups and files.
 1. Copy WideWorldImporters from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak (the restore script assumes c:\sql_sample_databases)
 1. Restore the WideWorldImporters backup. You can edit and use the **restorewwi.sql** script.
 1. Load and execute the **populatedata.sql** script to load more data into the Warehouse.StockItems table. This script will take 5 mins to run

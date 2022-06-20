@@ -12,7 +12,7 @@ This demo will show you how to see how to get consistent performance with less C
 ## Steps
 
 1. Execute configmaxdop.sql
-1. Create a directory at c:\sql_sample_databases to store backups and files.
+1. Create a directory called c:\sql_sample_databases to store backups and files.
 1. Copy the WideWorldImporters sample database from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak to a local directory (The restore script assumes c:\sql_sample_databases)
 1. Edit the restorewwi.sql script for the correct paths for the backup and where data and log files should go.
 1. Execute the script restorewwi.sql
