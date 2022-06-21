@@ -10,6 +10,10 @@ Demo for CE Feedback
 
 Demo for Degree of Parallelism feedback
 
+**optimized_plan_forcing**
+
+Demo for Optimized Plan Forcing
+
 **psp**
 
 Demo for Parameter Sensitive Plan (PSP) optimization
