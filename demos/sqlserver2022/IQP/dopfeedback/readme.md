@@ -19,7 +19,7 @@ This demo will show you how to see how to get consistent performance with less C
 1. Extend the database by executing populatedata.sql. This will take ~13mins to execute. Because of the large transaction the log will grow to ~30Gb and the user FG will grow to about ~6.5Gb
 1. Execute dopfeedback.sql to set QDS settings and db setting for DOP feeback (required for CTP 2.0)
 1. Execute proc.sql to create a stored procedure
-1. Execute dopexec.sql to create an XEvent session.
+1. Execute dopxe.sql to create an XEvent session.
 1. Use SSMS to Watch the XE session to see Live Data
 1. Run workload_index_scan_users.cmd
 1. Observe the XEvent data. It will take about 10mins to see XXXX event which means the final DOP setting to achieve stability.
