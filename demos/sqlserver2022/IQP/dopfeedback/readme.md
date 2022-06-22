@@ -8,6 +8,7 @@ This demo will show you how to see how to get consistent performance with less C
 - SQL Server 2022 CTP 2.0
 - SQL Server Management Studio (SSMS) Version 19 Preview
 - Download ostress.exe from https://www.microsoft.com/en-us/download/details.aspx?id=103126
+- Put the location of ostress.exe in your system path. By default ostress.exe is installed in C:\Program Files\Microsoft Corporation\RMLUtils.
 
 ## Steps
 
@@ -21,7 +22,7 @@ This demo will show you how to see how to get consistent performance with less C
 1. Execute proc.sql to create a stored procedure
 1. Execute dopxe.sql to create an XEvent session.
 1. Use SSMS to Watch the XE session to see Live Data
-1. Run workload_index_scan_users.cmd
+1. Run workload_index_scan_users.cmd fro a command prompt.
 1. Observe the XEvent data. It will take about 10mins to see XXXX event which means the final DOP setting to achieve stability.
 1. Cancel the workload from the cmd script
 1. Run dop_query_stats.sql to see the changes in DOP and resulting stats. Not the small decrease in avg duration and decrease in needed CPU
