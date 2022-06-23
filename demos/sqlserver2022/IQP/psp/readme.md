@@ -15,7 +15,7 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 
 ## Setup the demo
 
-1. Create a directory called **c:\sql_sample_database**s to store backups and files.
+1. Create a directory called **c:\sql_sample_databases** to store backups and files.
 1. Copy WideWorldImporters from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak (the restore script assumes c:\sql_sample_databases)
 1. Restore the WideWorldImporters backup. You can edit and use the **restorewwi.sql** script.
 1. Load and execute the **populatedata.sql** script to load more data into the Warehouse.StockItems table. This script will take 5 mins to run
@@ -31,12 +31,12 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 
 ## See a workload problem for PSP
 
-10. Setup perfmon to catpure % processor time and batch requests/second
+10. Setup perfmon to capture % processor time and batch requests/second.
 11. Edit the scripts **workload_index_scan.cmd** and **workload_index_seek.cmd** for your servername.
 13. Run **workload_index_seek.cmd** from the command prompt. This should complete in a few seconds. Observe perfmon counters.
 14. Run **workload_index_scan.cmd**. This should take longer but now locks into cache a plan for a scan.
 15. Run **workload_index_seek.cmd** again. Observe perfmon counters. Notice much higher CPU and much lower batch requests/sec. 
-16. Hit <Ctrl>+<C> in the command window for workload_index_seek.cmd as it can take minutes to complete.
+16. Hit <Ctrl>+<C> in the command window for **workload_index_seek.cmd** as it can take minutes to complete.
 17. Use the query **suppliercount.sql** to see the skew in supplierID values in the table. This explains why "one size does not fit all" for the stored procedure based on parameter values.
 
 ## Solve the problem in SQL Server 2022
