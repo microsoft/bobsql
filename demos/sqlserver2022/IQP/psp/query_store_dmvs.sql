@@ -1,3 +1,5 @@
+USE WideWorldImporters;
+GO
 SELECT * FROM sys.query_store_query_text;
 GO
 SELECT * FROM sys.query_store_query;

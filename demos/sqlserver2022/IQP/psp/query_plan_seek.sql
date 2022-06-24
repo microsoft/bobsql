@@ -1,3 +1,5 @@
+USE WideWorldImporters;
+GO
 -- The best plan for this parameter is an index seek
 SET STATISTICS TIME ON;
 GO

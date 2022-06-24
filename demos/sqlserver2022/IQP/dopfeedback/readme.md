@@ -8,7 +8,6 @@ This demo will show you how to see how to get consistent performance with less C
 - SQL Server 2022 CTP 2.0
 - SQL Server Management Studio (SSMS) Version 19 Preview
 - Download **ostress.exe** from https://www.microsoft.com/en-us/download/details.aspx?id=103126
-- Put the location of ostress.exe in your system path. By default ostress.exe is installed in C:\Program Files\Microsoft Corporation\RMLUtils.
 
 ## Steps
 
