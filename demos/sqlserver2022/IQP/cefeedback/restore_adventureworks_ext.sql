@@ -1,3 +1,5 @@
+USE master;
+GO
 DROP DATABASE IF EXISTS AdventureWorks_EXT;
 GO
 RESTORE FILELISTONLY FROM DISK = 'c:\sql_sample_databases\AdventureWorks2016_EXT.bak'
