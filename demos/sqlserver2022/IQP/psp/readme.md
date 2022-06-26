@@ -10,7 +10,7 @@ Here are the steps to demonstrate the new PSP optimization feature for SQL Serve
  
 - SQL Server 2022 CTP 2.0
 - SQL Server Management Studio (SSMS) Version 19 Preview
-- Download ostress.exe from https://www.microsoft.com/en-us/download/details.aspx?id=103126
+- Download ostress.exe from https://www.microsoft.com/en-us/download/details.aspx?id=103126. Install using the RMLSetup.msi file that is downloaded. Use all defaults.
 
 **Note**: All command scripts assume windows authentication for currently logged in user and a local server.
 
@@ -19,10 +19,10 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 ## Setup the demo
 
 1. Create a directory called **c:\sql_sample_databases** to store backups and files.
-1. Download the backup of WideWorldImporters from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak (the restore script assumes c:\sql_sample_databases)
-1. Restore the WideWorldImporters backup. You can edit and use the **restorewwi.sql** script.
-1. Execute the **populatedata.sql** script to load more data into the Warehouse.StockItems table. This script will take ~5-6 mins to run.
-1. Rebuild an index associated with the table using the script **rebuild_index.sql**
+1. Download the backup of WideWorldImporters from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak and copy it into c:\sql_sample_databases directory.
+1. Restore the WideWorldImporters backup. You can edit and use the **restorewwi.sql** script. This script was designed for a SQL Server in Azure Virtual Machine marketplace image which has separate disks for data and log files. Edit this file to match your disk storage.
+1. Execute the **populatedata.sql** script to load more data into the Warehouse.StockItems table. This script will take 5-10 mins to run (timing depends on how many CPUs and the speed of your disk).
+1. Rebuild an index associated with the table using the script **rebuild_index.sql**. **IMPORTANT**: If you miss this step you will not be able to see the performance improvement for PSP optimization.
 1. Create a new procedure to be used for the workload test using **proc.sql**.
 1. Execute the script **sqlsetup.cmd** from a command prompt. This will ensure the WideWorldImporters database is at dbcompat 150 and clear the query store.
 
