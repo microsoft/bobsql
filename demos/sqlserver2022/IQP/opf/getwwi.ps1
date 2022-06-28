@@ -1,0 +1,1 @@
+curl https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak -OutFile c:\sql_sample_databases\WideWorldImporters-Full.bak

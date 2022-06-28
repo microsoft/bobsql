@@ -16,7 +16,7 @@ These are instructions to setup and demonstrate a contained availability group i
 
 ## Demo Steps
 
-The following are steps to create a contained AG, create a database to be part of the AG, create a SQLAgent Job, and observe the agent job is replicated to the secondary. Then you will execute a manual failover to see how the agent job is not available as part of the new primary.
+The following are steps to create a contained AG, create a database to be part of the AG, create a SQLAgent Job, and observe the agent job is replicated to the secondary. Then you will execute a manual failover to see how the agent job is now available as part of the new primary.
 
 ### Create a contained Availability Group
 

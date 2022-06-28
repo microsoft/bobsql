@@ -14,7 +14,7 @@ This is a set of steps to see CE feedback in action and how it can improve query
 ## Demo Steps
 
 1. Create a directory called **c:\sql_sample_databases** to store backups and files.
-1. Download the AdventureWorks2016_EXT sample backup from https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2016_EXT.bak.
+1. Download the AdventureWorks2016_EXT sample backup from  https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2016_EXT.bakand copy it into the c:\sql_sample_databases folder.
 1. Restore AdventureWorks_EXT sample backup using **restore_adventureworks_ext.sql**.
 1. Run **create_xevent_seassion.sql** to create and start an Extended Events session to view feedback events. Use SSMS in Object Explorer to view the session with Watch Live Data.
 1. Add an ncl index on City column for Person.Address using the script **create_index_on_city.sql**.

@@ -22,6 +22,8 @@ JOIN Sales.OrderLines ol
 ON ol.OrderID = o.OrderID
 JOIN Warehouse.StockItems si
 ON ol.StockItemID = si.StockItemID
+JOIN Warehouse.StockItemStockGroups sisg
+ON si.StockItemID = sisg.StockItemID
 UNION ALL
 SELECT o.OrderID, ol.OrderLineID, c.CustomerName, cc.CustomerCategoryName, p.FullName, city.CityName, sp.StateProvinceName, country.CountryName, si.StockItemName
 FROM Sales.Orders o
@@ -41,6 +43,7 @@ JOIN Sales.OrderLines ol
 ON ol.OrderID = o.OrderID
 JOIN Warehouse.StockItems si
 ON ol.StockItemID = si.StockItemID
-WHERE o.OrderID NOT IN (2,4,6,8,10,11,12,17,18,19,23,25,27,30,31,32,33,34,35,36,37,38,39,40,41,42,43)
+JOIN Warehouse.StockItemStockGroups sisg
+ON si.StockItemID = sisg.StockItemID
 ORDER BY OrderID
 GO
