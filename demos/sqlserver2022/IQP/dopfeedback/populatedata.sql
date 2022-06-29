@@ -1,26 +1,30 @@
 USE WideWorldImporters;
 GO
 -- Add StockItems to cause a data skew in Suppliers
---
-DECLARE @StockItemID int
-DECLARE @StockItemName varchar(100)
-DECLARE @SupplierID int
-SELECT @StockItemID = 228
-SET @StockItemName = 'Dallas Cowboys Shirt'+convert(varchar(10), @StockItemID)
-SET @SupplierID = 4
-DELETE FROM Warehouse.StockItems WHERE StockItemID >= @StockItemID
-SET NOCOUNT ON
-BEGIN TRANSACTION
-WHILE @StockItemID <= 20000000
+DECLARE @StockItemID int = 228;--starting item id
+DECLARE @SupplierID int = 4;
+DECLARE @BatchSize int = 50000; --insert in batches of this size
+DECLARE @MaxStockItemID int = 20000000;--size of the skew
+
+SET NOCOUNT ON;
+DELETE FROM Warehouse.StockItems WHERE StockItemID >= @StockItemID;
+
+WHILE (@StockItemID <= @MaxStockItemID)
 BEGIN
-INSERT INTO Warehouse.StockItems
-(StockItemID, StockItemName, SupplierID, UnitPackageID, OuterPackageID, LeadTimeDays,
-QuantityPerOuter, IsChillerStock, TaxRate, UnitPrice, TypicalWeightPerUnit, LastEditedBy
-)
-VALUES (@StockItemID, @StockItemName, @SupplierID, 10, 9, 12, 100, 0, 15.00, 100.00, 0.300, 1)
-SET @StockItemID = @StockItemID + 1
-SET @StockItemName = 'Dallas Cowboys Shirt'+convert(varchar(10), @StockItemID)
+	BEGIN TRANSACTION
+	
+	INSERT INTO Warehouse.StockItems
+	(
+		StockItemID, StockItemName, SupplierID, UnitPackageID, OuterPackageID, LeadTimeDays, 
+		QuantityPerOuter, IsChillerStock, TaxRate, UnitPrice, TypicalWeightPerUnit, LastEditedBy
+	)
+	SELECT [value], 'Dallas Cowboys Shirt' + CONVERT(varchar(10), [value]), @SupplierID, 10, 9, 12, 100, 0, 15.00, 100.00, 0.300, 1
+	FROM GENERATE_SERIES(START = @StockItemID, STOP = (@StockItemID + @BatchSize - 1));
+	
+	COMMIT TRANSACTION
+	
+	SET @StockItemID += @BatchSize;
 END
-COMMIT TRANSACTION
+
 SET NOCOUNT OFF
 GO

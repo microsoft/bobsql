@@ -21,6 +21,7 @@ This demo will show you how to see how to get consistent performance with less C
 1. Execute **proc.sql** to create a stored procedure
 1. Execute **dopxe.sql** to create an XEvent session.
 1. Use SSMS to Watch the XE session to see Live Data
+1. Change the value for -S (servername) in **workload_index_scan_users.cmd** to connect to your instance of SQL Server 2022 CRP2.0.
 1. Run **workload_index_scan_users.cmd** from a command prompt.
 1. Observe the XEvent data. It will take about 10mins to see XXXX event which means the final DOP setting to achieve stability.
 1. Cancel the workload from the cmd script
