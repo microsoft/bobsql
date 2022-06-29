@@ -6,7 +6,8 @@ The following are steps to demo the Link feature for Azure SQL Managed Instance 
 
 - You have deployed an Azure SQL Managed Instance per the instructions of the Managed Instance engineering team
 - SQL Server 2022 CTP 2.x Eval Edition (Dev Edition doesn't support AGs so you need Eval)
-- Follow the steps to do all the prereqs for the computer or VM and local SQL Server instance at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/managed-instance-link-use-ssms-to-replicate-database?view=azuresql. Carefully go through each step at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/managed-instance-link-preparation?view=azuresql
+- Follow the steps to do all the prereqs for the computer or VM and local SQL Server instance at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/managed-instance-link-preparation?view=azuresql#prerequisites.
+- Carefully go through each step at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/managed-instance-link-preparation?view=azuresql
 - Latest SSMS 18.x build
 - Create an Azure Storage account with a container.
 
