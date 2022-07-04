@@ -24,5 +24,5 @@ The following is a demonstration of memory grant feedback persistence in SQL Ser
 10. Run **execute_query.sql** again
 11. This time the query runs in seconds. Notice there is no spill warning for the hash join. Hovering over the SELECT operator will show a significantly larger grant. Right clicking on the SELECT operator and selecting properties will show in the MemoryGrantInfo section **IsMemoryGrantFeedbackAdjusted** = YesAdjusting.  
 12. Run **get_plan_feedback.sql** again and see the last_query_memory_kb reflect the new larger memory grant.
-13. Execute the script **clear_proc_cache.sql**. This will clear the plan cache. Prior to SQL SErver 2022, this would have "lost" the memory grant feedback.
+13. Execute the script **clear_proc_cache.sql**. This will clear the plan cache. Prior to SQL Server 2022, this would have "lost" the memory grant feedback.
 14. Run **execute_query.sql** again. You will see the grant is still using the feedback now in the query store and runs in a few seconds.
