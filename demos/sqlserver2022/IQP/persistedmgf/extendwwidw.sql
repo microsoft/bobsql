@@ -42,5 +42,5 @@ FROM Fact.OrderHistory;
 GO 4
 
 -- Table should have 3,702,592 rows
-SELECT 'Number of rows in Fact.OrderHistory = ', COUNT(*) FROM Fact.OrderHistory
-GO;
+SELECT 'Number of rows in Fact.OrderHistory = ', COUNT(*) FROM Fact.OrderHistory;
+GO

@@ -9,6 +9,6 @@ ON qp.query_id = qq.query_id
 JOIN sys.query_store_query_text qt
 ON qq.query_text_id = qt.query_text_id
 JOIN sys.query_store_runtime_stats qrs
-ON qp.plan_id = qrs.plan_id
+ON qp.plan_id = qrs.plan_id;
 GO
 
