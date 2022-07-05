@@ -9,4 +9,4 @@ MOVE 'WWI_UserData' TO 'f:\data\WideWorldImporters_UserData.ndf',
 MOVE 'WWI_Log' TO 'g:\log\WideWorldImporters.ldf',
 MOVE 'WWI_InMemory_Data_1' TO 'f:\data\WideWorldImporters_InMemory_Data_1',
 stats=5;
-go
+GO
