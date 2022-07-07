@@ -4,12 +4,9 @@ Here are the steps to demonstrate the new PSP optimization feature for SQL Serve
 
 ## Prerequisites
 
+- SQL Server 2022 Evaluation Edition
 - VM or computer with at min 2 CPUs and 8Gb RAM.
-
-**Note**: Some of the timings from this exercise may differ if you use a VM or computer with more resources than the minimum.
- 
-- SQL Server 2022 CTP 2.0
-- SQL Server Management Studio (SSMS) Version 19 Preview
+- SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work
 - Download ostress.exe from https://www.microsoft.com/en-us/download/details.aspx?id=103126. Install using the RMLSetup.msi file that is downloaded. Use all defaults.
 
 **Note**: All command scripts assume windows authentication for currently logged in user and a local server.
@@ -35,17 +32,19 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 ## See a workload problem for PSP
 
 10. Setup perfmon to capture % processor time and batch requests/second.
-13. Run **workload_index_seek.cmd** from the command prompt. This should complete in a few seconds. Observe perfmon counters.
+13. Run **workload_index_seek.cmd 10** from the command prompt. This should finish very quickly. The parameter is the number of users. You may want to increase this for machines with 8 CPUs or more. Observe perfmon counters.
 14. Run **workload_index_scan.cmd**. This should take longer but now locks into cache a plan for a scan.
-15. Run **workload_index_seek.cmd** again. Observe perfmon counters. Notice much higher CPU and much lower batch requests/sec. Also note the workload doesn't finish in a few seconds as before.
+15. Run **workload_index_seek.cmd 10** again. Observe perfmon counters. Notice much higher CPU and much lower batch requests/sec. Also note the workload doesn't finish in a few seconds as before.
 16. Hit <Ctrl>+<C> in the command window for **workload_index_seek.cmd** as it can take minutes to complete.
 17. Use the script **suppliercount.sql** to see the skew in supplierID values in the table. This explains why "one size does not fit all" for the stored procedure based on parameter values.
 
-## Solve the problem in SQL Server 2022
+## Solve the problem in SQL Server 2022 with no code changes
 
 17. Let's get this workload to run much faster and consistently using PSP optimization. Execute the T-SQL script **dbcompat160.sql** with SSMS.
-18. Run **workload_index_seek.cmd** again. Should finish in a few seconds.
+18. Run **workload_index_seek.cmd 10** again. Should finish in a few seconds.
 19. Run **workload_index_scan.cmd** again.
-20. Run **workload_index_seek.cmd** again and see that it now finishes again in a few seconds. Observe perfmon counters and see consistent performance.
+20. Run **workload_index_seek.cmd 10** again and see that it now finishes again in a few seconds. Observe perfmon counters and see consistent performance.
 21. Run Top Resource Consuming Queries report from SSMS and see that there are two plans for the same stored procedure. The one difference is that there is new OPTION applied to the query for each procedure which is why there are two different "queries" in the Query Store.
-22. It looks like are "two" queries but these are two query "variants". Use the script **query_store_dmvs.sql** to see the details.
+22. Execute the script **query_store_plans.sql**. Look into the details of the results to see the query text is the same but slightly different with the option to use variants. But notice the query_hash is the same value.
+23. Execute the script **query_store_parent.sql** and observe this is the text of the query from the stored procedure without variant options. This is the text from the *parent plan*.
+24. Execute the script **query_store_dispatcher_plan.sql**. If you click on the dispatcher_plan value you will see a graphical plan operator called Multiple Plan.

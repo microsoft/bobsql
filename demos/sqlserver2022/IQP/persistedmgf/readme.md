@@ -4,11 +4,9 @@ The following is a demonstration of memory grant feedback persistence in SQL Ser
 
 ## Prerequisites
 
-•	SQL Server 2022 Evaluation Edition
-
-•	Virtual machine or computer with minimum 2 CPUs with 8Gb RAM.
-
-•	SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work
+- SQL Server 2022 Evaluation Edition
+- Virtual machine or computer with minimum 2 CPUs with 8Gb RAM.
+- SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work
 
 ## Demo steps
 
