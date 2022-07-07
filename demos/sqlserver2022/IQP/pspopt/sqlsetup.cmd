@@ -1,1 +1,0 @@
-"c:\Program Files\Microsoft Corporation\RMLUtils\ostress" -E -Q"alter database current set compatibility_level = 150; alter database current set query_store clear;" -dWideWorldImporters -q

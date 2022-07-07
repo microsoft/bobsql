@@ -12,9 +12,9 @@ These are demonstrations for SQL Server Ledger for SQL Server 2022
 
 This demo will show you the fundamentals of an updatable ledger table.
 
-1. Create logins by executing the script **addlogins.sql** from SSMS as the default sysadmin for the SQL Server instance.
+1. Create logins by executing the script **addsysadminlogin.sql** from SSMS as the default sysadmin for the SQL Server instance.
 2. Login with the 'bob' sysadmin user created in step #1.
-2. Create the database schema with users by executing the script **createdb.sql** from SSMS.
+2. Create the database schema, add an app login, and users by executing the script **createdb.sql** from SSMS.
 3. Create an updateable ledger table for Employees by executing the script **createemployeeledger.sql** from SSMS.
 4. Create an append-only ledger table for auditing of the application by executing the script **createauditledger.sql** from SSMS. This table will be used later in the demonstration.
 5. Populate initial employee data using the script **populateemployees.sql** from SSMS. Use SSMS Object Explorer to see the tables have properties next to their name that they are ledger tables and a new visual icon to indicate it is a ledger table.

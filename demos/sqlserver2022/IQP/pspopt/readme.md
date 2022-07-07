@@ -24,7 +24,7 @@ Follow these steps to demonstrate Parameter Sensitive Plan (PSP) optimization
 1. Execute the **populatedata.sql** script to load more data into the Warehouse.StockItems table. This script will take 5-10 mins to run (timing depends on how many CPUs and the speed of your disk).
 1. Rebuild an index associated with the table using the script **rebuild_index.sql**. **IMPORTANT**: If you miss this step you will not be able to see the performance improvement for PSP optimization.
 1. Create a new procedure to be used for the workload test using **proc.sql**.
-1. Execute the script **sqlsetup.cmd** from a command prompt. This will ensure the WideWorldImporters database is at dbcompat 150 and clear the query store.
+1. Execute the script **setup.sql** from SSMS. This will ensure the WideWorldImporters database is at dbcompat 150 and clear the query store.
 
 ## See a PSP problem for a single query execution.
 
