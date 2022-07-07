@@ -14,6 +14,6 @@ Demo for Degree of Parallelism feedback
 
 Demo for Optimized Plan Forcing
 
-**psp**
+**pspopt**
 
 Demo for Parameter Sensitive Plan (PSP) optimization
