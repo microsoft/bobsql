@@ -4,12 +4,9 @@ This is a set of steps to see CE feedback in action and how it can improve query
 
 ## Prereqs
 
-- VM or computer with at min 2 CPUs and 8Gb RAM.
-
-**Note**: Some of the timings from this exercise may differ if you use a VM or computer with more resources than the minimum.
- 
-- SQL Server 2022 CTP 2.0
-- SQL Server Management Studio (SSMS) Version 19 Preview
+- SQL Server 2022 Evaluation Edition
+- Virtual machine or computer with minimum 2 CPUs with 8Gb RAM.
+- SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work
 
 ## Demo Steps
 
