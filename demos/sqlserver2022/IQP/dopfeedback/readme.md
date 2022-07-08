@@ -4,9 +4,9 @@ This demo will show you how to see how to get consistent performance with less C
 
 ## Pre-requisites
 
+- SQL Server 2022 Evaluation Edition
 - VM or computer with 8 CPUs and at least 24Gb RAM
-- SQL Server 2022 CTP 2.0
-- SQL Server Management Studio (SSMS) Version 19 Preview
+- SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work.
 - Download **ostress.exe** from https://www.microsoft.com/en-us/download/details.aspx?id=103126
 
 ## Steps
