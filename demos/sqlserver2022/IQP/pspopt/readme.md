@@ -7,7 +7,7 @@ Here are the steps to demonstrate the new PSP optimization feature for SQL Serve
 - SQL Server 2022 Evaluation Edition
 - VM or computer with at min 2 CPUs and 8Gb RAM.
 - SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work
-- Download ostress.exe from https://www.microsoft.com/en-us/download/details.aspx?id=103126. Install using the RMLSetup.msi file that is downloaded. Use all defaults.
+- Download ostress.exe from https://download.microsoft.com/download/7/A/D/7ADE5D8B-47AB-4E94-BAD0-5416D6B6D383/RMLSetup.msi. Install using the RMLSetup.msi file that is downloaded. Use all defaults.
 
 **Note**: All command scripts assume windows authentication for currently logged in user and a local server.
 
