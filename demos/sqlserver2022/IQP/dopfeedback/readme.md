@@ -8,7 +8,7 @@ This demo will show you how to see how to get consistent performance with less C
 - VM or computer with 8 CPUs and at least 24Gb RAM.
 - **Note**: This exercise is very CPU sensitive. You should execute this exercise on a VM or computer that is "dedicated" to SQL Server and has fast I/O storage. Slow I/O or slow CPU speeds may affect the ability to see the results of this exercise. 
 - SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work.
-- Download **ostress.exe** from https://download.microsoft.com/download/7/A/D/7ADE5D8B-47AB-4E94-BAD0-5416D6B6D383/RMLSetup.msi. Install using the RMLSetup.msi file that is downloaded. Use all defaults.
+- Download **ostress.exe** from https://aka.ms/ostress. Install using the RMLSetup.msi file that is downloaded. Use all defaults.
 
 ## Steps
 
