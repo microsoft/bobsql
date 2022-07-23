@@ -16,19 +16,3 @@ JOIN sys.query_store_runtime_stats qr
 ON qp.plan_id = qr.plan_id
 ORDER BY qv.parent_query_id;
 GO
--- Look at the "parent" query
--- Notice this is the SELECT statement from the procedure with no OPTION for variants.
-SELECT qt.query_sql_text
-FROM sys.query_store_query_text qt
-JOIN sys.query_store_query qq
-ON qt.query_text_id = qq.query_text_id
-JOIN sys.query_store_query_variant qv
-ON qq.query_id = qv.parent_query_id;
-GO
--- Look at the dispatcher plan
--- If you "click" on the SHOWPLAN XML output you will see a "multiple plans" operator
-SELECT qp.plan_id, qp.query_plan_hash, cast (qp.query_plan as XML)
-FROM sys.query_store_plan qp
-JOIN sys.query_store_query_variant qv
-ON qp.plan_id = qv.dispatcher_plan_id;
-GO
