@@ -1,5 +1,4 @@
 USE WideWorldImporters;
-USE WideWorldImporters;
 GO
 -- Add StockItems to cause a data skew in Suppliers
 --

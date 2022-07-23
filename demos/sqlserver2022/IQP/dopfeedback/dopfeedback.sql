@@ -7,7 +7,7 @@ ALTER DATABASE WideWorldImporters SET QUERY_STORE (OPERATION_MODE = READ_WRITE, 
 GO
 ALTER DATABASE WideWorldImporters SET QUERY_STORE CLEAR ALL;
 GO
--- Required as of CTP 2.0
+-- Enable DOP feedback
 ALTER DATABASE SCOPED CONFIGURATION SET DOP_FEEDBACK = ON;
 GO
 -- Clear proc cache to start with new plans
