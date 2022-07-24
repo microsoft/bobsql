@@ -2,7 +2,7 @@ USE WideWorldImporters;
 GO
 ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE;
 GO
-SET STATISTICS TIME ON
+SET STATISTICS TIME ON;
 GO
 SELECT o.OrderID, ol.OrderLineID, c.CustomerName, cc.CustomerCategoryName, p.FullName, city.CityName, sp.StateProvinceName, country.CountryName, si.StockItemName
 FROM Sales.Orders o
@@ -45,5 +45,5 @@ JOIN Warehouse.StockItems si
 ON ol.StockItemID = si.StockItemID
 JOIN Warehouse.StockItemStockGroups sisg
 ON si.StockItemID = sisg.StockItemID
-ORDER BY OrderID
+ORDER BY OrderID;
 GO

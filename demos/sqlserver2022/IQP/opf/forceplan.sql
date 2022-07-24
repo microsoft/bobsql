@@ -1,2 +1,2 @@
-EXEC sp_query_store_force_plan @query_id = 3, @plan_id = 1;
+EXEC sp_query_store_force_plan @query_id = <n>, @plan_id = <n>;
 GO
