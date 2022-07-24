@@ -6,6 +6,6 @@ BEGIN
 SELECT StockItemID, SupplierID, StockItemName, TaxRate, LeadTimeDays
 FROM Warehouse.StockItems s
 WHERE SupplierID = @SupplierID
-ORDER BY StockItemName
+ORDER BY StockItemName;
 END;
 GO
