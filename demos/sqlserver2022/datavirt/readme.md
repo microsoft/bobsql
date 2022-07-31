@@ -47,23 +47,23 @@ License: GNU AGPLv3 <https://www.gnu.org/licenses/agpl-3.0.html>
 Version: RELEASE.2022-07-30T05-21-40Z (go1.18.4 windows/amd64)
 
 Status:         1 Online, 0 Offline.
-API: https://192.168.232.131:9000  https://127.0.0.1:9000
-RootUser: admin
-RootPass: password
-Console: https://192.168.232.131:9001 https://127.0.0.1:9001
-RootUser: admin
-RootPass: password
+API: https://<local IP>:9000  https://127.0.0.1:9000
+RootUser: <user>
+RootPass: <password>
+Console: https://<local IP>:9001 https://127.0.0.1:9001
+RootUser: <user>
+RootPass: <password>
 
 Command-line: https://docs.min.io/docs/minio-client-quickstart-guide
-   $ mc.exe alias set myminio https://192.168.232.131:9000 admin password
+   $ mc.exe alias set myminio https://<local IP>:9000 <user> <password>
 ``
 Documentation: https://docs.min.io
 ```
-1. Test your connection and browse the minio storage system using a web browser. Use the address https://127.0.0.1:9001. You should be presented with a login screen. Use admin and password for credentials.
+1. Test your connection and browse the minio storage system using a web browser. Use the address https://127.0.0.1:9001. You should be presented with a login screen. Use the defaut root user and password which are displayed on the minio server screen.
 
-2. On the left-hand side menu, click on Identity and Users. Select Create User. Create a user called wwiadmin with password of wwiadmin. Select the readwrite policy for the user.
+1. On the left-hand side menu, click on Identity and Users. Select Create User. Create a user name with password. Select the readwrite policy for the user. This is the user and password you will use for the SECRET value in creates3creds.sql.
 
-3. Select menu for Buckets. Select Create Bucket. Use a Bucket Name of wwi. Leave all defaults and select Create Bucket.
+3. Select menu for Buckets. Select Create Bucket. Use a Bucket Name of **wwi**. Leave all defaults and select Create Bucket.
 
 ## Steps to use SQL Server for the demo
 
@@ -72,8 +72,8 @@ Documentation: https://docs.min.io
 1. Execute the script **restorewwi.sql**.
 1. Execute the script **enablepolybase.sql** to enable the Polybase feature for the instance.
 1. Execute the script **createmasterkey.sql** to create a master key to protect a database scoped credential.
-1. Execute the script **creates3creds.sql** to create a database scoped credential. This contains the S3 user and password you created earlier with the minio console.
-1. Execute the script **creates3datasource.sql**. Substitute in your local IP address.
+1. Edit the script **creates3creds.sql** to put in your user and password. Execute the script creates3creds.sql to create a database scoped credential. This contains the S3 user and password you created earlier with the minio console.
+1. Edit the script **creates3datasource.sql** to substitute in your local IP address for the minio server. Execute the script creates3datasource.sql.
 1. Create a file format to use for Parquet by executing the script **createparquetfileformat.sql**.
 1. Create a parquet file into the S3 storage bucket wwi by executing the script **wwi_cetas.sql**.
 1. Use the minio console to browse the wwi bucket and see the parquet file that was created.
@@ -81,3 +81,4 @@ Documentation: https://docs.min.io
 1. Use SSMS and Object Explorer to see the column data type definitions for the new external table compared to the "real" table in WideWorldImporters. This is the power of parquet (the schema is encoded into the file).
 1. Execute the script **querybyopenrowset.sql** to see how you can 'ad-hoc' query a parquet file.
 1. Execute the script **querybyexternaltable.sql** to see an example of how to create an external table on a parquet file using a subset of columns.
+1. Execute the script exploremetadata.sql to see metadata about data sources and exteranl tables.
