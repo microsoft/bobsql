@@ -81,4 +81,6 @@ Documentation: https://docs.min.io
 1. Use SSMS and Object Explorer to see the column data type definitions for the new external table compared to the "real" table in WideWorldImporters. This is the power of parquet (the schema is encoded into the file).
 1. Execute the script **querybyopenrowset.sql** to see how you can 'ad-hoc' query a parquet file.
 1. Execute the script **querybyexternaltable.sql** to see an example of how to create an external table on a parquet file using a subset of columns.
-1. Execute the script exploremetadata.sql to see metadata about data sources and exteranl tables.
+1. Explore metadata about parquet files by executing the script **getparquetmetadata.sql**.
+1. Execute the script **getfilemetadata.sql** to see metadata about files from external sources.
+1. Execute the script **exploremetadata.sql** to see metadata about data sources and exteranl tables.
