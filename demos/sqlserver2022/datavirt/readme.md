@@ -67,7 +67,7 @@ Documentation: https://docs.min.io
 
 ## Steps to use SQL Server for the demo
 
-1. Copy the **WideWorldImporters** sample database from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak to a local directory (The restore script assumes **c:\sql_sample_databases**)
+1. Copy the **WideWorldImporters** sample database from https://aka.ms/WideWorldImporters to a local directory (The restore script assumes **c:\sql_sample_databases**)
 1. Edit the **restorewwi.sql** script for the correct paths for the backup and where data and log files should go.
 1. Execute the script **restorewwi.sql**.
 1. Execute the script **enablepolybase.sql** to enable the Polybase feature for the instance.
