@@ -10,7 +10,7 @@ This is a demonstration of data virtualization in SQL Server 2022 using the new 
 - VM or computer with 2 CPUs and at least 8Gb RAM.
 - SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work.
 
-**Note**: The following pre-requisites for for non-Microsoft software. The use of this software does not represent any official endorsement from Microsoft. This software is not supported by Microsoft so any issues using this software are up to the user to resolve.
+**Note**: The following pre-requisites are for non-Microsoft software. The use of this software does not represent any official endorsement from Microsoft. This software is not supported by Microsoft so any issues using this software are up to the user to resolve.
 
 - The **minio** server for Windows which you can download at https://min.io/download#/windows. For the demo I assume you have created a directory called c:\minio and have downloaded the minio.exe for Windows into that directory.
 - openssl for Windows which you can download at https://slproweb.com/products/Win32OpenSSL.html. I chose the Win64 OpenSSL v3.0.5 MSI option.
@@ -19,7 +19,7 @@ This is a demonstration of data virtualization in SQL Server 2022 using the new 
 
 - Download minio.exe for Windows into c:\minio.exe
 - Download the openssl for Windows MSI and run the installer. Use all the defaults.
-- Set a system environment variable OPENSSL_CONF=C:\Program Files\OpenSSL-Win64\bin\openssl.cfg and add to the system environment variable PATH :\Program Files\OpenSSL-Win64\bin
+- Set a system environment variable OPENSSL_CONF=C:\Program Files\OpenSSL-Win64\bin\openssl.cfg and add to the system environment variable PATH c:\Program Files\OpenSSL-Win64\bin
 - Generate a private key using the following command from the c:\minio directory.
 
 `openssl genrsa -out private.key 2048`
@@ -74,7 +74,7 @@ Documentation: https://docs.min.io
 1. Execute the script **createmasterkey.sql** to create a master key to protect a database scoped credential.
 1. Edit the script **creates3creds.sql** to put in your user and password. Execute the script creates3creds.sql to create a database scoped credential. This contains the S3 user and password you created earlier with the minio console.
 1. Edit the script **creates3datasource.sql** to substitute in your local IP address for the minio server. Execute the script creates3datasource.sql.
-1. Create a file format to use for Parquet by executing the script **createparquetfileformat.sql**.
+1. Create a file format to use for Parquet by executing the script ****createparquetfileformat.sql****.
 1. Create a parquet file into the S3 storage bucket wwi by executing the script **wwi_cetas.sql**.
 1. Use the minio console to browse the wwi bucket and see the parquet file that was created.
 1. Query the new external table based on the parquet file by executing the script **querywwiexternaldata.sql**
@@ -82,6 +82,6 @@ Documentation: https://docs.min.io
 1. Execute the script **querybyopenrowset.sql** to see how you can 'ad-hoc' query a parquet file.
 1. Execute the script **querybyexternaltable.sql** to see an example of how to create an external table on a parquet file using a subset of columns.
 1. Create statistics on a column from an external table by executing the script **createstats.sql**
+1. Execute the script **exploremetadata.sql** to see metadata about data sources and exteranl tables.
 1. Explore metadata about parquet files by executing the script **getparquetmetadata.sql**.
 1. Execute the script **getfilemetadata.sql** to see metadata about files from external sources.
-1. Execute the script **exploremetadata.sql** to see metadata about data sources and exteranl tables.
