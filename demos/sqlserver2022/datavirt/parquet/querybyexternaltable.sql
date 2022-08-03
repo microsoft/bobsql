@@ -1,3 +1,5 @@
+USE [WideWorldImporters];
+GO
 IF OBJECT_ID('wwi_customer_transactions_base', 'U') IS NOT NULL
 	DROP EXTERNAL TABLE wwi_customer_transactions_base;
 GO
