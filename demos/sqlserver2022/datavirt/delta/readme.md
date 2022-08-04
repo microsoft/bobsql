@@ -80,7 +80,11 @@ Documentation: https://docs.min.io
 1. Execute the script **createmasterkey.sql** to create a master key to protect a database scoped credential.
 1. Edit the script **creates3creds.sql** to put in your user and password. Execute the script creates3creds.sql to create a database scoped credential. This contains the S3 user and password you created earlier with the minio console.
 1. Edit the script **creates3datasource.sql** to substitute in your local IP address for the minio server. Execute the script creates3datasource.sql.
+1. Create a file format to use for Parquet by executing the script **createparquetfileformat.sql**.
 1. Query the delta table uploaded to the s3 storage under the delta bucket by executing the script **querydeltatable.sql**. There is 10m rows in the delta table so this query will take around 1 minute to execute.
 1. This delta table was built with a partition column for the id column (default partitioning). First filter on a column not partitioned by executing the script**querybyssn.sql**. It should complete with about 4 seconds.
 1. Now query by id to see if it is faster by executing the script **querybyid.sql**. Even though we used an id value in the query that was the highest one, the query still finishes in about 1 second because the delta table is partitioned on the id column.
+1. Use CETAS to query the delta file and only extract a certain set of people to create a new folder by executing the script **createparquetfromdelta.sql**.
+1. Use the minio console to browse the delta bucket and see a new folder called 1960s with multiple parquet files.
+1. Query the new external table by executing the script **query1960speople.sql**
 
