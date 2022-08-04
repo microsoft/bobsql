@@ -6,6 +6,10 @@ These are demos to be showcase new features in SQL Server 2022.
 
 Scripts to allow you to setup the SQL Server Extension for Azure feature in SQL Server 2022 setup.
 
+**backuprestores3**
+
+Demo for backup and restore to S3 object storage in SQL Server 2022
+
 **containedag**
 
 Demo for Contained Availability Groups in SQL Server 2022
@@ -21,10 +25,6 @@ Demos for the nextgen of Intelligent Query Processing
 **milinkdr**
 
 Demos for the Link feature for Azure SQL Managed Instance for SQL Server 2022
-
-**objectstorage**
-
-Demo for backup and restore to S3 object storage in SQL Server 2022
 
 **sqlledger**
 
