@@ -4,9 +4,11 @@
 
 This is a demonstration of data virtualization in SQL Server 2022 using the new REST API "connector" for S3 object storage for delta tables.
 
+**IMPORTANT**: If you have already completed all the steps for the demo for parquet you can skip all the prerequisites and steps to setup minio, except you will need to create a bucket called **delta** instead of wwi and follow the steps to upload a folder for the delta table in minio as described below in the section titled **Steps to use minio for the demo**. You can also skip to Step 8 to start using delta in the section below titled **Steps to use SQL Server for the demo for delta tables.**
+
 **Note**: This demo uses non-Microsoft software that has "free" license to use for testing and development purposes only. This demo should only be run in a testing environment and not with any production workload.
 
-## Pre-requisites
+## Prerequisites
 
 - SQL Server 2022 Evaluation Edition with the Database Engine and PolyBase Query Service for External Data Feature installed. You can use the defaults in setup for Polybase.
 - VM or computer with 2 CPUs and at least 8Gb RAM.
@@ -65,9 +67,11 @@ Documentation: https://docs.min.io
 
 1. On the left-hand side menu, click on Identity and Users. Select Create User. Create a user name with password. Select the readwrite policy for the user. This is the user and password you will use for the SECRET value in creates3creds.sql.
 
-3. Select menu for Buckets. Select Create Bucket. Use a Bucket Name of **wwi**. Leave all defaults and select Create Bucket.
+3. Select menu for Buckets. Select Create Bucket. Use a Bucket Name of **delta**. Leave all defaults and select Create Bucket. From this bucket Browse, Upload, Upload folder. Choose the **people-10m** folder provides with this exercise. This will upload all the files and folders for the delta table.
 
-## Steps to use SQL Server for the demo
+**Note**: The people-10m delta table is a sample delta table from a sample dataset from Databricks as found at https://docs.microsoft.com/en-us/azure/databricks/data/databricks-datasets#sql. This dataset contains names, birthdates, and SSN which are all fictional and don't represent actual people. This dataset falls under the creative commons license at http://creativecommons.org/licenses/by/4.0/legalcode and can be shared and provided in this repo.
+
+## Steps to use SQL Server for the demo for delta tables
 
 1. Copy the **WideWorldImporters** sample database from https://aka.ms/WideWorldImporters to a local directory (The restore script assumes **c:\sql_sample_databases**)
 1. Edit the **restorewwi.sql** script for the correct paths for the backup and where data and log files should go.
@@ -76,14 +80,7 @@ Documentation: https://docs.min.io
 1. Execute the script **createmasterkey.sql** to create a master key to protect a database scoped credential.
 1. Edit the script **creates3creds.sql** to put in your user and password. Execute the script creates3creds.sql to create a database scoped credential. This contains the S3 user and password you created earlier with the minio console.
 1. Edit the script **creates3datasource.sql** to substitute in your local IP address for the minio server. Execute the script creates3datasource.sql.
-1. Create a file format to use for Parquet by executing the script ****createparquetfileformat.sql****.
-1. Create a parquet file into the S3 storage bucket wwi by executing the script **wwi_cetas.sql**.
-1. Use the minio console to browse the wwi bucket and see the parquet file that was created.
-1. Query the new external table based on the parquet file by executing the script **querywwiexternaldata.sql**
-1. Use SSMS and Object Explorer to see the column data type definitions for the new external table compared to the "real" table in WideWorldImporters. This is the power of parquet (the schema is encoded into the file).
-1. Execute the script **querybyopenrowset.sql** to see how you can 'ad-hoc' query a parquet file.
-1. Execute the script **querybyexternaltable.sql** to see an example of how to create an external table on a parquet file using a subset of columns.
-1. Create statistics on a column from an external table by executing the script **createstats.sql**
-1. Execute the script **exploremetadata.sql** to see metadata about data sources and exteranl tables.
-1. Explore metadata about parquet files by executing the script **getparquetmetadata.sql**.
-1. Execute the script **getfilemetadata.sql** to see metadata about files from external sources.
+1. Query the delta table uploaded to the s3 storage under the delta bucket by executing the script **querydeltatable.sql**. There is 10m rows in the delta table so this query will take around 1 minute to execute.
+1. This delta table was built with a partition column for the id column (default partitioning). First filter on a column not partitioned by executing the script**querybyssn.sql**. It should complete with about 4 seconds.
+1. Now query by id to see if it is faster by executing the script **querybyid.sql**. Even though we used an id value in the query that was the highest one, the query still finishes in about 1 second because the delta table is partitioned on the id column.
+

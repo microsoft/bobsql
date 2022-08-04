@@ -2,9 +2,11 @@
 
 This is a demonstration of data virtualization in SQL Server 2022 using the new REST API "connector" for S3 object storage for parquet files.
 
+**IMPORTANT**: If you have already completed all the steps for the demo for delta you can skip all the prerequisites and steps to setup minio, except you will need to create a bucket called **wwi** instead of delta as described below in the section titled **Steps to use minio for the demo**. You can also skip to Step 8 to start using delta in the section below titled **Steps to use SQL Server for the demo for parquet**
+
 **Note**: This demo uses non-Microsoft software that has "free" license to use for testing and development purposes only. This demo should only be run in a testing environment and not with any production workload.
 
-## Pre-requisites
+## Prerequisites
 
 - SQL Server 2022 Evaluation Edition with the Database Engine and PolyBase Query Service for External Data Feature installed. You can use the defaults in setup for Polybase.
 - VM or computer with 2 CPUs and at least 8Gb RAM.
@@ -65,7 +67,7 @@ Documentation: https://docs.min.io
 
 3. Select menu for Buckets. Select Create Bucket. Use a Bucket Name of **wwi**. Leave all defaults and select Create Bucket.
 
-## Steps to use SQL Server for the demo
+## Steps to use SQL Server for the demo for parquet
 
 1. Copy the **WideWorldImporters** sample database from https://aka.ms/WideWorldImporters to a local directory (The restore script assumes **c:\sql_sample_databases**)
 1. Edit the **restorewwi.sql** script for the correct paths for the backup and where data and log files should go.
