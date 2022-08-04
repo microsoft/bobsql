@@ -1,6 +1,6 @@
 # Demo for Data Virtualization using S3 providers for SQL Server 2022 for parquet
 
-This is a demonstration of data virtualization in SQL Server 2022 using the new REST API "connector" for S3 object storage for parquet files.
+This is a demonstration of data virtualization in SQL Server 2022 using the new REST API "connector" for S3 object storage for parquet files. If you want to see the results of this demo without going through all the steps of the exercise you can use Azure Data Studio or a web browser to view the **queryparquet.ipynb** file.
 
 **IMPORTANT**: If you have already completed all the steps for the demo for delta you can skip all the prerequisites and steps to setup minio, except you will need to create a bucket called **wwi** instead of delta as described below in the section titled **Steps to use minio for the demo**. You can also skip to Step 8 to start using delta in the section below titled **Steps to use SQL Server for the demo for parquet**
 

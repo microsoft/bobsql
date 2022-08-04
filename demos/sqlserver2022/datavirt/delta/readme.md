@@ -1,8 +1,6 @@
 # Demo for Data Virtualization using S3 providers for SQL Server 2022 for delta
 
-**** UNDER CONSTRUCTION ****
-
-This is a demonstration of data virtualization in SQL Server 2022 using the new REST API "connector" for S3 object storage for delta tables.
+This is a demonstration of data virtualization in SQL Server 2022 using the new REST API "connector" for S3 object storage for delta tables. If you want to see the results of this demo without going through all the steps of the exercise you can use Azure Data Studio or a web browser to view the **querydelta.ipynb** file.
 
 **IMPORTANT**: If you have already completed all the steps for the demo for parquet you can skip all the prerequisites and steps to setup minio, except you will need to create a bucket called **delta** instead of wwi and follow the steps to upload a folder for the delta table in minio as described below in the section titled **Steps to use minio for the demo**. You can also skip to Step 8 to start using delta in the section below titled **Steps to use SQL Server for the demo for delta tables.**
 
@@ -82,7 +80,7 @@ Documentation: https://docs.min.io
 1. Edit the script **creates3datasource.sql** to substitute in your local IP address for the minio server. Execute the script creates3datasource.sql.
 1. Create a file format to use for Parquet by executing the script **createparquetfileformat.sql**.
 1. Query the delta table uploaded to the s3 storage under the delta bucket by executing the script **querydeltatable.sql**. There is 10m rows in the delta table so this query will take around 1 minute to execute.
-1. This delta table was built with a partition column for the id column (default partitioning). First filter on a column not partitioned by executing the script**querybyssn.sql**. It should complete with about 4 seconds.
+1. This delta table was built with a partition column for the id column (default partitioning). First filter on a column not partitioned by executing the script **querybyssn.sql**. It should complete with about 4 seconds.
 1. Now query by id to see if it is faster by executing the script **querybyid.sql**. Even though we used an id value in the query that was the highest one, the query still finishes in about 1 second because the delta table is partitioned on the id column.
 1. Use CETAS to query the delta file and only extract a certain set of people to create a new folder by executing the script **createparquetfromdelta.sql**.
 1. Use the minio console to browse the delta bucket and see a new folder called 1960s with multiple parquet files.
