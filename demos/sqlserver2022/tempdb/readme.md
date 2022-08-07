@@ -14,7 +14,7 @@ Follow these steps to demonstrate system page latch concurrency enhancements for
 1. Configure perfmon to track SQL Server SQL Statistics:SQL Statistics/Batch requests/sec (set Scale to 0.1) and SQL Server:SQL Statistics/Page latch waits/Waits started per second.
 1. Execute the script **findtempdbdbilfes.sql** and save the output. A script is provided for the end of this demo to restore back your tempdb file settings.
 1. Start SQL Server in minimal mode using the command script **startsqlminimal.cmd**
-1. Execute the command script **modifytempdbfiles.cmd**. This will execute the SQL script **modifytempdbfiles.sql** to expand the log to 200Mb (avoid any autogrow) and remove all tempdb files other than 1. If you have more than 4 tempdb files you need to edit this script to remove all of them except for tempdev.
+1. Execute the command script **modifytempdbfiles.cmd**. This will execute the SQL script **modifytempdbfiles.sql** to expand the log to 200Mb (avoid any autogrow) and remove all tempdb files other than 1. If you have more than 4 tempdb files you need to edit this script to remove all of them except for tempdev..\.
 
 ## Observe performance of a tempdb based workload without metadata optimization and without new SQL Server 2022 enhancements
 
