@@ -59,6 +59,6 @@ Note: This demo showed that you no longer may have to create multiple tempdb fil
 If you want to restore your tempdb file settings you can perform the following steps:
 
 1. Edit the **restoretempdbfiles.sql** script to add or remove any extra files.
-1. Run the command script **startsqlminimal.cmd**
-1. Execute the command script **restoretempdbfiles.cmd**
+1. Execute the command script **restoretempdbfiles.cmd**. The script will display **Changed database context to 'master**' and exit back to the command prompt.
 1. Execute the command script **restartsql.cmd**
+1. Execute the script **findtempdbfiles.sql** to ensure your files are back to the correct configuration.
