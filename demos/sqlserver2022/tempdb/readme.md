@@ -54,7 +54,7 @@ Tempdb metadata optimization is already enabled and by restarting you are no lon
 
 You have now achieved maximum performance with tempdb workloads and did not have to do any special configuration for tempdb files. 
 
-Note: This demo showed that you no longer may have to create multiple tempdb files for avoid system page latch contention. However, it is recommend to use the default setting from SQL Server setup for the number of files.
+**Note**: This demo showed that you no longer may have to create multiple tempdb files for avoid system page latch contention. However, it is recommend to use the default setting from SQL Server setup for the number of files. I have run this same demo on a 4 CPU machine with 4 files. With tempdb metadata optimization ON and using the new GAM/SGAM enhancements I got similar results from just using 1 file.
 
 If you want to restore your tempdb file settings you can perform the following steps:
 
