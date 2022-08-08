@@ -15,9 +15,8 @@ This demo will show you the fundamentals of an updatable ledger table.
 1. Create logins by executing the script **addsysadminlogin.sql** from SSMS as the default sysadmin for the SQL Server instance.
 2. Login with the 'bob' sysadmin user created in step #1.
 2. Create the database schema, add an app login, and users by executing the script **createdb.sql** from SSMS.
-3. Create an updateable ledger table for Employees by executing the script **createemployeeledger.sql** from SSMS.
-4. Create an append-only ledger table for auditing of the application by executing the script **createauditledger.sql** from SSMS. This table will be used later in the demonstration.
-5. Populate initial employee data using the script **populateemployees.sql** from SSMS. Use SSMS Object Explorer to see the tables have properties next to their name that they are ledger tables and a new visual icon to indicate it is a ledger table.
+3. Create an updateable ledger table for Employees by executing the script **createemployeeledger.sql** from SSMS. Use SSMS Object Explorer to see the tables have properties next to their name that they are ledger tables and a new visual icon to indicate it is a ledger table.
+5. Populate initial employee data using the script **populateemployees.sql** from SSMS. 
 6. Examine the data in the employee table using the script **getallemployees.sql**. Notice there are "hidden" columns that are not shown if you execute a SELECT *. Some of these columns are NULL or 0 because no updates have been made to the data. You normally will not use these columns but use the *ledger view* to see information about changes to the employees table.
 7. Look at the employees "ledger" by executing the script **getemployeesledger.sql**. This is a view from the Employees table and a ledger *history* table. Notice the ledger has the transaction information from hidden columns in the table plus an indication of what type of operation was performed on the ledger for a specific row.
 8. Examine the definition of the ledger view by executing **getemployeesledgerview.sql**. The ledger history table uses the name**MSSQL_LedgerHistoryFor_[objectid of table]**. Notice the view is a union of the original table (for new inserts) and updates from the history table (insert/delete pair).
@@ -33,7 +32,10 @@ This demo will show you the fundamentals of an updatable ledger table.
 
 Now see you can use an append-only ledger to capture application information. To ensure we captured what person was responsible for changes even if an application uses an "application login" we can use an append-only ledger table which was created earlier then you ran the script **createauditledger.sql**.
 
-1. To simulate a user using the application to change someone else's salary **connect to SSMS as the app login** created with the **addlogins.sql** script in step 1 and execute the script **appchangemaryssalary.sql**
+Use the SQL login bob in these steps unless otherwise specified.
+
+1. Create an append-only ledger table for auditing of the application by executing the script **createauditledger.sql** from SSMS. This table will be used later in the demonstration.
+1. To simulate a user using the application to change someone else's salary **connect to SSMS as the app login** created with the **addlogins.sql** script and execute the script **appchangemaryssalary.sql**
 1. **Logging back in as bob or the local sysadmin login**, look at the ledger by executing the script **viewemployeesledgerhistory.sql**. All you can see is that the "app" changed Mary's salary.
 1. Look at the audit ledger by executing the script **getauditledger.sql**. This ledger cannot be updated so the app must "log" all operations and the originating user from the app who initiated the operation. So I can see from the ledger at the SQL level that the app user changed Mary's salary but the app ledger shows bob was the actual person who used the app to make the change.
 

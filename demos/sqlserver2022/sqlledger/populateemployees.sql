@@ -1,11 +1,8 @@
-
 USE ContosoHR;
 GO
-
 -- Clear Employees table
 DELETE FROM [dbo].[Employees];
 GO
- 
 -- Insert 10 employees. The names and SSN are completely fictional and not associated with any person
 DECLARE @SSN1 char(11) = '795-73-9833'; DECLARE @Salary1 Money = 61692.00; INSERT INTO [dbo].[Employees] ([SSN], [FirstName], [LastName], [Salary]) VALUES (@SSN1, 'Catherine', 'Abel', @Salary1);
 DECLARE @SSN2 char(11) = '990-00-6818'; DECLARE @Salary2 Money = 990.00; INSERT INTO [dbo].[Employees] ([SSN], [FirstName], [LastName], [Salary]) VALUES (@SSN2, 'Kim', 'Abercrombie', @Salary2);

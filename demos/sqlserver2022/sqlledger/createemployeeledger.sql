@@ -1,6 +1,5 @@
 USE ContosoHR;
 GO
-
 -- Create the Employees table and make it an updatetable Ledger table
 DROP TABLE IF EXISTS [dbo].[Employees];
 GO

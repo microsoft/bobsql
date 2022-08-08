@@ -1,6 +1,5 @@
 USE master;
 GO
-
 -- Create a login for bob and make him a sysadmin
 IF EXISTS (SELECT * FROM sys.server_principals WHERE NAME = 'bob')
 BEGIN
