@@ -26,7 +26,8 @@ This demo will show you the fundamentals of an updatable ledger table.
 10. Try to update Jay Adam's salary to see if no one will notice by executing the script **updatejayssalary.sql**.
 11. Execute the script **getallemployees.sql** to see that it doesn't look anyone updated the data.
 12. Execute the script **viewemployeesledgerhistory.sql** to see the audit of the changes and who made them. Notice 3 rows for Jay Adam's. Two for the update (DELETE and INSERT) and 1 for the original INSERT.
-13. Let's verify the ledger just to verify the integrity of the data. Edit the script **verifyledger.sql** by substituting the JSON value from **step 10** from the **generatedigest.sql** script (include the brackets inside the quotes). Execute the script. The **last_verified_block_id** should match the block_id in the digest and in **sys.database_ledger_blocks**. I now know the ledger is verified as of the time the digest was captured. By using this digest I know that 1) The data is valid based on the time the digest was captured 2) The internal blocks match the current data changes for the update to jay's salary. If someone had to fake out the data for the Employees table without doing a T-SQL UPDATE to make the system "think" Jay's current salary was 50,000 more than it really is, the system would have raised an error that hashes of the changes don't match the current data.
+1. Generate another digest by executing **generatedigest.sql**. Save the JSON output (including the {})
+1. Let's verify the ledger just to verify the integrity of the data. Edit the script **verifyledger.sql** by substituting the JSON value from **step 10** from the **generatedigest.sql** script (include the brackets inside the quotes). Execute the script. The **last_verified_block_id** should match the block_id in the digest and in **sys.database_ledger_blocks**. I now know the ledger is verified as of the time the digest was captured. By using this digest I know that 1) The data is valid based on the time the digest was captured 2) The internal blocks match the current data changes for the update to jay's salary. If someone had to fake out the data for the Employees table without doing a T-SQL UPDATE to make the system "think" Jay's current salary was 50,000 more than it really is, the system would have raised an error that hashes of the changes don't match the current data.
 
 ## Demo 2: Using an append-only ledger
 
@@ -34,7 +35,7 @@ Now see you can use an append-only ledger to capture application information. To
 
 Use the SQL login bob in these steps unless otherwise specified.
 
-1. Create an append-only ledger table for auditing of the application by executing the script **createauditledger.sql** from SSMS. This table will be used later in the demonstration.
+1. Create an append-only ledger table for auditing of the application by executing the script **createauditledger.sql**.
 1. To simulate a user using the application to change someone else's salary **connect to SSMS as the app login** created with the **addlogins.sql** script and execute the script **appchangemaryssalary.sql**
 1. **Logging back in as bob or the local sysadmin login**, look at the ledger by executing the script **viewemployeesledgerhistory.sql**. All you can see is that the "app" changed Mary's salary.
 1. Look at the audit ledger by executing the script **getauditledger.sql**. This ledger cannot be updated so the app must "log" all operations and the originating user from the app who initiated the operation. So I can see from the ledger at the SQL level that the app user changed Mary's salary but the app ledger shows bob was the actual person who used the app to make the change.

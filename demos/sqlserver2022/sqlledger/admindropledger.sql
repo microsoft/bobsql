@@ -12,6 +12,4 @@ GO
 -- But we keep a history of the dropped table
 SELECT * FROM sys.objects WHERE name like '%DroppedLedgerTable%';
 GO
--- You cannot drop the "dropped ledger table". Substitue the table name from the results from the previous query
-DROP TABLE MSSQL_DroppedLedgerTable_Employees_5363A044DD864F90BF64B81441A0B9DC;
-GO
+
