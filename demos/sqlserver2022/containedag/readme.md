@@ -22,7 +22,7 @@ The following are steps to create a contained AG, create a database to be part o
 
 1. On the primary and secondary VM run the script **sqlsysadminlogin.sql**. This creates a login called sqladmin so we can connect to the difference instances without having to RDP into each one.
 1. On the primary and secondary VM start SQL Server agent using SSMS.
-1. On the primary VM connect to the primary and secondary VMs. Use the local Windows admin if you specified it during setup on the primary or the login from **sqlsysadminlogin.sql**. For the secondary use sqladmin login.
+1. On the primary VM connect to the primary and secondary instances. Use the local Windows admin if you specified it during setup on the primary or the login from **sqlsysadminlogin.sql**. For the secondary use sqladmin login.
 1. Run the script **dbmcreds.sql** for both instances
 1. Execute the script **createcert.sql** on the primary
 1. Copy the cert files to the secondary instance (you will need to RDP into the second VM)
