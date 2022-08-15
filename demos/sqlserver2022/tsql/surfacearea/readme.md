@@ -1,0 +1,11 @@
+# Surface Area T-SQL functions in SQL Server 2022
+
+Follow these steps to demonstrate T-SQL enhancements across the core SQL engine in SQL Server 2022
+
+## Prerequisites
+
+- SQL Server 2022 Evaluation Edition
+- VM or computer with 2 CPUs and at least 8Gb RAM.
+- SQL Server Management Studio (SSMS). The latest 18.x build or 19.x build will work.
+
+## Steps for the demo
