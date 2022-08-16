@@ -1,0 +1,1 @@
+-- This is a demo for the new WINDOW clause in T-SQL in SQL Server 2022

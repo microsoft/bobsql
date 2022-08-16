@@ -1,0 +1,1 @@
+-- This is a demo for the enhanced STRING_SPLIT() T-SQL function in SQL Server 2022
