@@ -6,14 +6,13 @@
 -- Shift left 4 bits the value of 6
 -- The result is 96 which is 0110 0000
 -- Now just add 4 and you get 100
-DECLARE @x int
-DECLARE @y int
+DECLARE @x tinyint
+DECLARE @y tinyint
 SELECT @x = LEFT_SHIFT(6, 4) + 4
 SELECT @x = (6 << 4 ) + 4
 SELECT @x
 -- Only give me upper bits. @y should now be 6
 SELECT @y = RIGHT_SHIFT(@x, 4)
-SELECT @y =  
 SELECT @y
 -- Let's use SETBIT to clear the upper bits to get the lower
 SELECT @x = SET_BIT(@x, 4, 0)
