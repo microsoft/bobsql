@@ -1,15 +1,17 @@
 -- This is a demo for the new GREATEST and LEAST T-SQL functions in SQL Server 2022
--- A simple set of numbers
+-- Step 1: A simple set of numbers
 SELECT GREATEST(6.5, 3.5, 7) as greatest_of_numbers;
 GO
--- Does it work even if datatypes are not the same?
+-- Step 2: Does it work even if datatypes are not the same?
 SELECT GREATEST(6.5, 3.5, N'7') as greatest_of_values;
 GO
--- What about strings?
+-- Step 3: What about strings?
 SELECT GREATEST('Buffalo Bills', 'Cleveland Browns', 'Dallas Cowboys') as the_best_team
 GO
--- Use it in a comparison
-CREATE TABLE dbo.studies (    
+-- Step 4: Use it in a comparison
+DROP TABLE IF EXISTS studies;
+GO
+CREATE TABLE studies (    
     VarX varchar(10) NOT NULL,    
     Correlation decimal(4, 3) NULL 
 ); 
@@ -21,10 +23,10 @@ SELECT VarX, Correlation
 FROM dbo.studies 
 WHERE Correlation > GREATEST(@PredictionA, @PredictionB); 
 GO
--- Simple LEAST example
+-- Step 5: Simple LEAST example
 SELECT LEAST(6.5, 3.5, 7) as least_of_numbers;
 GO
--- Combine with variables
+-- Step 6: Combine with variables
 DECLARE @VarX decimal(4, 3) = 0.59;  
 SELECT VarX, Correlation, LEAST(Correlation, 1.0, @VarX) AS LeastVar  
 FROM dbo.studies;
