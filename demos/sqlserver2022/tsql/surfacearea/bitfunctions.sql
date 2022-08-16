@@ -1,1 +1,0 @@
--- This is a demo for the new bit T-SQL functions in SQL Server 2022
