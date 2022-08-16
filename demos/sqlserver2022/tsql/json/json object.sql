@@ -1,4 +1,5 @@
--- Create a JSON object using same data
+-- T-SQL statements to see how the JSON_OBJECT() and JSON_PATH_EXISTS() functions work
+-- Step 1: Create a JSON object using same data
 DROP TABLE IF EXISTS sql_requests_table_json_object;
 GO
 SELECT JSON_OBJECT('command': r.command, 'status': r.status, 'database_id': r.database_id, 'wait_type': r.wait_type, 'wait_resource': r.wait_resource, 'user': s.is_user_process) as json_object, r.command
@@ -10,6 +11,7 @@ ORDER BY r.session_id;
 GO
 SELECT * FROM sql_requests_table_json_object;
 GO
--- see if status exists in the json path of the object
-SELECT JSON_PATH_EXISTS(json_object, '$.status')
+-- Step 2: See if status exists in the json path of the object
+SELECT JSON_PATH_EXISTS(json_object, '$.status'), JSON_PATH_EXISTS(command, '$.status')
 FROM sql_requests_table_json_object;
+GO
