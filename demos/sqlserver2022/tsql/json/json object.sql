@@ -6,7 +6,7 @@ INTO sql_requests_table_json_object
 FROM sys.dm_exec_requests r
 JOIN sys.dm_exec_sessions s
 ON r.session_id = s.session_id
-ORDER BY r.session_id
+ORDER BY r.session_id;
 GO
 SELECT * FROM sql_requests_table_json_object;
 GO

@@ -1,4 +1,5 @@
 -- This is a demo for the new DATETRUNC() T-SQL function in SQL Server 2022
+-- Credits to Aashna Bafna for providing the base for these demos
 -- Truncate just the year from a date with a variable
 DECLARE @d date = '2022-05-14';
 SELECT DATETRUNC(year, @d);                                                                  

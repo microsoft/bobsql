@@ -1,4 +1,5 @@
 -- This is a demo for the enhanced IS [NOT] DISTINCT FROM T-SQL function in SQL Server 2022
+-- Credits to Itzik Ben-Gan for providing a base for these demos
 USE [WideWorldImporters];
 GO
 SELECT * FROM Sales.Orders WHERE

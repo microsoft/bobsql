@@ -14,7 +14,7 @@ BUF_HASHED  0x000008
 */
 -- Search for the bstat value for this page
 DECLARE @bstat varbinary(4);
-SET @bstat = 0xb
+SET @bstat = 0xb;
 SELECT BIT_COUNT(@bstat);
 SELECT GET_BIT(@bstat, 3) as "2^3", GET_BIT(@bstat, 2) as "2^2", GET_BIT(@bstat, 1) as "2^1", GET_BIT(@bstat, 0) as "2^0";
 SELECT GET_BIT(@bstat, 3)*2*2*2+GET_BIT(@bstat, 2)*2*2+GET_BIT(@bstat, 1)*2+GET_BIT(@bstat, 0)*1;

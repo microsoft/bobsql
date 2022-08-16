@@ -1,3 +1,5 @@
+-- Demo to use the new WINDOW clause in SQL Server 2022
+-- Credtis to Sharanya Bhat for providing this example demo
 USE AdventureWorks2012;
 GO
 
