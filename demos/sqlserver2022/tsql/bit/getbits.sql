@@ -2,8 +2,8 @@
 -- Dump out the PFS page in master
 -- Look at the BUF structure output
 -- bstat should be 0x9
--- It could be 0xb if someone has made any page allocations and master has not been checkpionted. For a new installed SQL Server it should be 0x9
--- If you see 0x109 it could because of an internal bit for checkpionting but it can be ignored
+-- It could be 0xb if someone has made any page allocations and master has not been checkpointed. For a new installed SQL Server it should be 0x9
+-- If you see 0x109 it could because of an internal bit for checkpointing but it can be ignored
 -- Here are several bstat values packed into this number
 /*
 BUF_ONLRU = 0x000001
@@ -50,7 +50,7 @@ GO
 DBCC PAGE(1,1,1,3);
 GO
 -- BUF_DIRTY is now ON which means the page has been modified but not written.
--- The PFS page is modified becasue a page allocation was required for the new table data
+-- The PFS page is modified because a page allocation was required for the new table data
 DECLARE @bstat varbinary(4);
 SET @bstat = 0xb;
 SELECT GET_BIT(@bstat, 3) as "2^3 BUF_HASHED", GET_BIT(@bstat, 2) as "2^2 BUF_IO", GET_BIT(@bstat, 1) as "2^1 BUF_DIRTY", GET_BIT(@bstat, 0) as "2^0 BUF_ONLRU";
