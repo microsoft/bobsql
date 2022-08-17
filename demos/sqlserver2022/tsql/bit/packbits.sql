@@ -6,16 +6,24 @@
 -- Shift left 4 bits the value of 6
 -- The result is 96 which is 0110 0000
 -- Now just add 4 and you get 100
+-- Step 1: Pack 6 into the upper bits and 4 into the lower bits
+-- The value of 100 is a byte that combines 6 in the upper bits and 4 in the lower bits
+DECLARE @x tinyint;
+SELECT @x = LEFT_SHIFT(6, 4) + 4;
+SELECT @x = (6 << 4 ) + 4;
+SELECT @x;
+-- Step 2: Only give me upper bits from the 100 packed value. The result should be a 6
 DECLARE @x tinyint;
 DECLARE @y tinyint;
 SELECT @x = LEFT_SHIFT(6, 4) + 4;
 SELECT @x = (6 << 4 ) + 4;
-SELECT @x;
--- Only give me upper bits. @y should now be 6
 SELECT @y = RIGHT_SHIFT(@x, 4);
 SELECT @y = @x >> 4;
 SELECT @y;
--- Let's use SETBIT to clear the upper bits to get the lower
+-- Step 3: Let's use SET_BIT to clear the upper bits to get the lower so the result should be a 4
+DECLARE @x tinyint;
+SELECT @x = LEFT_SHIFT(6, 4) + 4;
+SELECT @x = (6 << 4 ) + 4;
 SELECT @x = SET_BIT(@x, 4, 0);
 SELECT @x = SET_BIT(@x, 5, 0);
 SELECT @x = SET_BIT(@x, 6, 0);

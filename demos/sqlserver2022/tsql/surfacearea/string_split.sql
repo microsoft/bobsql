@@ -1,10 +1,11 @@
 -- This is a demo for the enhanced STRING_SPLIT() T-SQL function in SQL Server 2022
 -- Thanks to Aaron Bertrand for providing a base for these demos
-DECLARE @states NVARCHAR(max) = N'Cowboys,Browns,Seahawks,Broncos,Eagles';
-SELECT value as nfl_team FROM STRING_SPLIT(@states, N',');
+-- Step 1: Use STRING_SPLIT to get back a list of NFL teams. There is no gurantee for the order but it may work.
+DECLARE @nflteams NVARCHAR(max) = N'Cowboys,Browns,Seahawks,Broncos,Eagles';
+SELECT value as nfl_team FROM STRING_SPLIT(@nflteams, N',');
 GO
--- Notice this does not need a sort
-DECLARE @states NVARCHAR(max) = N'Cowboys,Browns,Seahawks,Broncos,Eagles';
-SELECT value as nfl_team, ordinal as rank FROM STRING_SPLIT(@states, N',', 1);
+-- Step 2: Use the new ordinal option to ensure order without a sort
+DECLARE @nflteams NVARCHAR(max) = N'Cowboys,Browns,Seahawks,Broncos,Eagles';
+SELECT value as nfl_team, ordinal as rank FROM STRING_SPLIT(@nflteams, N',', 1)
 ORDER BY ordinal;
 GO

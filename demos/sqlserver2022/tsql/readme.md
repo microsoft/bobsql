@@ -2,6 +2,10 @@
 
 These are demos to be showcase new T-SQL language enhancements in SQL Server 2022
 
+**bit**
+
+Demo for bit manipulation functions
+
 **json**
 
 Demo new JSON functions

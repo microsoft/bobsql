@@ -15,7 +15,5 @@ Follow these steps to demonstrate T-SQL enhancements across the core SQL engine 
 1. Execute the script **greatest_least.sql** to see how the new GREATEST() and LEAST() functions work.
 1. Execute the script **string_split.sql** to see how the enhanced STRING_SPLIT() functions works.
 1. *Examine* the script **window.sql** to see how the new WINDOW clause works.
-1. Execute the script **getbits.sql** to see how the BIT_COUNT() AND GET_BIT() functions work.
-1. Execute the script **packbits.sql** to see how the RIGHT_SHIFT() and LEFT_SHIFT() and SET_BIT functions work.
 1. After restoring the WideWorldImporters database, execute the script **setup_isnotdistinct.sql**.
 1. Execute the script **isnotdistinct.sql** to see how the IS NOT DISTINCT FROM T-SQL statements works.
