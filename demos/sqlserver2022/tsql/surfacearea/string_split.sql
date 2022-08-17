@@ -1,6 +1,6 @@
 -- This is a demo for the enhanced STRING_SPLIT() T-SQL function in SQL Server 2022
 -- Thanks to Aaron Bertrand for providing a base for these demos
--- Step 1: Use STRING_SPLIT to get back a list of NFL teams. There is no gurantee for the order but it may work.
+-- Step 1: Use STRING_SPLIT to get back a list of NFL teams. There is no guarantee for the order but it may work.
 DECLARE @nflteams NVARCHAR(max) = N'Cowboys,Browns,Seahawks,Broncos,Eagles';
 SELECT value as nfl_team FROM STRING_SPLIT(@nflteams, N',');
 GO
