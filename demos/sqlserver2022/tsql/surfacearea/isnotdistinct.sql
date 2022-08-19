@@ -9,16 +9,22 @@ SELECT * FROM Sales.Orders WHERE
 PickingCompletedWhen = @dt;
 GO
 -- Step 2: Find all the orders where picking was not completed. This shows 0 rows even though there is ~ 3000 rows with a NULL value
+USE [WideWorldImporters];
+GO
 DECLARE @dt datetime2 = NULL
 SELECT * FROM Sales.Orders WHERE
 PickingCompletedWhen = @dt;
 GO
 -- Step 3: Try to use ISNULL. Works but requires a scan
+USE [WideWorldImporters];
+GO
 DECLARE @dt AS DATE = NULL;
 SELECT * FROM Sales.Orders 
 WHERE ISNULL(PickingCompletedWhen, '99991231') = ISNULL(@dt, '99991231');
 GO
 -- Step 4: Try to use the new operator. Should yield ~3000 rows but use an index seek
+USE [WideWorldImporters];
+GO
 DECLARE @dt datetime2 = NULL
 SELECT *
 FROM Sales.Orders

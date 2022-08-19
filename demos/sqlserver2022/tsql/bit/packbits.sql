@@ -8,11 +8,15 @@
 -- Now just add 4 and you get 100
 -- Step 1: Pack 6 into the upper bits and 4 into the lower bits
 -- The value of 100 is a byte that combines 6 in the upper bits and 4 in the lower bits
+USE master;
+GO
 DECLARE @x tinyint;
 SELECT @x = LEFT_SHIFT(6, 4) + 4;
 SELECT @x = (6 << 4 ) + 4;
 SELECT @x;
 -- Step 2: Only give me upper bits from the 100 packed value. The result should be a 6
+USE master;
+GO
 DECLARE @x tinyint;
 DECLARE @y tinyint;
 SELECT @x = LEFT_SHIFT(6, 4) + 4;
@@ -21,6 +25,8 @@ SELECT @y = RIGHT_SHIFT(@x, 4);
 SELECT @y = @x >> 4;
 SELECT @y;
 -- Step 3: Let's use SET_BIT to clear the upper bits to get the lower so the result should be a 4
+USE master;
+GO
 DECLARE @x tinyint;
 SELECT @x = LEFT_SHIFT(6, 4) + 4;
 SELECT @x = (6 << 4 ) + 4;
