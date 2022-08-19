@@ -14,6 +14,7 @@ Follow these steps to demonstrate T-SQL enhancements across the core SQL engine 
 1. Execute the script **datetrunc.sql** to see how the new DATETRUNC() function works.
 1. Execute the script **greatest_least.sql** to see how the new GREATEST() and LEAST() functions work.
 1. Execute the script **string_split.sql** to see how the enhanced STRING_SPLIT() functions works.
+1. Execute the script **trim.sql** to see how the TRIM, LTRIM, and TRIM have been enhanced.
 1. *Examine* the script **window.sql** to see how the new WINDOW clause works.
 1. After restoring the WideWorldImporters database, execute the script **setup_isnotdistinct.sql**.
 1. Execute the script **isnotdistinct.sql** to see how the IS NOT DISTINCT FROM T-SQL statements works.
