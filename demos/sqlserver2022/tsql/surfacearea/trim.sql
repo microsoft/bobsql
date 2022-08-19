@@ -7,7 +7,7 @@ GO
 SELECT TRIM('STR' FROM 'STRmydataSTR') as trim_strings;
 SELECT TRIM(LEADING 'STR' FROM 'STRmydataSTR') as leading_string;
 SELECT TRIM(TRAILING 'STR' FROM 'STRmydataSTR') as trailing_string;
--- Same as the previous release behavior but explicity specifying BOTH
+-- Same as the previous release behavior but explicitly specifying BOTH
 SELECT TRIM(BOTH 'STR' FROM 'STRmydataSTR') as both_strings_trimmed;
 GO
 -- Step 2: Use the new extension to the LTRIM function
