@@ -14,6 +14,7 @@ DECLARE @x tinyint;
 SELECT @x = LEFT_SHIFT(6, 4) + 4;
 SELECT @x = (6 << 4 ) + 4;
 SELECT @x;
+GO
 -- Step 2: Only give me upper bits from the 100 packed value. The result should be a 6
 USE master;
 GO
@@ -24,6 +25,7 @@ SELECT @x = (6 << 4 ) + 4;
 SELECT @y = RIGHT_SHIFT(@x, 4);
 SELECT @y = @x >> 4;
 SELECT @y;
+GO
 -- Step 3: Let's use SET_BIT to clear the upper bits to get the lower so the result should be a 4
 USE master;
 GO

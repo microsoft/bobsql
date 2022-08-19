@@ -1,6 +1,6 @@
 USE [WideWorldImporters];
 GO
-DROP INDEX Sales.Orders.pickingdateidx;
+DROP INDEX IF EXISTS Sales.Orders.pickingdateidx;
 GO
 CREATE INDEX pickingdateidx ON Sales.Orders (PickingCompletedWhen);
 GO
