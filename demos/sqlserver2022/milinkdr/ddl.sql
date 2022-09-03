@@ -1,10 +1,7 @@
 USE [WideWorldImporters]
 GO
-
-/****** Object:  Table [Warehouse].[Vehicles]    Script Date: 1/22/2022 6:44:49 PM ******/
 DROP TABLE IF EXISTS [Warehouse].[Vehicles];
 GO
-
 CREATE TABLE [Warehouse].[Vehicles](
 	[Vehicle_Registration] [nchar](20) NOT NULL,
 	[Vehicle_Type] [nchar](20) NULL,
@@ -15,16 +12,10 @@ PRIMARY KEY CLUSTERED
 (
 	[Vehicle_Registration] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [USERDATA]
-) ON [USERDATA]
+) ON [USERDATA];
 GO
-
-USE [WideWorldImporters]
-GO
-
-/****** Object:  Table [Warehouse].[Vehicle_StockItems]    Script Date: 1/22/2022 6:46:36 PM ******/
 DROP TABLE IF EXISTS [Warehouse].[Vehicle_StockItems];
 GO
-
 CREATE TABLE [Warehouse].[Vehicle_StockItems](
 	[Vehicle_Registration] [nchar](20) NOT NULL,
 	[StockItemID] [int] NOT NULL,
@@ -33,5 +24,5 @@ CREATE TABLE [Warehouse].[Vehicle_StockItems](
 	[Vehicle_Registration] ASC,
 	[StockItemID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [USERDATA]
-) ON [USERDATA]
+) ON [USERDATA];
 GO
