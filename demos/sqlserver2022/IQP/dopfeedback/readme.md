@@ -16,7 +16,7 @@ This demo will show you how to see how to get consistent performance with less C
 1. Copy the **WideWorldImporters** sample database from https://github.com/Microsoft/sql-server-samples/releases/download/wide-world-importers-v1.0/WideWorldImporters-Full.bak to a local directory (The restore script assumes **c:\sql_sample_databases**)
 1. Edit the **restorewwi.sql** script for the correct paths for the backup and where data and log files should go.
 1. Execute the script **restorewwi.sql**
-1. Extend the database by executing **populatedata.sql**. This will take ~13mins to execute. Because of the large transaction the log will grow to ~30Gb and the user FG will grow to about ~6.5Gb.
+1. Extend the database by executing **populatedata.sql**. This will take ~10-15mins to execute. Because of the large transaction the log will grow to ~30Gb and the user FG will grow to about ~6.5Gb.
 1. Rebuild indexes by executing the script **rebuild_index.sql**.
 1. Execute **dopfeedback.sql** to set QDS settings and db setting for DOP feedback.
 1. Execute **proc.sql** to create a stored procedure
