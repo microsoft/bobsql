@@ -1,4 +1,4 @@
-USE [WideWorldImporters]
+USE [WideWorldImporters];
 GO
 DROP TABLE IF EXISTS [Warehouse].[Vehicles];
 GO
