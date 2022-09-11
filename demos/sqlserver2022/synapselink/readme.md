@@ -26,8 +26,7 @@ The following are steps for an exercise for Azure Synapse Link for SQL Server 20
 1. Use Synapse Studio and execute the SQL statement`CREATE MASTER KEY` against the SQL dedicated pool.
 1. Use Synapse Studio to create schemas by executing the following SQL statements:
 
-
-```tsql
+```sql
 CREATE SCHEMA Application;
 GO
 CREATE SCHEMA Purchasing;
@@ -39,5 +38,17 @@ GO
 CREATE SCHEMA Website;
 GO
 ```
-1. 
 
+1. Use Synapse Studio to create a **linked service for SQL Server 2022**. Install the Self-hosted Integration runtime on your network and use key from Synapse Studio.
+1. Use Synapse Studio to create a **linked service for the Landing Zone** you created from prereqs.
+1. Use Synapse Studio to create a **linked connection** using the linked service for SQL Server 2022 and Landing Zone. Choose all tables from the WideWorldImporters database.
+1. Use Synapse Studio to **start** the linked connection. Monitor with Synapse Studio until the linked connection shows a status of **Running**. This may take up to 10 minutes.
+1. Use Synapse Studio to see all the tables from SQL Server exist in the SQL Pool.
+1. Use Synapse Studio to execute the query from **getcargocounts.sql**. You should see one StockItem for each city.
+1. Examine the container from the Landing Zone. Drill down in the folders to see a parquet file.
+
+## Near-real time analytics with changes from SQL Server
+
+1. Execute the script **modifyvehicledata.sql** on SQL Server 2022 to add new cargo across various cities.
+1. Examine the container in the Landing Zone to see a new .csv file.
+1. In Synapse Studio execute the query again from **getcargocounts.sql** to reflect the new stock items added across the various cities.
