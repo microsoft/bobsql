@@ -1,0 +1,1 @@
+az role definition create --role-definition sqlazureext.json

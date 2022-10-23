@@ -1,0 +1,21 @@
+{
+    "Name": "Onboard SQL Server Azure Arc",
+    "IsCustom": true,
+    "Description": "Allowed to register SQL Server on Azure Arc-enabled servers",
+    "Actions": [
+      "Microsoft.HybridCompute/machines/extensions/read",
+      "Microsoft.HybridCompute/machines/extensions/write",
+      "Microsoft.HybridCompute/machines/extensions/delete",
+      "Microsoft.HybridCompute/machines/read",
+      "Microsoft.HybridCompute/machines/write",
+      "Microsoft.GuestConfiguration/guestConfigurationAssignments/read",
+      "Microsoft.Authorization/roleAssignments/write",
+      "Microsoft.Authorization/roleAssignments/read"
+    ],
+    "NotActions": [
+  
+    ],
+    "AssignableScopes": [
+      "/subscriptions/<subid>"
+    ]
+  }
