@@ -1,0 +1,1 @@
+windbg -y c:\debgugsql\adm64 -z SQLDump0008.mdmp
