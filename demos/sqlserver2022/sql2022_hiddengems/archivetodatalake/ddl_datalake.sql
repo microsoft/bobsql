@@ -1,4 +1,4 @@
-USE archive_datalake;
+USE SalesDB;
 GO
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'StrongPass0wrd!';
 GO
@@ -21,24 +21,3 @@ IF EXISTS (SELECT * FROM sys.external_file_formats WHERE name = 'ParquetFileForm
 	DROP EXTERNAL FILE FORMAT ParquetFileFormat;
 CREATE EXTERNAL FILE FORMAT ParquetFileFormat WITH(FORMAT_TYPE = PARQUET);
 GO
-DROP EXTERNAL TABLE Demo
-GO
-CREATE EXTERNAL TABLE Archive_mytab
-WITH (
-LOCATION = '/target_files',
-DATA_SOURCE = bwdatalake,
-FILE_FORMAT = ParquetFileFormat
-)
-AS
-SELECT * FROM mytab;
-GO
-
-SELECT *
-FROM OPENROWSET(
-BULK '/files',
-FORMAT = 'parquet',
-DATA_SOURCE = 'bwdatalake'
-) AS taxidata;
-GO
-
-SELECT * FROM Demo
