@@ -20,16 +20,18 @@ This is a demonstration for the new query_abort Extended Event in SQL Server 202
 2. Copy the callstack_rva cell from XEvent and paste this into left frame window
 3. Paste into the Path to PDBs field the following
 
-srv*https://msdl.microsoft.com/download/symbols
+`srv*https://msdl.microsoft.com/download/symbols`
 
 Note: If you want to cache symbols you can by creating a directory called c:\symbols (or whatever directory you want) and using this string instead:
 
-srv*c:\symbols*https://msdl.microsoft.com/download/symbols
+`srv*c:\symbols*https://msdl.microsoft.com/download/symbols`
 
 4. Click Step 3: Resolve Callstacks
 
 The callstack should look something like this
 
+
+```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
 01 sqllang!XeSqlPkg::query_abort::Publish
 02 sqllang!CBatch::ProduceAbortEvent
@@ -47,11 +49,46 @@ The callstack should look something like this
 0e SqlDK!SchedulerManager::ThreadEntryPoint
 0f kernel32!BaseThreadInitThunk
 10 ntdll!RtlUserThreadStart
+```
 
-This callstack shows that a "attention" TDS packet received from the client to cancel the query
+
+This callstack shows that a "attention" TDS packet received from the client to cancel the query.
+
+Now do the same process for the task_callstack_rva field from the query_abort event. The stack should look somethbing like this (depending on when you hit cancel):
+
+
+```xml
+00 sqlmin!CValHashCachedSwitch::GetDataX
+01 sqlmin!CValHashCachedSwitch::GetDataX
+02 sqlmin!CValHashCachedSwitch::GetDataX
+03 SqlTsEs!CEsExec::GeneralEval
+04 sqllang!CXStmtQuery::ErsqExecuteQuery
+05 sqllang!CXStmtSelect::XretExecute
+06 sqllang!CExecStmtLoopVars::ExecuteXStmtAndSetXretReturn
+07 sqllang!CMsqlExecContext::ExecuteStmts<1,1>
+08 sqllang!CMsqlExecContext::FExecute
+09 sqllang!CSQLSource::Execute
+0a sqllang!process_request
+0b sqllang!process_commands_internal
+0c sqllang!process_messages
+0d SqlDK!SOS_Task::Param::Execute
+0e SqlDK!SOS_Scheduler::RunTask
+0f SqlDK!SOS_Scheduler::ProcessTasks
+10 SqlDK!Worker::EntryPoint
+11 SqlDK!ThreadScheduler::RunWorker
+12 SqlDK!SystemThreadDispatcher::ProcessWorker
+13 SqlDK!SchedulerManager::ThreadEntryPoint
+14 kernel32!BaseThreadInitThunk
+15 ntdll!RtlUserThreadStart
+```
+
+
+These two sequences mean a query was running but the client application who sent the query sent an attention to the server so this is most likely a long-running query that was cancelled.
 
 5. Copy the callstack_rva cell from the attention event, paste and overwrite in the left frame, and select Step 3: Resolve Callstacks
 
+
+```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
 01 sqllang!XeSqlPkg::CollectSqlText<XE_ActionForwarder>
 02 sqllang!XeSqlPkg::CollectSqlTextActionInvoke
@@ -68,8 +105,66 @@ This callstack shows that a "attention" TDS packet received from the client to c
 0d SqlDK!SchedulerManager::ThreadEntryPoint
 0e kernel32!BaseThreadInitThunk
 0f ntdll!RtlUserThreadStart
+```
+
 
 This callstack shows essentially the same thing except it is recorded after the query is aborted (which is why attention has a duration). Also the attention event does not have by default the input buffer (if a query was running when the abort occurred).
+
+## Reproduce a query abort due to a query timeout
+
+1. Clear the Watch Live Data XEvent session data
+2. Run the script ddl.sql in master
+3. Run the following command from the command prompt (The -t2 says user a query timeout of 2 seconds)
+
+sqlcmd -E -Q"select * from tab with (holdlock);" -dmaster -t2
+
+This should come back to the command prompt with a Timeout Expired message
+
+4. In the XEvent Watch Live data you see the input buffer for the SELECT statement.
+5. Using the same techniques as above, copy and paste the new tsql_callstack_rva value into SQLCallStackResolver.
+6. Your new stack should look like this
+
+
+```xml
+00 ntdll!NtWaitForSingleObject
+01 kernelbase!WaitForSingleObjectEx
+02 SqlDK!SOS_Scheduler::SwitchContext
+03 SqlDK!SOS_Scheduler::SuspendNonPreemptive
+04 SqlDK!WaitableBase::Wait
+05 sqlmin!LockOwner::Sleep
+06 sqlmin!lck_lockInternal
+07 sqlmin!lck_lockPartitionedAll
+08 sqlmin!LockAndCheckState
+09 sqlmin!GetHoBtLockInternal
+0a sqlmin!HeapDataSetSession::WakeUpInternal
+0b sqlmin!DatasetSession::WakeUp
+0c sqlmin!DatasetSession::Create
+0d sqlmin!RowsetNewSS::WakeUpInternal
+0e sqlmin!RowsetNewSS::WakeUp
+0f sqlmin!CQScanRowsetNew::WakeUpRowset
+10 sqlmin!CQScanRowsetNew::OpenHelper
+11 sqlmin!CQScanTableScanNew::Open
+12 sqlmin!CQueryScan::StartupQuery
+13 sqllang!CXStmtQuery::SetupQueryScanAndExpression
+14 sqllang!CXStmtQuery::InitForExecute
+15 sqllang!CXStmtQuery::ErsqExecuteQuery
+16 sqllang!CXStmtSelect::XretExecute
+17 sqllang!CExecStmtLoopVars::ExecuteXStmtAndSetXretReturn
+18 sqllang!CMsqlExecContext::ExecuteStmts<1,1>
+19 sqllang!CMsqlExecContext::FExecute
+1a sqllang!CSQLSource::Execute
+1b sqllang!process_request
+1c sqllang!process_commands_internal
+1d sqllang!process_messages
+1e SqlDK!SOS_Task::Param::Execute
+<frame id="31" address="0xA000" />
+<frame id="32" address="0xDEABF84C8" />
+```
+
+
+I can see that the query was blocked at the time of the abort which likely means a query timeout occurred from the client application due to a blocking problem.
+
+7. Rollback the transaction from ddl.sql and close out the connection.
 
 ## Reproduce a query abort when terminating a session
 
@@ -95,6 +190,8 @@ The session_id (Action) is the session that caused the "query_abort" which is th
 
 Copy the callstack_rva value and paste ito the left frame of SQLCallStackResolver. Click Step 3 to Resolve callstacks. The results should look like following:
 
+
+```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
 01 sqllang!XeSqlPkg::query_abort::Publish
 02 sqllang!CBatch::ProduceAbortEvent
@@ -119,5 +216,6 @@ Copy the callstack_rva value and paste ito the left frame of SQLCallStackResolve
 15 SqlDK!SchedulerManager::ThreadEntryPoint
 16 kernel32!BaseThreadInitThunk
 17 ntdll!RtlUserThreadStart
+```
 
 This is the callstack of the session that issues the KILL statement to abort the running query from the other session. So no "attention" was received to abort the query.
