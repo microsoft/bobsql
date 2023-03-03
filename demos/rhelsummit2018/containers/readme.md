@@ -22,9 +22,13 @@ docker ps
 
 The output should look something like this
 
+
+```xml
 CONTAINER ID        IMAGE                                      COMMAND                  CREATED             STATUS              PORTS                    NAMES
 
-07d24d9ac18c        microsoft/mssql-server-linux:2017-latest   "/opt/mssql/bin/sqls…"   2 seconds ago       Up 1 second         0.0.0.0:1401->1433/tcp   sql1
+07d24d9ac18c        microsoft/mssql-server-linux:2017-latest   "/opt/mssql/bin/sqls"   2 seconds ago       Up 1 second         0.0.0.0:1401->1433/tcp   sql1
+```
+
 
 6. Interact with the container through a bash shell by executing dockerbash.cmd
 
@@ -94,9 +98,13 @@ docker ps
 
 The output should look something like this
 
+
+```xml
 CONTAINER ID        IMAGE                                      COMMAND                  CREATED             STATUS              PORTS                    NAMES
 
-07d24d9ac18c        microsoft/mssql-server-linux:2017-latest   "/opt/mssql/bin/sqls…"   2 seconds ago       Up 1 second         0.0.0.0:1401->1433/tcp   sql1
+07d24d9ac18c        microsoft/mssql-server-linux:2017-latest   "/opt/mssql/bin/sqls"   2 seconds ago       Up 1 second         0.0.0.0:1401->1433/tcp   sql1
+```
+
 
 6. Interact with the container through a bash shell by executing dockerbash.sh
 
