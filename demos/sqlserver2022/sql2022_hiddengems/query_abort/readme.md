@@ -20,16 +20,18 @@ This is a demonstration for the new query_abort Extended Event in SQL Server 202
 2. Copy the callstack_rva cell from XEvent and paste this into left frame window
 3. Paste into the Path to PDBs field the following
 
-srv*https://msdl.microsoft.com/download/symbols
+`srv*https://msdl.microsoft.com/download/symbols`
 
 Note: If you want to cache symbols you can by creating a directory called c:\symbols (or whatever directory you want) and using this string instead:
 
-srv*c:\symbols*https://msdl.microsoft.com/download/symbols
+`srv*c:\symbols*https://msdl.microsoft.com/download/symbols`
 
 4. Click Step 3: Resolve Callstacks
 
 The callstack should look something like this
 
+
+```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
 01 sqllang!XeSqlPkg::query_abort::Publish
 02 sqllang!CBatch::ProduceAbortEvent
@@ -47,11 +49,15 @@ The callstack should look something like this
 0e SqlDK!SchedulerManager::ThreadEntryPoint
 0f kernel32!BaseThreadInitThunk
 10 ntdll!RtlUserThreadStart
+```
+
 
 This callstack shows that a "attention" TDS packet received from the client to cancel the query.
 
 Now do the same process for the task_callstack_rva field from the query_abort event. The stack should look somethbing like this (depending on when you hit cancel):
 
+
+```xml
 00 sqlmin!CValHashCachedSwitch::GetDataX
 01 sqlmin!CValHashCachedSwitch::GetDataX
 02 sqlmin!CValHashCachedSwitch::GetDataX
@@ -74,11 +80,15 @@ Now do the same process for the task_callstack_rva field from the query_abort ev
 13 SqlDK!SchedulerManager::ThreadEntryPoint
 14 kernel32!BaseThreadInitThunk
 15 ntdll!RtlUserThreadStart
+```
+
 
 These two sequences mean a query was running but the client application who sent the query sent an attention to the server so this is most likely a long-running query that was cancelled.
 
 5. Copy the callstack_rva cell from the attention event, paste and overwrite in the left frame, and select Step 3: Resolve Callstacks
 
+
+```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
 01 sqllang!XeSqlPkg::CollectSqlText<XE_ActionForwarder>
 02 sqllang!XeSqlPkg::CollectSqlTextActionInvoke
@@ -95,6 +105,8 @@ These two sequences mean a query was running but the client application who sent
 0d SqlDK!SchedulerManager::ThreadEntryPoint
 0e kernel32!BaseThreadInitThunk
 0f ntdll!RtlUserThreadStart
+```
+
 
 This callstack shows essentially the same thing except it is recorded after the query is aborted (which is why attention has a duration). Also the attention event does not have by default the input buffer (if a query was running when the abort occurred).
 
@@ -112,6 +124,8 @@ This should come back to the command prompt with a Timeout Expired message
 5. Using the same techniques as above, copy and paste the new tsql_callstack_rva value into SQLCallStackResolver.
 6. Your new stack should look like this
 
+
+```xml
 00 ntdll!NtWaitForSingleObject
 01 kernelbase!WaitForSingleObjectEx
 02 SqlDK!SOS_Scheduler::SwitchContext
@@ -145,6 +159,8 @@ This should come back to the command prompt with a Timeout Expired message
 1e SqlDK!SOS_Task::Param::Execute
 <frame id="31" address="0xA000" />
 <frame id="32" address="0xDEABF84C8" />
+```
+
 
 I can see that the query was blocked at the time of the abort which likely means a query timeout occurred from the client application due to a blocking problem.
 
@@ -174,6 +190,8 @@ The session_id (Action) is the session that caused the "query_abort" which is th
 
 Copy the callstack_rva value and paste ito the left frame of SQLCallStackResolver. Click Step 3 to Resolve callstacks. The results should look like following:
 
+
+```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
 01 sqllang!XeSqlPkg::query_abort::Publish
 02 sqllang!CBatch::ProduceAbortEvent
@@ -198,5 +216,6 @@ Copy the callstack_rva value and paste ito the left frame of SQLCallStackResolve
 15 SqlDK!SchedulerManager::ThreadEntryPoint
 16 kernel32!BaseThreadInitThunk
 17 ntdll!RtlUserThreadStart
+```
 
 This is the callstack of the session that issues the KILL statement to abort the running query from the other session. So no "attention" was received to abort the query.
