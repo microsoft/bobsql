@@ -26,10 +26,9 @@ Note: If you want to cache symbols you can by creating a directory called c:\sym
 
 `srv*c:\symbols*https://msdl.microsoft.com/download/symbols`
 
-4. Click Step 3: Resolve Callstacks
+4. Click Step 3: Resolve callstacks
 
 The callstack should look something like this
-
 
 ```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
@@ -51,11 +50,9 @@ The callstack should look something like this
 10 ntdll!RtlUserThreadStart
 ```
 
-
 This callstack shows that a "attention" TDS packet received from the client to cancel the query.
 
-Now do the same process for the task_callstack_rva field from the query_abort event. The stack should look somethbing like this (depending on when you hit cancel):
-
+Now do the same process for the task_callstack_rva field from the query_abort event. The stack should look something like this (depending on when you hit cancel):
 
 ```xml
 00 sqlmin!CValHashCachedSwitch::GetDataX
@@ -82,11 +79,9 @@ Now do the same process for the task_callstack_rva field from the query_abort ev
 15 ntdll!RtlUserThreadStart
 ```
 
-
 These two sequences mean a query was running but the client application who sent the query sent an attention to the server so this is most likely a long-running query that was cancelled.
 
-5. Copy the callstack_rva cell from the attention event, paste and overwrite in the left frame, and select Step 3: Resolve Callstacks
-
+5. Copy the callstack_rva cell from the attention event, paste and overwrite in the left frame, and select Step 3: Resolve callstacks
 
 ```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
@@ -107,7 +102,6 @@ These two sequences mean a query was running but the client application who sent
 0f ntdll!RtlUserThreadStart
 ```
 
-
 This callstack shows essentially the same thing except it is recorded after the query is aborted (which is why attention has a duration). Also the attention event does not have by default the input buffer (if a query was running when the abort occurred).
 
 ## Reproduce a query abort due to a query timeout
@@ -116,14 +110,13 @@ This callstack shows essentially the same thing except it is recorded after the 
 2. Run the script ddl.sql in master
 3. Run the following command from the command prompt (The -t2 says user a query timeout of 2 seconds)
 
-sqlcmd -E -Q"select * from tab with (holdlock);" -dmaster -t2
+`sqlcmd -E -Q"select * from tab with (holdlock);" -dmaster -t2`
 
 This should come back to the command prompt with a Timeout Expired message
 
 4. In the XEvent Watch Live data you see the input buffer for the SELECT statement.
 5. Using the same techniques as above, copy and paste the new tsql_callstack_rva value into SQLCallStackResolver.
 6. Your new stack should look like this
-
 
 ```xml
 00 ntdll!NtWaitForSingleObject
@@ -161,10 +154,9 @@ This should come back to the command prompt with a Timeout Expired message
 <frame id="32" address="0xDEABF84C8" />
 ```
 
-
 I can see that the query was blocked at the time of the abort which likely means a query timeout occurred from the client application due to a blocking problem.
 
-7. Rollback the transaction from ddl.sql and close out the connection.
+7. Rollback the transaction from **ddl.sql** and close out the connection.
 
 ## Reproduce a query abort when terminating a session
 
@@ -175,7 +167,7 @@ This is where query_abort can help us find out why a query aborted if not a quer
 3. Run repro.sql again. Note the session_id value.
 4. In the query window from step #2 execute the following command:
 
-KILL <session_id>
+`KILL <session_id>`
 
 session_is is the value collected from step #3
 
@@ -189,7 +181,6 @@ The session_id (Action) is the session that caused the "query_abort" which is th
 6. Observe call stack
 
 Copy the callstack_rva value and paste ito the left frame of SQLCallStackResolver. Click Step 3 to Resolve callstacks. The results should look like following:
-
 
 ```xml
 00 sqllang!XeSqlPkg::CollectSessionIdActionInvoke
@@ -217,5 +208,4 @@ Copy the callstack_rva value and paste ito the left frame of SQLCallStackResolve
 16 kernel32!BaseThreadInitThunk
 17 ntdll!RtlUserThreadStart
 ```
-
 This is the callstack of the session that issues the KILL statement to abort the running query from the other session. So no "attention" was received to abort the query.
