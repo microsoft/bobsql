@@ -1,26 +1,27 @@
 # Debugging a spinlock
 
-1. restart sql server with startsqllockhash.cmd
-- Create a database called lockhashme.
-- Create a login called test with password of test and make that dbo of the db
-2. Load up execrequests.sql and get_spinlock_stats.sql to observe waits and spinlock stats 
-3. Run start connectme.cmd. This connects a bunch of users to the same db
-4. Run resetit.cmd to run a workload to connect/disconnect
+1. restart sql server with **startsqllockhash.cmd**
+- Create a database called **lockhashme**.
+- Create a login called **test** with password of **test** and make that dbo of the db
+2. Load up **execrequests.sql** and get_**spinlock_stats.sql** to observe waits and spinlock stats 
+3. Run start **connectme.cmd**. This connects a bunch of users to the same db
+4. Run **resetit.cmd** to run a workload to connect/disconnect
 5. Observe CPU and spinlock stats. Look at Query store to see no one query chewing up a bunch of CPU
 6. Attach windbg with public symbols like this:
 
-`windbg -y srv*c:\symbols*http://msdl.microsoft.com/download/symbols -pn sqlservr.exe`
+    `windbg -y srv*c:\symbols*http://msdl.microsoft.com/download/symbols -pn sqlservr.exe`
 
 2. Set a breakpoint on the "backoff" code like this
 
-`bp sqldk!SpinlockBase::Backoff`
+    `bp sqldk!SpinlockBase::Backoff`
 
 3. Type in
 
-`g`
+    `g`
 
 4. Dump out callstack using k when the breakpoint is hit. It should look similar to this:
 
+```
 00 000000e3`31679608 00007ff9`04a89b21     sqldk!SpinlockBase::Backoff
 01 000000e3`31679610 00007ff9`04a899dd     sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff+0x1f5
 02 000000e3`31679690 00007ff9`0634236c     sqlmin!lck_lockInternal+0x10aa
@@ -46,10 +47,11 @@
 16 000000e3`3167f920 00007ff9`355f4ed0     sqldk!SchedulerManager::ThreadEntryPoint+0x3cf
 17 000000e3`3167fa30 00007ff9`370be40b     KERNEL32!BaseThreadInitThunk+0x10
 18 000000e3`3167fa60 00000000`00000000     ntdll!RtlUserThreadStart+0x2b
+```
 
 4. Notice this part of the call stack
 
-sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff+0x1f5
+    `sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff+0x1f5`
 
 This is our code to "get" the spinlock AFTER we have attempted to get it once (start the spin, acquire, backoff)
 
@@ -58,30 +60,32 @@ of the spinlock type or name. What does this map to?
 
 type in
 
-`bd *`
-`g`
+    `bd *`
+    `g`
 
 to disable breakpoints and go so we can run a query.
 
 Run this query
 
+```sql
 select * from sys.dm_xe_map_values
 where name = 'spinlock_types' and map_key = 156
+```
 
-and you will find that the name of this spinlock is LOCK_HASH
+and you will find that the name of this spinlock is **LOCK_HASH**
 
 5. Back to our code. What does the code look like to "acquire" the spinlock? The "compare and swap"?
 
 Enable the breakpoint by typing in
 
-`be *`
-`g`
+    `be *`
+    `g`
 
 6. You should hit a breakpoint pretty quickly again that looks the same as before. Let's find the "compare and swap" code
 
-Type in this to get the symbol address for sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff+0x1f5
+Type in this to get the symbol address for `sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff+0x1f5`
 
-x sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff
+    `x sqlmin!Spinlock<183,7,257>::SpinToAcquireWithExponentialBackoff`
 
 you should see something like this
 
@@ -89,14 +93,14 @@ you should see something like this
 
 Take that value and use the "uf" function to dump out the assembly
 
-`uf 00007ffd``7caae500`
+    `uf 00007ffd``7caae500`
 
-7. Search this for keyword cmpxchg
+7. Search this for keyword **cmpxchg**
 
 You will see something like this
 
-00007ff9`0508995f f04d0fb126      lock cmpxchg qword ptr [r14],r12
+    `00007ff9`0508995f f04d0fb126      lock cmpxchg qword ptr [r14],r12`
 
-This is the "compare and swap" instruction called cmpxchg on Intel CPUs. In our code we actually call InterlockedCompareExchange() but this is a compiler "intrinsic" so not a call into any DLL. It gets translated into this intruction
+This is the "compare and swap" instruction called cmpxchg on Intel CPUs. In our code we actually call **InterlockedCompareExchange()** but this is a compiler "intrinsic" so not a call into any DLL. It gets translated into this instruction
 
 8. Now scroll down and look at the instructions and branches to either call the backoff or "loop back" and do it all over again.
