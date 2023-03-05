@@ -1,1 +1,1 @@
-windbg -y c:\debgugsql\adm64 -z SQLDump0008.mdmp
+windbg -y srv*c:\symbols*https://msdl.microsoft.com/download/symbols;c:\debugsql\debug\symbols.pri\amd64\dll;c:\debugsql\debug\symbols.pri\amd64\exe -z SQLDump0001.mdmp
