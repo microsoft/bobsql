@@ -10,7 +10,7 @@ First show the log autogrow behavior in SQL Server 2019
 
 **Note**: I choose to run SQL 2019 in a VM with a slower disk to show performance differences. Zeroing a log file of 64Mb on autogrow has less of an impact on very fast disks.
 
-- Install SQL Server 2019 (any edition)
+- Install SQL Server 2019 (any edition). Choose the option during setup to enabled Instant File Initialization or enable it before going further.
 - Run the script **xe.sql** to setup an Extended Event session to track log file size changes and wait types that indicate tlog zero writes are occurring. In SSMS, right click on the session and select Watch Live Data.
 - Edit the script **createdb.sql** for your file paths. This script is used to create the new db. Pay attention to the initial size and autogrow properties.
 - Run the script **clear_wait_types.sql** to clear wait stats.
@@ -42,7 +42,7 @@ Show log autogrow enhancements for SQL Server 2022
 
 ### Setup
 
-- InstalL SQL Server 2022 (any edition)
+- Install SQL Server 2022 (any edition). Choose the option during setup to enabled Instant File Initialization or enable it before going further.
 - Run the script **xe.sql** to setup an Extended Event session to track log file size changes and wait types that indicate tlog zero writes are occurring. In SSMS, right click on the session and select Watch Live Data.
 - Run the script clear_wait_types.sql to clear wait stats.
 - Load the script **countvlfs.sql**
