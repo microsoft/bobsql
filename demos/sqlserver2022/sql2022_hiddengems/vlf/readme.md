@@ -8,6 +8,8 @@ First show the log autogrow behavior in SQL Server 2019
 
 ### Setup
 
+**Note**: I choose to run SQL 2019 in a VM with a slower disk to show performance differences. Zeroing a log file of 64Mb on autogrow has less of an impact on very fast disks.
+
 - Install SQL Server 2019 (any edition)
 - Run the script **xe.sql** to setup an Extended Event session to track log file size changes and wait types that indicate tlog zero writes are occurring. In SSMS, right click on the session and select Watch Live Data.
 - Edit the script **createdb.sql** for your file paths. This script is used to create the new db. Pay attention to the initial size and autogrow properties.
