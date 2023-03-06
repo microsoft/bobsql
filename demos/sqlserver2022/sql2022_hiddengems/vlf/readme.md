@@ -8,18 +8,21 @@ First show the log autogrow behavior in SQL Server 2019
 
 ### Setup
 
+**Note**: I choose to run SQL 2019 in a VM with a slower disk to show performance differences. Zeroing a log file of 64Mb on autogrow has less of an impact on very fast disks.
+
 - Install SQL Server 2019 (any edition)
-- Run the script xe.sql to setup an Extended Event session to track log file size changes and wait types that indicate tlog zero writes are occurring. In SSMS, right click on the session and select Watch Live Data.
+- Run the script **xe.sql** to setup an Extended Event session to track log file size changes and wait types that indicate tlog zero writes are occurring. In SSMS, right click on the session and select Watch Live Data.
+- Edit the script **createdb.sql** for your file paths. This script is used to create the new db. Pay attention to the initial size and autogrow properties.
 - Run the script **clear_wait_types.sql** to clear wait stats.
 - Load the script **countvlfs.sql**
 - Load the script **wait_types.sql**
 
 ### Reproduce log autogrows
 
-- Run the script ddl.sql. Notice this takes only almost 30 seconds.
+- Run the script **ddl.sql**. Notice this takes about 30 seconds.
 - Observe in XEvent the different events. You see events for **PREEMPTIVE_OS_WRITEFILE_GATHER** which indicate zeroing files. This is for the CREATE DATABASE statement and expected.
-- Now notice a pattern where you see database_file_size_changed events for the transaciton log combined with **PREEMPTIVE_OS_WRITEFILEGATHER** events. This shows that any log grow requires a write operation to zero out the log file growth.
-- Run the query in wait_types.sql. Notice the total wait time for **PREEMPTIVE_OS_WRITEFILEGATHER** which is about 20 seconds. So our workload was delayed for 20 seconds trying to zero log growths.
+- Now notice a pattern where you see **database_file_size_changed** events for the transaction log combined with **PREEMPTIVE_OS_WRITEFILEGATHER** events. This shows that any log grow requires a write operation to zero out the log file growth.
+- Run the query in **wait_types.sql**. Notice the total wait time for **PREEMPTIVE_OS_WRITEFILEGATHER** which is about 20 seconds. So our workload was delayed for 20 seconds trying to zero log growths.
 - Run the query in **countvlfs.sql**. Notice there are some 50 virtual log file rows.
 
 ### Observe the performance impact on recovery
@@ -45,7 +48,7 @@ Show log autogrow enhancements for SQL Server 2022
 - Load the script **countvlfs.sql**
 - Load the script **wait_types.sql**
 
-### Reproduce log autogrows
+### Reproduce log autogrow
 
 - Run the script **ddl.sql**. Notice this takes only a few seconds (it took ~30 seconds on SQL Server 2019)
 - Observe in XEvent the different events. You see events for **PREEMPTIVE_OS_WRITEFILEGATHER** which indicate zeroing files. This is for the CREATE DATABASE statement and expected.
