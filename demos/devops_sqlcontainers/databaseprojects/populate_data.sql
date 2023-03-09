@@ -1,4 +1,5 @@
 truncate table customers;
+GO
 with cte
 as
 (
