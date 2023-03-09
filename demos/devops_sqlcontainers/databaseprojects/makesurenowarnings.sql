@@ -1,4 +1,4 @@
-USE bwsql;
+USE bwdb;
 GO
 declare @qplan XML;
 SELECT  @qplan = qp.query_plan
@@ -8,4 +8,4 @@ SELECT  @qplan = qp.query_plan
 	INNER JOIN sys.objects o ON qs.object_id = o.object_id
 WHERE o.name = 'getcustomer_byid';
 with xmlnamespaces (default 'http://schemas.microsoft.com/sqlserver/2004/07/showplan')
-select @qplan.query('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple/QueryPlan/Warnings');
+select @qplan.query('/ShowPlanXML/BatchSequence/Batch/Statements/StmtSimple/QueryPlan/Warnings');   

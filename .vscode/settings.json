@@ -4,5 +4,11 @@
         "MD025": {
             "front_matter_title": ""
         }
-    }
+    },
+    "dataworkspace.excludedProjects": [
+        "demos/devops_sqlcontainers/databaseprojects/bwsql/bwsql.sqlproj"
+    ],
+    "cSpell.words": [
+        "bwdb"
+    ]
 }

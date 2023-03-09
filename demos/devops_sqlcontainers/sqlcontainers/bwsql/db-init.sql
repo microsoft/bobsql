@@ -1,6 +1,10 @@
-CREATE DATABASE bwsql;
+USE master;
 GO
-USE [bwsql]
+DROP DATABASE IF EXISTS bwdb;
+GO
+CREATE DATABASE bwdb;
+GO
+USE [bwdb]
 GO
 PRINT 'Creating customers table...';
 GO
