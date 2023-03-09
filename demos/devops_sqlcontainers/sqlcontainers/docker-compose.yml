@@ -1,0 +1,11 @@
+version: "1"
+services:
+    db1:
+        build: ./bwsql
+        environment:
+            SA_PASSWORD: "Sql2022isfast"
+            ACCEPT_EULA: "Y"
+        ports:
+            - "1402:1433"
+        container_name: bwsql
+        hostname: bwsql
