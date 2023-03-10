@@ -68,4 +68,56 @@ Your results should be in a new window and show a count of 1503076. Close the re
 
 ## Analyze a performance problem with the database
 
+You have been told there is a performance problem with the stored procedure in the database and need to analyze why.
+
+1. Execute the procedure using an option to look at query plan details. Use the VSCode File, Open File to open up the provided script **execproc_withplan.sql**. Click the play button. You will see a choice of connection profiles. Choose the one that says **sqldbproject-bwdb....**
+
+In the results window the first result is to extract rows from the table.
+
+The second result is detailed of the query plan. The 3rd row in the **StmtText** column shows "...Table Scan". This means the index that was created by customer_id is not being used.
+
+1. Dive into more details on why the index is not used by opening up the script **marksurenowarnings.sql**. Execute the query. Choose the same connection profile. You should see a new result with a XML value. Click on the XML value. A new window should appear with a result like the following:
+
+```xml
+<p1:Warnings 
+  xmlns:p1="http://schemas.microsoft.com/sqlserver/2004/07/showplan">
+  <p1:PlanAffectingConvert ConvertIssue="Cardinality Estimate" Expression="CONVERT_IMPLICIT(int,[bwdb].[dbo].[customers].[customer_id],0)" />
+  <p1:PlanAffectingConvert ConvertIssue="Seek Plan" Expression="CONVERT_IMPLICIT(int,[bwdb].[dbo].[customers].[customer_id],0)=[@customer_id]" />
+</p1:Warnings>
+```
+This warning indicates that an index could not be used due to a conversion problem.
+
+1. Go back to the database project and look at the definition of the procedure getcustomer_byid in the file getcustomer_byid.sql Notice the parameter passed in to the procedure is an **int** type
+1. Look now at the table definition in the customers.sql. Notice the customer_id is defined as a nvarchar(10) type. This the reason for the conversion problem.
+
 ## Make a change in the database to fix the problem and perform a validation
+
+We need to change the procedure but we only want the procedure change to get applied to the currently running container.  We can use the power of database projects to make a change, run a new build, and publish the changes to the running container.
+
+1. In the database project, edit the **getcustomer_byid.sql** script and change the parameter to use nvarchar(10) like the following:
+
+```sql
+CREATE PROCEDURE [dbo].[getcustomer_byid]
+  @customer_id nvarchar(10)
+AS
+  SELECT * FROM customers WHERE customer_id = @customer_id;
+RETURN 0
+```
+1. Save the changes
+1. Right-click the database name and select **Build**
+1. Now our database project has the changes let's publish this to the running container
+1. Right-click the database and select **Publish**
+1. Select **Publish to an existing SQL Server**
+1. Select **Don't use profile**
+1. Choose **sqldbproject-bwdb....**
+1. Select **bwdb**
+1. Select **Publish**. You will see a message **Deploy dacpac: In Progress** and then **Deploy dacpac: Succeeded. Completed.**
+
+## Verify the performance problem is resolved
+
+1. Click on the SQL Server icon in the left-hand menu of VS Code. Your connection for the local container should be listed.
+1. Execute the procedure using an option to look at query plan details. Use the VSCode File, Open File to open up the provided script **execproc_withplan.sql**. Click the play button. You will see a choice of connection profiles. Choose the one that says **sqldbproject-bwdb....**.
+
+In the results window the first result is to extract rows from the table.
+
+The second result is detailed of the query plan. The 3rd row in the **StmtText** column should now show "...Index Seek?. This means the index is now being correctly used.

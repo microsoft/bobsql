@@ -1,0 +1,6 @@
+USE bwdb;
+GO
+SET STATISTICS PROFILE ON;
+GO
+EXEC getcustomer_byid 1;
+GO
