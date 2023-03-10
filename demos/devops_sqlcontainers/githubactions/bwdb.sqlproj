@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build">
+  <Sdk Name="Microsoft.Build.Sql" Version="0.1.3-preview" />
+  <PropertyGroup>
+    <Name>bwdb</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+    <ModelCollation>1033, CI</ModelCollation>
+    <ProjectGuid>{d26f40bd-5e86-4094-98c2-a276b3b79d10}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <PostDeploy Include="populate_data.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <Build Remove="setup\createdb.sql" />
+    <Build Remove="test\makesurenowarnings.sql" />
+  </ItemGroup>
+</Project>

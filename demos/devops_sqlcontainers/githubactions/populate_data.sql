@@ -6,3 +6,4 @@ select ROW_NUMBER() over(order by c1.object_id) id from sys.columns c1 cross joi
 )
 insert customers
 select id, convert(nvarchar(10), id),'customer details' from cte;
+

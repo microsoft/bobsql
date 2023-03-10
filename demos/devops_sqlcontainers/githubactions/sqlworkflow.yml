@@ -1,0 +1,59 @@
+name: Build and publish to a SQL Server container
+on: [push]
+
+env:
+    SQLCMDPASSWORD : P@ssw0rd
+
+jobs:
+  build-and-deploy:
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+
+    # service/sidecar container for azure-sql-2022
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 1
+          SA_PASSWORD: P@ssw0rd
+        ports:
+          - 1433:1433
+
+    steps:
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@v2
+
+      - name: 'wait for sql to be ready'
+        run: |
+          set +o pipefail +e
+          for i in {1..60};
+          do
+              sqlcmd -S localhost -U sa -P P@ssw0rd -d master -Q "select getdate()"
+              if [ $? -eq 0 ]
+              then
+                  echo "sql server ready"
+                  break
+              else
+                  echo "not ready yet..."
+                  sleep 1
+              fi
+          done
+          set -o pipefail -e
+          
+      - name: 'Create and setup database'
+        uses: azure/sql-action@v2
+        with:
+          connection-string: "Server=localhost;Initial Catalog=master;User ID=sa;Password=P@ssw0rd;Encrypt=False;TrustServerCertificate=False;"  # the local connection string
+          path: './setup/createdb.sql'
+
+      - name: 'Publish Database Project'
+        uses: azure/sql-action@v2
+        with:
+          connection-string: "Server=localhost;Initial Catalog=bwdb;User ID=sa;Password=P@ssw0rd;Encrypt=False;TrustServerCertificate=False;"  # the local connection string
+          path: './bwdb.sqlproj' # the SQLproj file
+          action: 'Publish'
+          arguments: '/p:IncludeCompositeObjects=True'
+
+      - name: 'Test for QP warnings'
+        run: |
+          sqlcmd -U sa -d bwdb -i ./test/makesurenowarnings.sql
