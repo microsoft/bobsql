@@ -10,12 +10,12 @@
 2. Show an AV with SQL Server
 
 - Stop the SQL Server Service
-- Run the debug server from the debugsql\debug\sqlservr directory using **sqlservr.cmd**
-- Load **crash.sql** and talk about **DBCC UNITTEST**
+- Run the debug server from the debugsql\debug\sqlservr directory using **sqlservr.cmd**. **Note:** Make sure to add the sa password to the sqlservr.cmd script and login with sa and that password.
+- Show the T-SQL query for **crashsql.sql** and talk about **DBCC UNITTEST**.
+- Run the script **crashsql.cmd**.
 - Show the ERRORLOG
 - Call stack is in the ERRORLOG but let's use the debugger
-- Go to the c:\debugsql\debug\sqlservr\log directory. Talk about the SQLDUMPER_ERRORLOG.LOG file
-- Edit **debugav.cmd** to put in the name of the MDMP file and run it.
+.\- Edit **debugav.cmd** to put in the name of the MDMP file and run it. Show the syntax for windbg including the symbol path and parameter to attach to a dump file.
 - Show the header at the top of the debugger
 - To get the right AV context type in `.ecxr`
 - Type in `k` to see the callstack
