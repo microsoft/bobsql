@@ -47,6 +47,8 @@ You should get back results for Developer Edition and the latest SQL Server 2022
 1. Show `docker ps` from the Terminal in VS Code
 1. Show `docker images` from the Terminal in VS Code
 1. Show the docker Windows app. Click on the image and show the properties.
+1. Show **execincontainers.ps1** to show how to look "inside" the container including running sqlcmd.
+1. Show **containerlogs.ps1** so you can see the ERRORLOG outside the container.
 
 ## How to customize a SQL Server container
 
