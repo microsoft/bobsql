@@ -23,7 +23,7 @@ Run the following script from a bash shell prompt:
 
 `runsqlcontainer.sh`
 
-If the container image does not exist locally docker will first pull the image locally and then run the contianer. The scripts are setup to "just work" so when the container starts you will be put back at the command prompt
+If the container image does not exist locally docker will first pull the image locally and then run the container. The scripts are setup to "just work" so when the container starts you will be put back at the command prompt
 
 ## Connect to the container and run a query
 
@@ -38,6 +38,15 @@ SELECT @@VERSION
 ```
 
 You should get back results for Developer Edition and the latest SQL Server 2022 relaase (depending on what Cumulative Update has been released).
+
+3. Show XEProfiler
+1. Create a new database
+
+## See what containers are running
+
+1. Show `docker ps` from the Terminal in VS Code
+1. Show `docker images` from the Terminal in VS Code
+1. Show the docker Windows app. Click on the image and show the properties.
 
 ## How to customize a SQL Server container
 

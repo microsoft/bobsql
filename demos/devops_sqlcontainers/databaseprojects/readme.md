@@ -8,7 +8,7 @@ You can perform these demos on Windows, Mac, or Linux.
 
 - Install Visual Studio Code
 - In VS Code, use the Extensions option on the left-hand menu. Search for the SQL Database Projects extension and install it. It will also install the SQL Server (mssql) extension.
-- Install Docker if you do not have it already installed.
+- Install Docker if you do not have it already installed. Make sure Docker is running.
 - Copy the *.sql files from <https://github.com/microsoft/bobsql/tree/master/demos/devops_sqlcontainers/databaseprojects> (or if you have cloned the repo) into a local folder. For the purposes of these instructions I use the **c:\database_projects\bwsql** folder.
 
 ## Create a new database project
@@ -19,7 +19,7 @@ You can perform these demos on Windows, Mac, or Linux.
 1. Enter in project name **bwdb**
 1. Put in your folder name for files. I used **c:\database_projects\bwsql**
 1. Select **SQL Server 2022**
-1. Select **No**
+1. Select **Yes (Recommended)** to use the new SQL projects.
 1. Select Yes to Trust message
 1. Your new Database Project should show up in the list.
 
@@ -27,15 +27,16 @@ You can perform these demos on Windows, Mac, or Linux.
 
 Since we have built a series of T-SQL scripts to add a table, index, stored procedure, and populate data, let's add them to the project so it can be built.
 
-1. Right-click on the database name **bwdb** and select **Add Existing Item...** Select the **customers.sql** file.
-1. Repeat this for **createindex.sql** and **get_customerbyid.sql**
-1. We want to populate data after the objects have been created. Right-click on the database name bwdb and select **Add Post-deployment script**. Give it a name of **data**. Copy the T-SQL code from populate_data.sql into this script window.
+1. Copy the following files into the **c:\database_projects\bwsql\bwdb** directory: **customers.sql**, **createindex.sql**, and **getcustomer_byid.sql**.
+1. Hit the refresh button and see these scripts are now part of the project.
+1. We want to populate data after the objects have been created. Right-click on the database name bwdb and select **Add Post-deployment script**. Give it a name of **data**. Copy the T-SQL code from **populate_data.sql** into this script window.
 1. Your Database References should now show scripts for createindex.sql, customers.sql, data.sql, and getcustomer_byid.sql
 
 ## Build the database project
 
 1. Right-click the database name bwdb and select **Build**.
 1. Your output window in VSCode shows the progress of the build which is to use the Microsoft.Build.SQL SDK to build a SQL project in the form of a .sqlproj file.
+1. Right-click bwdb and select **Edit .sqlproj file** to see its content.
 
 ## Publish the project to a local SQL Server container
 
@@ -70,7 +71,7 @@ Your results should be in a new window and show a count of 1503076. Close the re
 
 You have been told there is a performance problem with the stored procedure in the database and need to analyze why.
 
-1. Execute the procedure using an option to look at query plan details. Use the VSCode File, Open File to open up the provided script **execproc_withplan.sql**. Click the play button. You will see a choice of connection profiles. Choose the one that says **sqldbproject-bwdb....**
+1. Execute the procedure using an option to look at query plan details. Use the VSCode File, Open File to open up the provided script **execproc_withplan.sql**. Click the play button. You will see a choice of connection profiles. Choose the top one that says **sqldbproject-bwdb....**
 
 In the results window the first result is to extract rows from the table.
 
@@ -109,7 +110,7 @@ RETURN 0
 1. Right-click the database and select **Publish**
 1. Select **Publish to an existing SQL Server**
 1. Select **Don't use profile**
-1. Choose **sqldbproject-bwdb....**
+1. Choose the top **sqldbproject-bwdb....** instance.
 1. Select **bwdb**
 1. Select **Publish**. You will see a message **Deploy dacpac: In Progress** and then **Deploy dacpac: Succeeded. Completed.**
 
