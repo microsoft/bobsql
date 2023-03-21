@@ -1,5 +1,5 @@
 CREATE PROCEDURE [dbo].[getcustomer_byid]
-  @customer_id nvarchar(10)
+  @customer_id int
 AS
   SELECT * FROM customers WHERE customer_id = @customer_id;
 RETURN 0

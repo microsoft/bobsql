@@ -1,0 +1,5 @@
+{
+    "dataworkspace.excludedProjects": [
+        "githubactions/bwdb.sqlproj"
+    ]
+}
