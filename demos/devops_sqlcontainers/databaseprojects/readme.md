@@ -42,7 +42,7 @@ Since we have built a series of T-SQL scripts to add a table, index, stored proc
 
 1. Right-click the database name bwdb and select Publish
 1. Select **Publish to new SQL Server local development container**
-1. Type in port 1500 to avoid any conflicts with other containers or SQL instances
+1. Type in port **1403** to avoid any conflicts with other containers or SQL instances
 1. Type in a password for the sa login.
 1. Select **Microsoft SQL Server**
 1. Select Yes to accept the EULA
