@@ -20,14 +20,15 @@ In this example you will learn how to:
 
 ## Setup
 
-Follow the instructions at 
+Follow the instructions at <https://github.com/microsoft/bobsql/blob/master/demos/sqlmidemo/setup/readme.md>.
 
 ## Perform an online migration from SQL Server 2019 to Azure SQL Managed Instance
 
-Execute all the steps in the **online_migration\readme.md** file.
+Execute all the steps in the **online_migration\readme.md** file to perform an online migration to Azure SQL Managed Instance.
 
 ## See the compatibility between SQL Server and Azure SQL Managed Instance.
 
+Execute all the steps in the **compat\readme.md** folder. You must have completed the online_migration steps prior to this set of examples.
 
 ## Optimize costs and do more with less using the cloud with Azure SQL Managed Instance.
 
