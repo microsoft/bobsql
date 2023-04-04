@@ -1,0 +1,1 @@
+az sql mi failover -g bwmigratetosqlmirg -n bwsqlmi

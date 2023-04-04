@@ -12,4 +12,3 @@ Follow these steps to show the compatibility of Azure SQL Managed Instance compa
 1. Load and execute **crossdb.sql** to show you can create new databases and execute cross-database queries.
 1. Load and execute **querystore.sql** to show you can enable the Query Store and set all the options from SQL Server.
 1. Using SSMS and Object Explorer, double-click on Standard under XEvent Profile to show you can use Extended Events in Managed Instance and even get a quick Live Watch of SQL activity.
-
