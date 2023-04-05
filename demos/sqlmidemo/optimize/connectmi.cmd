@@ -1,1 +1,0 @@
-"c:\Program Files\Microsoft Corporation\RMLUtils\ostress" -Sbwsqlmi.3564faa76fb4.database.windows.net -Q"select @@version" -r1000000 -Usqladmin -PCprsqlserver2022

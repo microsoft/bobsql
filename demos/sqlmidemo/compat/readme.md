@@ -1,4 +1,4 @@
-## Demo for compatibility of Azure SQL Managed Instance compared to SQL Server
+# Demo for compatibility of Azure SQL Managed Instance compared to SQL Server
 
 This is a demo for compatibility of Azure SQL Managed Instance compared to SQL Server. You must have completed the exercises for online_migration before performing these demo steps.
 

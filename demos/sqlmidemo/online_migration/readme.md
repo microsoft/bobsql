@@ -1,12 +1,8 @@
-## Demo for an online migration from SQL Server 2019 to Azure SQL Managed Instance
+# Demo for an online migration from SQL Server 2019 to Azure SQL Managed Instance
 
 This is a demo for an online migration from SQL Server 2019 to Azure SQL Managed Instance using the Managed Instance link feature. Follow all the prerequisites and setup instructions first at <https://github.com/microsoft/bobsql/blob/master/demos/sqlmidemo/readme.md>
 
-## Steps
-
-Follow these steps to show an online migration from SQL Server 2019 to Azure SQL Managed Instance
-
-### Synchronize SQL Server 2019 to Azure SQL Managed Instance
+## Synchronize SQL Server 2019 to Azure SQL Managed Instance
 
 Follow these steps to synchronize your database to Azure SQL Managed Instance. After you sync the database see how you can use the Azure SQL Managed Instance
 
@@ -24,3 +20,12 @@ Follow these steps to synchronize your database to Azure SQL Managed Instance. A
 
 1. Cancel the query execution for **write_workload.sql** to stop the write workload as you prepare to migrate.
 
+## Perform the migration by executing a failover to Azure SQL Managed Instance
+
+Follow these steps to perform an online migration from SQL Server 2019 to Azure SQL Managed Instance. These steps assume you have stopped the write workload as you did in the previous exercise.
+
+1. Perform a failover to Azure SQL Managed Instance using the following steps in the documentation: <https://learn.microsoft.com/azure/azure-sql/managed-instance/managed-instance-link-use-ssms-to-replicate-database?view=azuresql>
+
+2. Connect to Azure SQL Managed Instance and execute the script **getrowcount.sql** to show the new rowcounts and that the database is READ_WRITE on Managed Instance.
+
+2. Load and execute the script **write_workload.sql** against Azure SQL Managed Instance to show you can now direct your write workloads to Azure SQL Managed Instance.
