@@ -26,11 +26,12 @@ To see an example how dbcompat 160 with Azure SQL Managed Instance can solve thi
 1. Load and execute the script **setup.sql** to ensure the database is using dbcompat 150.
 1. Load and execute the script **ddl.sql** to create a new table and load data. This can take several minutes to populate the data. Observe in the script how data is skewed regarding how many rows exist per list_id value.
 1. Load and execute the script **proc.sql** to create a stored procedure used to access data in the table.
-1. Using the "Including Actual Execution Plan" option (Ctrl+M) in a new query window load and execute the script **query_plan_seek.sql**. Look at the Execution Plan table and see an index seek is getting used.
-1. Using the "Including Actual Execution Plan" option (Ctrl+M) in a new query window load and execute the script **query_plan_scan.sql**. Look at the Execution Plan table and see a clustered Index Scan is getting used for the same procedure but different parameter value. The script evicts plan cache to simulate a real-world scenario where the "first one to compile" wins.
-1. Now execute **query_plan_seek.sql** again and see it now uses a Clustered Index Scan.
+1. Using the "Including Actual Execution Plan" option (Ctrl+M) in a new query window load and execute the script **query_plan_scan.sql**. Look at the Execution Plan table and see a clustered Index Scan is getting used because the numbrer of rows that match the parameter value is large.
+1. Using the "Including Actual Execution Plan" option (Ctrl+M) in a new query window load and execute the script **query_plan_seek.sql**. A Clustered Index Scan is still used even though the number of rows is small that matches the different parameter value. That is because only one plan can be in cache for the same stored procedure.
 1. Enable Parameter Sensitive Plan Optimization by loading and execute the script **dbcompat160.sql**.
-1. Repeat the same steps as before to execute **query_plan_seek.sql**, **query_plan_scan.sql**, and then **query_plan_seek.sql** again. You will see the 2nd execution of query_plan_seek.sql will use an Index Seek in the execution plan consistently.
+1. Repeat the same steps as before to execute **query_plan_scan.sql** and then **query_plan_seek.sql** You will see the plan for query_plan_seek.sql will use an Index Seek now because more than one plan can be in cache for the same stored procedure. But no code changes were required.
+
+This is an example of Intelligent Query Processing(IQP) to get faster with no code changes.
 
 ## Access data lakes through data virtualization
 
