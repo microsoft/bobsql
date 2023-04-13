@@ -22,10 +22,16 @@ Azure SQL Managed Instance can help you rapidly adjust to the needs of your busi
 
 ## Simple scale of resources, hardware, or service-tier upgrade
 
+Azure SQL Managed Instance allows you to easily scale or change the configuration of your compute and storage resources.
 
+1. Using the Azure Portal select Compute+Storage in the left-hand menu of the Azure SQL Managed Instance.
+
+1. You now have choices to change the service tier, zone redundancy, hardware choices, number of cores, max size of storage, and backup redundancy choices. All of these choices are *online* since you do not have to perform any migration tasks. A change for these may require the application to reconnect to the instance at the end of the operation.
 
 ## Auto-failover groups to extend redundancy and read-scale
 
 1. Follow the tutorial in the documentation to perform the prerequisites and steps to configure and add a managed instance to an auto failover group: <https://learn.microsoft.com/azure/azure-sql/managed-instance/failover-group-add-instance-tutorial>
 
-2. 
+1. Once you have configured you auto failover group, you can go to the primary Azure SQL Managed Instance in the Azure Portal and select Failover Groups from the left-hand menu. You can view the configured failover group settings, edit the configuration, or manually force a failover.
+
+2. These settings show the endpoints to connect to the primary for read/write and optionally connect to the secondary for read scale. These endpoints don't change no matter which instance is the primary or secondary.
