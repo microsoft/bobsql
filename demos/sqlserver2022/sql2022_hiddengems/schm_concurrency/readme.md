@@ -1,20 +1,29 @@
 # Demo to show how to create an index with a lower priority locking for better concurrency
 
-This is a demo to show how to detect an antipattern query using Extended Events in SQL Server 2022
+This is a demo to show how we have better concurrency for create index operations with SQL Server 2022.
 
 ## Setup
 
-1. Execute the script xe.sql
-2. Execute the script customer_ddl.sql. Notice there is an index on customer_id.
-3. Using SSMS right click on the Extended Events session and select Watch Live Data
+1. Execute the script **customer_ddl.sql**
 
-## Reproduce the problem
+## See how a query get blocked with an offline index
 
-4. Run the script repro.sql
+1. Execute the script **long_running_query.sql**
+1. Execute the script **create_index_offline.sql** to create an index.
+1. Execute the script **query_gets_blocked.sql**.
+1. Execute the script **get_blockers.sql** to see how the query is blocked by the index creation.
+1. Execute the script **findlocks.sql** to see what locks are held.
 
-## Analyze the problem and find a solution
+## See how a query get blocked with an online index
 
-5. In the Watch Live Data window you can see the type of antipattern which is an index cannot be used.
-6. Copy the plan handle and paste into get_query_plan.sql and execute the query.
-7. Click on the XML plan value. See the plan doesn't use an index. Hover over SELECT and see the warning which shows a convert is causing the index not to be used.
-8. Show customer_proc_fix.sql as one way to fix this.
+1. Execute the script **long_running_query.sql**
+1. Execute the script **create_index_online.sql** to create an index.
+1. Execute the script **query_gets_blocked.sql**.
+1. Execute the script **get_blockers.sql** to see how the query is blocked by the index creation.
+1. Execute the script **findlocks.sql** to see what locks are held.
+
+## See how a query get blocked with an online index with a low priority wait
+
+1. Execute the script **long_running_query.sql**
+1. Execute the script **create_index_online_low_priority.sql** to create an index.
+1. Execute the script **query_gets_blocked.sql**. Notice the query is not blocked.
