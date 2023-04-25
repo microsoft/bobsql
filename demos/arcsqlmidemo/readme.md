@@ -28,7 +28,7 @@ The rest of the prerequisites are covered in the Setup section.
 
 ## Setup
 
-Follow the instructions at <https://github.com/microsoft/bobsql/blob/master/demos/arcsqlmidemo/setup/readme.md>.
+Follow the instructions at <https://github.com/microsoft/bobsql/blob/master/demos/arcsqlmidemo/setup/readme.md> to setup an Arc-enabled k8s cluster and data controller.
 
 ## Deploy an Azure-Arc enabled SQL Managed instance and migrate an existing SQL Server Database.
 
