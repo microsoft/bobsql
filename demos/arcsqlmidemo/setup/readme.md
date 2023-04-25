@@ -34,19 +34,19 @@ az provider register --namespace Microsoft.AzureArcData
 ## Create and/or connect to the k8s cluster
 
 1. Create a K8s cluster. For purposes of this exercise I created a cluster with AKS in Azure.
-1. Connect to the AKS cluster using the following az CLI command from the client machine.
+2. Connect to the AKS cluster using the following az CLI command from the client machine.
 
 ```azurecli
 az aks get-credentials --resource-group <resource_group_name> --name <cluster_name>
 ```
 
-1. Arc enable the AKS cluster using the following command:
+3. Arc enable the AKS cluster using the following command:
 
 ```azurecli
 az connectedk8s connect --resource-group <resource group> --name <cluster name>
 ```
 
-1. Verify in the Azure portal the cluster shows up as a Kubernetes Azure Arc resource.
+4. Verify in the Azure portal the cluster shows up as a Kubernetes Azure Arc resource.
 
 ## Create an Azure Arc data controller
 
