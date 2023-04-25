@@ -2,7 +2,7 @@
 
 In this example you will learn how to:
 
-1. Learn now to **deploy and migrate** from SQL Server 2019 to Azure SQL Managed Instance.
+1. Learn now to **deploy and migrate** from SQL Server 2019 to Azure Arc-enabled SQL Managed Instance.
 1. See the **compatibility** between SQL Server and Azure-Arc enabled SQL Managed Instance.
 1. **Optimize costs** and do more with less using the cloud experience of Azure Arc-enabled SQL Managed Instance.
 1. Rapidly **adapt to your business needs** with Azure Arc-enabled SQL Managed Instance.
