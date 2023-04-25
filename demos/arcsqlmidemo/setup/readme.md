@@ -38,13 +38,13 @@ az provider register --namespace Microsoft.AzureArcData
 
 ```azurecli
 az aks get-credentials --resource-group <resource_group_name> --name <cluster_name>
-``````
+```
 
 1. Arc enable the AKS cluster using the following command:
 
 ```azurecli
 az connectedk8s connect --resource-group <resource group> --name <cluster name>
-``````
+```
 
 1. Verify in the Azure portal the cluster shows up as a Kubernetes Azure Arc resource.
 
@@ -70,7 +70,8 @@ kubectl get pods --namespace <namespace of custom location>
 ```
 You should results like the following:
 
-```NAME                            READY   STATUS      RESTARTS   AGE
+```md
+NAME                            READY   STATUS      RESTARTS   AGE
 arc-webhook-job-24ea7-dnq6x     0/1     Completed   0          19m
 bootstrapper-547876c565-6zs8h   1/1     Running     0          19m
 control-27cg2                   2/2     Running     0          18m
@@ -81,6 +82,6 @@ metricsdb-0                     2/2     Running     0          17m
 metricsdc-fbz7k                 2/2     Running     0          17m
 metricsdc-ghx7z                 2/2     Running     0          17m
 metricsdc-ppzxg                 2/2     Running     0          17m
-metricsui-pwnfk                 2/2     Running     0          17m```
-
+metricsui-pwnfk                 2/2     Running     0          17m
+```
 You are now ready to proceed to deploy an Azure Arc-enabled SQL Managed Instance.
