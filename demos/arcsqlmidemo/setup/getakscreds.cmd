@@ -1,0 +1,1 @@
+az aks get-credentials --resource-group <resource_group_name> --name <cluster_name>

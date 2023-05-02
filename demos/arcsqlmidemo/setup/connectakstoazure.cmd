@@ -1,0 +1,1 @@
+az connectedk8s connect --resource-group <resource group> --name <cluster name>

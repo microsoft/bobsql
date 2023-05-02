@@ -29,66 +29,66 @@ GO
 --
 -- Insert data for September 2022
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 1', '20220901', 'SalesPerson1', 100);
+VALUES ('Customer_1', '20220901', 'SalesPerson1', 500);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 2', '20220902', 'SalesPerson1', 200);
+VALUES ('Customer_2', '20220902', 'SalesPerson1', 200);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 3', '20220903', 'SalesPerson1', 300);
+VALUES ('Customer_3', '20220903', 'SalesPerson1', 500);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 4', '20220904', 'SalesPerson2', 400);
+VALUES ('Customer_4', '20220904', 'SalesPerson2', 100);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 5', '20220905', 'SalesPerson2', 500);
+VALUES ('Customer_5', '20220905', 'SalesPerson2', 100);
 
 --
 -- Insert data for October 2022
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 1', '20221001', 'SalesPerson1', 100);
+VALUES ('Customer_1', '20221001', 'SalesPerson1', 100);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 2', '20221002', 'SalesPerson1', 200);
+VALUES ('Customer_2', '20221002', 'SalesPerson1', 200);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 3', '20221003', 'SalesPerson1', 300);
+VALUES ('Customer_3', '20221003', 'SalesPerson1', 300);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 4', '20221004', 'SalesPerson2', 400);
+VALUES ('Customer_4', '20221004', 'SalesPerson2', 400);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 5', '20221005', 'SalesPerson2', 500);
+VALUES ('Customer_5', '20221005', 'SalesPerson2', 500);
 --
 -- Insert data for November 2022
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 1', '20221101', 'SalesPerson1', 100);
+VALUES ('Customer_1', '20221101', 'SalesPerson1', 100);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 2', '20221102', 'SalesPerson1', 200);
+VALUES ('Customer_2', '20221102', 'SalesPerson1', 200);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 3', '20221103', 'SalesPerson1', 300);
+VALUES ('Customer_3', '20221103', 'SalesPerson1', 300);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 4', '20221104', 'SalesPerson2', 400);
+VALUES ('Customer_4', '20221104', 'SalesPerson2', 400);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 5', '20221105', 'SalesPerson2', 500);
+VALUES ('Customer_5', '20221105', 'SalesPerson2', 500);
 
 --
 -- Insert data for December 2022
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 1', '20221201', 'SalesPerson1', 100);
+VALUES ('Customer_1', '20221201', 'SalesPerson1', 100);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 2', '20221202', 'SalesPerson1', 200);
+VALUES ('Customer_2', '20221202', 'SalesPerson1', 200);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 3', '20221203', 'SalesPerson1', 300);
+VALUES ('Customer_3', '20221203', 'SalesPerson1', 300);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 4', '20221204', 'SalesPerson2', 400);
+VALUES ('Customer_4', '20221204', 'SalesPerson2', 400);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 5', '20221205', 'SalesPerson2', 500);
+VALUES ('Customer_5', '20221205', 'SalesPerson2', 500);
 
 --
 -- Insert data for January 2023
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 1', '20230101', 'SalesPerson1', 100);
+VALUES ('Customer_1', '20230101', 'SalesPerson1', 100);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 2', '20230102', 'SalesPerson1', 200);
+VALUES ('Customer_2', '20230102', 'SalesPerson1', 200);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 3', '20230103', 'SalesPerson1', 300);
+VALUES ('Customer_3', '20230103', 'SalesPerson1', 300);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 4', '20230104', 'SalesPerson2', 400);
+VALUES ('Customer_4', '20230104', 'SalesPerson2', 400);
 INSERT INTO Sales (customer, sales_dt, salesperson, sales_amount)
-VALUES ('Customer 5', '20230105', 'SalesPerson2', 500);
+VALUES ('Customer_5', '20230105', 'SalesPerson2', 500);
 
 -- Check partitions
 --
