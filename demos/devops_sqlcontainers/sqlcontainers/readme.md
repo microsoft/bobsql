@@ -27,7 +27,7 @@ If the container image does not exist locally docker will first pull the image l
 
 ## Connect to the container and run a query
 
-1. Connect to SQL Server using the connection string `localhost,1401`
+1. Connect to SQL Server using the connection string `localhost,1401` with SQL Server Management Studio.
 
 Use the login **sa** and password **Sql2022isfast**
 
@@ -37,18 +37,19 @@ Use the login **sa** and password **Sql2022isfast**
 SELECT @@VERSION
 ```
 
-You should get back results for Developer Edition and the latest SQL Server 2022 relaase (depending on what Cumulative Update has been released).
+You should get back results for Developer Edition and the latest SQL Server 2022 release (depending on what Cumulative Update has been released).
 
 3. Show XEProfiler
 1. Create a new database
+1. Use Azure Data Studio to connect, create a table in designer, and then show new SQL co-pilot feature to help suggest an index.
 
 ## See what containers are running
 
 1. Show `docker ps` from the Terminal in VS Code
 1. Show `docker images` from the Terminal in VS Code
-1. Show the docker Windows app. Click on the image and show the properties.
 1. Show **execincontainers.ps1** to show how to look "inside" the container including running sqlcmd.
 1. Show **containerlogs.ps1** so you can see the ERRORLOG outside the container.
+1. Now use the Docker Desktop for Windows application to show how to get some of the same information.
 
 ## How to customize a SQL Server container
 
