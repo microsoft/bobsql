@@ -41,7 +41,6 @@ You should get back results for Developer Edition and the latest SQL Server 2022
 
 3. Show XEProfiler
 1. Create a new database
-1. Use Azure Data Studio to connect, create a table in designer, and then show new SQL co-pilot feature to help suggest an index.
 
 ## See what containers are running
 
@@ -57,7 +56,7 @@ You should get back results for Developer Edition and the latest SQL Server 2022
 
 2. Execute the following command:
 
-`docker-compose up`
+`docker compose up`
 
 3. In the command window you will see information about the container starting up and then messages about objects being created in the database.
 
