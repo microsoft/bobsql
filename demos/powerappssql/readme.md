@@ -12,12 +12,37 @@ These are the steps to create a PowerApp that connects to an Azure SQL Database 
 ## Step 1: Create the app and add in the order list
 
 1. Connect to Power Apps at https://powerapps.microsoft.com.
-1. On the left hand menu select **+ Create** and select **Blank App**
-1. Select option to Create a Blank Canvas app.
-1. Give the app a name, select the Tablet layout and click Create. You will now have a blank canvas to work with.
-1. Click on the Data icon on the left hand menu and click on Add Data.
-1. In the Select a Data Source type in SQL and select SQL Server.
-1. Click on + Add a connection. You will now get a screen to put in your credentials to connect to Azure SQL.
-1. Using the drop down select SQL Server Authentication choose Connect directly (cloud services) and enter in the Server, Database, User Name and Password. Click Connect.
-1. Click the + icon on the left hand menu and under Layout select Blank Vertical Gallery. The gallery item will be placed on the canvas..
+1. Let's add a connection to the database before creating the app. Select ...More on the left hand menu and select Connections.
+    1. Click + New Connection at the top of the screen.
+    1. Select SQL Server. You will now get a screen to put in your credentials to connect to Azure SQL.
+    1. Using the drop down select SQL Server Authentication choose Connect directly (cloud services) and enter in the Server, Database, User Name and Password. Click Create.
+1. Now let's create a blank Canvas app.
+    1. On the left hand menu select **+ Create** and select **Blank App**
+    1. Select option to Create a Blank Canvas app.
+    1. Give the app a name, select the Tablet layout and click Create. You will now have a blank canvas to work with.
+1. Now let's a list of orders in the canvas app using a table from the database.
+1. Click the + icon on the left hand menu and under Layout select Blank Vertical Gallery. The gallery item will be placed on the canvas. In Select a data source type in sql and choose SQL Server.
+1. Choose the connection you created earlier.
+1. Under Choose a table check the SalesLT.SalesOrderHeader table and select Connect.
+1. Let's now change some properties for the Gallery item.
+    1. Under the Gallery item select the Layout tab and change the Layout to Title, subtitle, and body.
+    1. Click on Edit next to Fields.
+    1. The following fields should be selected:
+        1. Title1 - SalesOrderID
+        1. Subtitle1 - PurchaseOrderNumber
+        1. Body1 - CustomerID
+1. Now we want the CompanyName from the SalesLT.Customer table instead of CompanyID. We will use a lookup to get the CompanyName from the CustomerID but we need the SalesLT.Customer as a connection.
+    1. On the top menu click **+ Add Data**. Type in SQL and select SQL Server.
+    1. Click + Add a Connection. Select the connection you created earlier.
+    1. Check the SalesLT.Customer table and click Connect.
+    1. Click on the Body1 field
+    1. In the formula bar change ThisItem.CustomerID to the following: `LookUp('SalesLT.Customer', CustomerID = ThisItem.CustomerID, CompanyName)`
+    1. You should now the Company Names values appear in the list.
+1. Select the Play button at the top menu and test out the order list. You should see a list of orders with the Company Name instead of the CustomerID.
+
+## Step 2: Add in the order form
+
+Now on the canvas let's add an edit form that will allow us to edit the order in the list showing different fields than in the order list. This will again be based on the SalesLT.SalesOrderHeader table. We need the form to change context as we select each order on the left from the list.
+
+
 
