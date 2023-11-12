@@ -1,0 +1,1 @@
+"C:\Program Files\Microsoft Corporation\RMLUtils\ostress" -dtexasrangerswschamps -E -Q"select * from wearethechampions" -r10 -n300 -q -T146 -l0
