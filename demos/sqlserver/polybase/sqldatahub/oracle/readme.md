@@ -1,6 +1,6 @@
 # SQL Server 2019 Polybase example with Oracle
 
-This demo shows you how to setup a Oracle external data source and table with examples of how to query the data source and join data to local SQL Server 2019 data.
+This demo shows you how to setup an Oracle external data source and table with examples of how to query the data source and join data to local SQL Server 2019 data.
 
 ## Requirements - Installing and setting up Oracle
 
