@@ -1,0 +1,6 @@
+﻿customer,productsentiment,salespersonsentiment,surveydate
+Customer_1,Excellent,Excellent,9/1/22 12:00 AM
+Customer_2,Negative,Good,9/1/22 12:00 AM
+Customer_3,Good,Excellent,9/1/22 12:00 AM
+Customer_4,Good,Negative,9/1/22 12:00 AM
+Customer_5,Good,Negative,9/1/22 12:00 AM
