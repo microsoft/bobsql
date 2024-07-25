@@ -4,9 +4,9 @@ var TYPES = require('tedious').TYPES;
 
 // Create connection to database
 var config = {
-  userName: 'sqllinux',
-  password: 'Sql2017isfast',
-  server: 'bwsql2017rhel',
+  userName: '<user>',
+  password: '<password>',
+  server: '<server>',
   options: {
       database: 'WideWorldImporters'
   }
