@@ -1,0 +1,4 @@
+USE MASTER;
+GO
+ALTER DATABASE [showmethemoney] SET MULTI_USER;
+GO

@@ -1,0 +1,6 @@
+SELECT * FROM sys.fn_dblog(NULL, NULL);
+GO
+DBCC TRACEON(2537);
+GO
+SELECT * FROM sys.fn_dblog('39:730:1', NULL);
+GO
