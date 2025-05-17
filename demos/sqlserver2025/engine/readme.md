@@ -5,14 +5,14 @@ This folder contains instructions and scripts to demonstrate the new features of
 ## Prerequisites
 
 Here are the minimum requirements to run the demos:
-- SQL Server 2025 Public Preview installed from https://aka.ms/getsqlserver2025
+
+- SQL Server 2025 Preview installed
 - SQL Server Management Studio (SSMS) 21 installed from https://aka.ms/ssms21
 
 There may be other prerequisites for specific demos. Please refer to the individual demo instructions for details.
 
 ## References
 
-Use the SQL Server 2025 documentation as a reference as you use the demos at https://aka.ms/sqlserver2025docs.
 
 ## Demo categories
 
