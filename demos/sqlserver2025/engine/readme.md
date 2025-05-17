@@ -30,6 +30,6 @@ This includes demos to showe new security features in SQL Server 2025
 
 This includes demos to showcase new availability features in SQL Server 2025 including Availability Groups and backu/restore.
 
-**other**
+**additional**
 
-This includes demos for other new core engine features in SQL Server 2025.
+This includes demos for additional engine features in SQL Server 2025.
