@@ -1,0 +1,1 @@
+# This is a demo for optimized sp_executesql in SQL Server 2025.

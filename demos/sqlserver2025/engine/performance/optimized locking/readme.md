@@ -1,0 +1,1 @@
+# This is a demo for optimized locking in SQL Server 2025.

@@ -1,0 +1,1 @@
+# This is a demo for the ABORT_QUERY_EXECUTION hint in SQL Server 2025.
