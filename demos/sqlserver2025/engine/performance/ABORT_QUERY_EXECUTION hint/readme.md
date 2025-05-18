@@ -1,10 +1,10 @@
 # ABORT_QUERY_EXECUTION query hint in SQL Server 2025
 
-This is a demo for the new ABORT_QUERY_EXECUTION hint in SQL Server 2025. This feature is used to mark a query that may be causing major system performance issues to automatically be aborted on its next execution.
+This is a demo for the new ABORT_QUERY_EXECUTION hint in SQL Server 2025. This feature is used to mark a query that may be causing major system performance issues to automatically be aborted on its next and subsequent executions.
 
 ## Prerequisites
 
-1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../readme.md) readme.
+1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../../readme.md) readme.
 
 2. Download the database AdventureWorks from <https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak>.
 

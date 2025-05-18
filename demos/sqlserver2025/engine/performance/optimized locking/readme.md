@@ -4,7 +4,7 @@ This is a demo for the optimized locking feature in SQL Server 2025. This featur
 
 ## Prerequisites
 
-1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../readme.md) readme.
+1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../../readme.md) readme.
 
 2. Download the database AdventureWorks from <https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak>.
 
