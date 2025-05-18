@@ -6,7 +6,7 @@ The following folder contains instructions and scripts to demonstrate the new fe
 
 Here are the minium requirements to run the demos:
 
-- SQL Server 2025 Preview installed 
+- SQL Server 2025 Preview using Evaluation or Developer Editions.
 - SQL Server Management Studio (SSMS) 21 installed from https://aka.ms/ssms21
 
 All demos are currently designed to run Windows or Windows Server. However, any demo that only uses T-SQL can work on SQL Server on Linux, containers or Kubernets except where explicitly stated otherwise.
