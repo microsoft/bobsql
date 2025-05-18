@@ -1,0 +1,1 @@
+# Regular Expressions (RegEx) in SQL Server 2025
