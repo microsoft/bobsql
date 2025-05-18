@@ -8,12 +8,18 @@ Unless stated otherwise, all prerequisites can be found in the [SQL Server 2025 
 
 ## References
 
+Find out more about SQL Server 2025 at https://aka.ms/sqlserver2025docs.
+
 ## Demos
 
 The following demos are included in this folder. Stay tuned for more demos to be added in the future. 
 
 **Optimized Locking**
 
+This feature is designed to improve the performance of concurrent transactions by reducing contention on locks.
+
 **ABORT_QUERY_EXECUTION hint**
+
+This feature is used to mark a query that may be causing major system performance issues to automatically be aborted on its next and subsequent executions.
 
 **Optimized sp_executesql**
