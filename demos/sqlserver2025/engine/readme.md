@@ -25,12 +25,12 @@ This includes demos that showcase new features in the engine that can accelerate
 
 **security**
 
-This includes demos to showcase new security features in SQL Server 2025
+ **Coming soon** This includes demos to showcase new security features in SQL Server 2025
 
 **availability**
 
-This includes demos to showcase new availability features in SQL Server 2025 including Always On Availability Groups and backu/restore.
+**Coming soon** This includes demos to showcase new availability features in SQL Server 2025 including Always On Availability Groups and backu/restore.
 
 **additional**
 
-This includes demos for additional engine features in SQL Server 2025.
+**Coming soon** This includes demos for additional engine features in SQL Server 2025.
