@@ -4,7 +4,9 @@ This folder contains instructions and scripts to demonstrate the new features of
 
 ## Prerequisites
 
-Unless stated otherwise, all prerequisites can be found in the [SQL Server 2025 Engine Demos](../readme.md) readme.
+Unless stated otherwise, the minimum prerequisites can be found in the [SQL Server 2025 Engine Demos](../readme.md) readme.
+
+Each demo may have additional prerequisites. Please check the specific demo readme for details.
 
 ## References
 
