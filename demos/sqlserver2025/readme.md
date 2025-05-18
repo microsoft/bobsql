@@ -11,8 +11,11 @@ Here are the minium requirements to run the demos:
 
 All demos are currently designed to run Windows or Windows Server. However, any demo that only uses T-SQL can work on SQL Server on Linux, containers or Kubernets except where explicitly stated otherwise.
 
+Check specific demos to see if there are additional prerequisites.
+
 ## References
 
+Find out more about SQL Server 2025 at https://aka.ms/sqlserver2025docs.
 
 ## Demos
 

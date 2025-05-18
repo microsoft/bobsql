@@ -1,0 +1,1 @@
+"C:\Program Files\Microsoft Corporation\RMLUtils\ostress" -S. -E -dAdventureWorks -iworkload*.sql -r1 -n1 -q -T146
