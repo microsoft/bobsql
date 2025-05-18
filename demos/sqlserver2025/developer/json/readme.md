@@ -1,0 +1,1 @@
+# The new JSON features in SQL Server 2025

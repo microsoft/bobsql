@@ -6,13 +6,13 @@ This is a demo for the optimized locking feature in SQL Server 2025. This featur
 
 1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../readme.md) readme.
 
-2. Download the same database AdventureWorks from <https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak>.
+2. Download the database AdventureWorks from <https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak>.
 
 4. Restore the database using the script **restore_adventureworks.sql** (You may need to edit the file paths for the backup and/or database and log files). You can also use the **AdventureWorks.bacpac** file to import data and schema.
 
 5. Enable Accelerated Database Recovery for the database AdventureWorks using the script **enableadr.sql**.
 
-6. Make sure optimized locking is not enabled by executing the script **disableoptimizedlocking.sql**.
+6. Make sure optimized locking is disabled by executing the script **disableoptimizedlocking.sql**.
 
 ## References
 
