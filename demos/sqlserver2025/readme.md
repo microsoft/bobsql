@@ -35,4 +35,4 @@ This category includes demos for developers features such as JSON, RegEx, Change
 
 **Fabric**
 
-This category includes demos for Fabric mirroring for SQL Server 2025.
+**Coming soon**. This category includes demos for Fabric mirroring for SQL Server 2025.

@@ -1,1 +1,0 @@
-# These are Fabric mirroring demos for SQL Server 2025
