@@ -26,4 +26,4 @@ This demo shows the new Change Event Streaming features in SQL Server 2025 allow
 
 **REST API**
 
-**Coming soon!** This demo will show an example to use the system procedure sp_invoke_external_rest_api to call an external REST API from T-SQL.
+**Coming soon** This demo will show an example to use the system procedure sp_invoke_external_rest_api to call an external REST API from T-SQL.
