@@ -6,7 +6,7 @@ This folder contains instructions and scripts to demonstrate the new features of
 
 Here are the minimum requirements to run the demos:
 
-- SQL Server 2025 Preview installed using Evaluation or Developer Editions.
+- SQL Server 2025 Preview using Evaluation or Developer Editions.
 - SQL Server Management Studio (SSMS) 21 installed from https://aka.ms/ssms21
 
 There may be other prerequisites for specific demos. Please refer to the individual demo instructions for details.
