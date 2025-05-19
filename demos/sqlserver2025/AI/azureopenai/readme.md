@@ -4,7 +4,7 @@ This is a demo to show AI capabilities for SQL Server 2025 using Azure OpenAI. T
 
 ## Pre-requisites
 
-Here are the minimum requirements to run the demos:
+Here are the pre-requisites to run the demos:
 
 1. This demo uses an AI model from Azure OpenAI. You will need to have an Azure subscription to use this model. The model used in this demo is **text-embedding-ada-002**.
     1. Use the Azure Portal to create an **Azure AI Foundry project**. Learn more at <https://learn.microsoft.com/azure/ai-studio/how-to/create-project>.
