@@ -29,7 +29,7 @@ This demo shows the new AI buit-in capabilities in SQL Server 2025. This include
 
 **Ollama**
 
-This demo shows the new AI buit-in capabilities in SQL Server 2025. This includes AI model definition, vector data type, embedding generation, vector index, and vector search. Embedding models will be used in this demo from Ollama on-premises.
+**Coming soon** This demo shows the new AI buit-in capabilities in SQL Server 2025. This includes AI model definition, vector data type, embedding generation, vector index, and vector search. Embedding models will be used in this demo from Ollama on-premises.
 
 **OpenAI**
 
