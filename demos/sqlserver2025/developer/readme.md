@@ -4,7 +4,12 @@ These are demos for the new developer features in SQL Server 2025. The demos are
 
 ## Pre-requisites
 
-Each demo may have specific pre-requisites. Please check the demo script for any pre-requisites that are required to run the demo.
+Here are the minimum requirements to run the demos:
+
+- SQL Server 2025 Preview using Evaluation or Developer Editions.
+- SQL Server Management Studio (SSMS) 21 installed from https://aka.ms/ssms21
+
+There may be other prerequisites for specific demos. Please refer to the individual demo instructions for details.
 
 ## References
 
@@ -22,8 +27,8 @@ This demo shows the new RegEx features in SQL Server 2025 including the new Regu
 
 **Change Event Streaming**
 
-This demo shows the new Change Event Streaming features in SQL Server 2025 allowing developers to capture changes from the transaciton log to a streaming destination like Azure Event Hub.
+**Coming soon**. This demo shows the new Change Event Streaming features in SQL Server 2025 allowing developers to capture changes from the transaciton log to a streaming destination like Azure Event Hub.
 
-**REST API**
+**REST API**    
 
 **Coming soon** This demo will show an example to use the system procedure sp_invoke_external_rest_api to call an external REST API from T-SQL.
