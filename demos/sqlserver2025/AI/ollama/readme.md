@@ -1,1 +1,0 @@
-# These are AI feature demos for SQL Server 2025

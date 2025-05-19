@@ -4,7 +4,7 @@ This demo is to show the new Regular Expresion (RegEx) support in the T-SQL lang
 
 ## Prerequisites
 
-1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../../readme.md) readme.
+1. Use the prerequisites in the [SQL Server 2025 Developer Demos](../../readme.md) readme.
 
 There is no need to restore a database. Demo scripts includes code to create an example database.
 

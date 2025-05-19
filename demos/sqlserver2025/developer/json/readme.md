@@ -4,7 +4,7 @@ This demo is to show the new native JSON support in SQL Server 2025. This includ
 
 ## Prerequisites
 
-1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../../readme.md) readme.
+1. Use the prerequisites in the [SQL Server 2025 Developer Demos](../../readme.md) readme.
 
 There is no need to restore a database. Each demo script includes code to create an example database.
 
