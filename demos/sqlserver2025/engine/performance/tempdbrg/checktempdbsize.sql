@@ -1,5 +1,3 @@
--- Created by Copilot in SSMS - review carefully before executing
-
 USE tempdb;
 GO
 

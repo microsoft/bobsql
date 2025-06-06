@@ -6,6 +6,8 @@ This is a demo for the tempdb resource governor feature in SQL Server 2025. This
 
 1. Use the prerequisites in the [SQL Server 2025 Engine Demos](../../readme.md) readme.
 
+2. You will need to enable mixed mode authentication for the SQL Server instance you are using. This is because the demo will use a new SQL login to demonstrate the tempdb space resource governance feature. You can do this by following the instructions in the [Enable mixed mode authentication](https://learn.microsoft.com/sql/database-engine/configure-windows/mixed-mode-authentication?view=sql-server-ver15) documentation.
+
 ## References
 
 Find out more about tempdb space resource governance at https://learn.microsoft.com/sql/relational-databases/resource-governor/tempdb-space-resource-governance
@@ -17,7 +19,7 @@ To address this, you can use the tempdb space resource governance feature to lim
 
 ## Setup
 
-Follow these steps connected a sysadmin login.
+Follow these steps connected as a sysadmin login.
 
 1. Set the tempdb size
 
@@ -29,92 +31,66 @@ Execut the script **checktempdbsize.sql** in a SSMS query editor window to verif
 
 2. Create a user database to show unexpected tempdb growth
 
-Load and execut the script **createbigdata.sql** in a SSMS query editor window.
+Load and execute the script **createbigdata.sql** in a SSMS query editor window.
 
+3. Create a new SQL login and grant it access to the user database and table
 
-1. 
-### Show Lock Escalation without optimized locking
+Load and execute the script **createuser.sql** in a SSMS query editor window. 
 
-1. Load the script **getlocks.sql** in a SSMS query edtior window. You will use this script to observe locking behavior.
+4. Create a database to represent experienced SQL users
 
-2. Load the script **updatefreightsmall.sql** in a SSMS query editor window.  
+Load and execute the script **iknowsql.sql** in a SSMS query editor window. This will create a database called iknowsqldb. This includes a table and stored procedure that will create a temporary table of fixed size which ensures a more controlled use of tempdb.
 
-This script will increase the freight costs for each order by 1 for the first 2500 rows. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+## Show controlled tempdb usage
 
-3. Switch to the query editor window for **getlocks.sql** and look at the results
+1. Load and execute the script **processdata.sql** in a SSMS query editor window. This script will execute the stored procedure in the iknowsqldb database to process data and create a temporary table of fixed size.
 
-You will see ~2500 KEY X locks and 111 PAGE locks. Without optimized locking, key and page locks are held as long as the transaaction is active. If more rows are updated, lock escalation can occur. Move forward to the next steps to see how.
+2. Load and execute the script **checktempdbsize.sql** in a SSMS query editor window. This script will check the size of tempdb. Notice there is no growth of tempdb and space used is small. Even if the procedure were run by many concurrency users, overall tempdb space would not grow beyond the 512MB limit set.
 
-First execute the ```ROLLBACK TRAN``` statement in the **updatefreightsmall.sql** script. This will release all locks and allow the next step to proceed.
+## Show uncontrolled tempdb usage
 
-4. Observe lock escalation by loading the script **updatefreightbig.sql** in a SSMS query editor window
+1. Connect to SSMS using the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInACube" so you can see the application as unique and not from SSMS.
 
-This script will increase the freight costs for each order by 1 for the first 10000 rows. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+2. Run a query that causes tempdb to grow using the same user.
 
-5. Switch to the query editor window for **getlocks.sql** and look at the results
+Load the and execute the script **guyinacubepoorquery.sql** in a SSMS query editor window. This script will take a few minutes to run. It wil run a query that requires a large sort which requires tempdb space.
 
-You will see that lock escalation has occurred. You will now only see an OBJECT X lock. This is because the number of locks has exceeded the threshold for lock escalation.
+3. Connect to SSMS using the sysadmin login from before to check the size of tempdb.
 
-6. You can see this harms concurrency. Load the script **updatefreightmax.sql** in a SSMS query editor window.
+Load and execute the script **checktempdbsize.sql** in a SSMS query editor window. This script will check the size of tempdb. Notice that the size of tempdb has grown significantly due to the poor query executed by the user.
 
-This script updates the freight for a row not affected by the previous update. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch does not complete. This is because the update is blocked by the OBJECT X lock.
+4. Using the same sysadmin login, check to see who has consumed the space.
 
-7. Load the script **showblocking.sql** in a SSMS query editor window. This script will show you the blocking problem.
+Load and execute the script **tempdb_session_usage.sql** in a SSMS query editor window. This script will show you the sessions that have consumed space in tempdb. You can see the session that caused the abnormal growth of tempdb is the one with the Application Name "GuyInACube".
 
-8. Rollback the transactions in **updatefreightbig.sql** and **updatefreightmax.sql**. You can do this by executing the ```ROLLBACK TRAN``` statement in those scripts. Leave all query editor windows open for the next steps.
+## Setup Resource Governor to control tempdb space usage
 
-### Show Lock Escalation with optimized locking
+Connect to SSMS using the sysadmin login from before. You will now set up the Resource Governor to control the space used by tempdb.
 
-1. Enable optimized locking by loading and executing the script **enableoptimizedlocking.sql** in a SSMS query editor window. This will enable optimized locking for the database AdventureWorks.
+1. To show this scenario, set the tempdb size back to the original size of 512MB across 8 data files and a 100MB log file. You can do this by executing the script **settempdbsize.sql** in a SSMS query editor window. Restart SQL Server.
 
-2. Execute the first batch in the query editor window for **updatefreightsmall.sql** up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+2. Setup resource governor to limit the space used by tempdb for users both for explicit temporary tables or internal space used for operations like sorts.
 
-3. Switch to the query editor window for **getlocks.sql** and look at the results.
+Load and execute the script **setuprg.sql** in a SSMS query editor window. This script will set up the Resource Governor to limit the space used by tempdb for users both for explicit temporary tables or internal space used for operations like sorts but for a specific workload group.
 
-You will see an OBJECT IX lock as seen before but now only a XACT X lock. This is because the transaction ID lock is held for the duration of the transaction. KEY and PAGE locks are released as soon as each row is updated. This allows for more concurrency.
+3. Create a new classifier function for the resource workload group
 
-4. Rollback the transaction in **updatefreightsmall.sql** by executing the ```ROLLBACK TRAN``` statement.
+Load and execute the script **classifierfunction.sql** in a SSMS query editor window. This script will create a classifier function that will classify the sessions based on the Application Name. In this case, it will classify the sessions with the Application Name "GuyInACube" to the workload group that has the tempdb space limit set.
 
-5. To see how lock escalation is avoided, execute the batch in **updatefreightbig.sql** up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+## Test our tempdb is now limited for the workload group
 
-6. Check the locks in the **getlocks.sql** query editor window. You will see an OBJECT IX lock and a XACT X lock. There is no lock escalation.
+1. Connect to SSMS again as the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInACube" so you can see the application as unique and not from SSMS.
 
-7. Execute the first batch in **updatefreightmax.sql** up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch is not blocked.
+2. Run the same query that caused tempdb to grow using the same user
 
-8. Rollback the transactions in **updatefreightbig.sql** and **updatefreightmax.sql**. You can do this by executing the ```ROLLBACK TRAN``` statement in those scripts.
+Load and execute the script **guyinacubepoorquery.sql** in a SSMS query editor window. After a few seconds you will see this query fails with the following error:
 
-9. For the next demo you can close all query editor windows for scripts **except for getlocks.sql and showblocking.sql**
+```
+Msg 1138, Level 17, State 1, Line 3
+Could not allocate a new page for database 'tempdb' because that would exceed the limit set for workload group 'GroupforUsersWhoDontKnowSQL'.
+```
+3. Connect to SSMS using the sysadmin login from before to check the size of tempdb and resource governor details.
 
-## Demo 2 - Lock After Qualification (LAQ) with optimized locking
+Load and execute the script **checktempdbsize.sql** in a SSMS query editor window. This script will check the size of tempdb. Notice that the size of tempdb has not grown beyond the 512MB limit set as before.
 
-Lock after qualification (LAQ) is an optimization that evaluates query predicates using the latest committed version of the row without acquiring a lock, thus improving concurrency.
-
-LAQ requires both optimized locking AND read committed snapshot isolation (RCSI) to be enabled. Without optimized locking and RCSI, DML statements can require update and exclusive locks when qualifying rows from the query criteria. If optimized locking is enabled but not RCSI, qualificatoin is still required for TID (XACT) locks. However, if RCSI is also enabled, this qualification is not required. This demonstration will show you the benefits of LAQ.
-
-Let's look at a scenario for the AdventureWorks database where LAQ can improve the concurrency of the application. In this scenario, the application needs to execute an update for specific PurchaseOrderNumbers in the Sales.SalesOrderHeader. Developers have seen blocking problems with this update. This column does not have an index currently so an update for a specific row can require a scan of the clustered index. This table is not large so the scan can be fast and so an index was not created. Developers and adminstrators are looking for ways to avoid the blocking problem.
-
-### Blocking for updates without LAQ
-
-Let's see what the blocking problem looks like without LAQ. Remember to have the **getlocks.sql** and **showblocking.sql** scripts loaded in query editor windows in SSMS.
-
-1. The AdventureWorks sample database has RCSI enabled by default so run the script **disablercsi.sql** to disable RCSI.
-
-2. Load the **updatefreightpo1.sql** script in a SSMS query editor window. This script will update the freight for a specific PurchaseOrderNumber. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
-
-3. Load the **updatefreightpo2.sql** script in a SSMS query editor window. This script will update the freight for a different specific PurchaseOrderNumber. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch is blocked.
-
-4. Run the query in the **showblocking.sql** query editor window. You will see that the second update is blocked by the first update. The waiting resource is an XACT resource. Run the query in the **getlocks.sql** query editor window to see the locks being held and attempted. Notice the second update is requesting and waiting for a Shared (S) XACT lock on the same row that the first update has locked.
-
-5. Rollback the transaction in **updatefreightpo1.sql** by executing the ```ROLLBACK TRAN``` statement. Then rollback the transaction in **updatefreightpo2.sql** by executing the ```ROLLBACK TRAN``` statement.
-
-Leave all query editor windows open for the next steps.
-
-### Blocking for updates with LAQ
-
-1. Enable RCSI by executing the script **enablercsi.sql** in a SSMS query editor window.
-
-2. Execute the query in the **updatefreightpo1.sql** script in a SSMS query editor window. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
-
-3. Execute the query in the **updatefreightpo2.sql** script in a SSMS query editor window. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch is not blocked.
-
-4. Execute the query in **getlocks.sql** query editor window to see the locks being held and attempted. Notice that both sessions now have Exclusive (X) XACT locks. This is because LAQ allows the second update to qualify rows that don't meet the query criteria without acquiring a lock.
+Load and execute the script **checktempdbrg.sql** in a SSMS query editor window. This script will show workload groups, their peak tempdb usage, and any violations of the tempdb space limit. You can see that the workload group for the user "GuyInACube" has violated the tempdb space limit set.
