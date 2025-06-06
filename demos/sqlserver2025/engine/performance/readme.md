@@ -27,3 +27,8 @@ This feature is used to mark a query that may be causing major system performanc
 **Optimized sp_executesql**
 
 This feature allows you to optimize the performance of sp_executesql by reusing the plan for the statement or batch through preventing multiple copies of the same query plan to be cached. This can reduce memory pressure and improve performance.
+
+**Tempdb space resource governance**
+
+This feature allows you to manage the resources used by tempdb by configuring the Resource Governor to limit the space used by tempdb for users both for explicit temporary tables or internal space used for operations like sorts.
+
