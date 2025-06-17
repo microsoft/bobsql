@@ -1,3 +1,6 @@
+USE simplerecoverydb;
+GO
+
 -- Run this and show it doesn't generate a logrec
 BEGIN TRAN;
 
