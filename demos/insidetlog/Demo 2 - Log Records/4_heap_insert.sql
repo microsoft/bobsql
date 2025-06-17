@@ -7,4 +7,6 @@ BEGIN TRAN;
 INSERT INTO asimpletable VALUES (1);
 COMMIT TRAN;
 
--- Show the logrecs
+-- Show the logrecs for just an INSERT (implicit COMMIT)
+INSERT INTO asimpletable VALUES (1);
+GO

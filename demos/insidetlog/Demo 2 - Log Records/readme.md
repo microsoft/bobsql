@@ -1,8 +1,8 @@
 # Demonstration of internals of log records and blocks
 
-- Show basics of log records with XEvent and sys.fn_dblog()
+Show basics of log records with XEvent and sys.fn_dblog()
 
-1. Start this XEvent session and click on watch live databse
+1. Start this XEvent session from **tracelogrecs.sql** and click on watch live databse
 
 CREATE EVENT SESSION [trace_logrecs] ON SERVER 
 ADD EVENT sqlserver.transaction_log(
@@ -11,7 +11,15 @@ ADD EVENT sqlserver.transaction_log(
 WITH (MAX_MEMORY=4096 KB,EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS,MAX_DISPATCH_LATENCY=30 SECONDS,MAX_EVENT_SIZE=0 KB,MEMORY_PARTITION_MODE=NONE,TRACK_CAUSALITY=OFF,STARTUP_STATE=OFF)
 GO
 
-1. Create a database but make it simple recovery and turn off ODS
+In the live data window, odd these fields to grid:
+
+Operation
+context
+session_id
+is_system
+
+
+1. Create a database but make it simple recovery and turn off ODS. Using **1_createdb.sql**.
 
 DROP DATABASE IF EXISTS simplerecoverydb;
 GO
@@ -22,7 +30,7 @@ GO
 ALTER DATABASE simplerecoverydb SET QUERY_STORE = OFF;
 GO
 
-2. Create a table first and then use CHECKPOINT to clear the log
+2. Create a table first and then use CHECKPOINT to clear the log using **2_simpletable.sql**
 
 USE simplerecoverydb;
 GO
@@ -33,12 +41,16 @@ GO
 CHECKPOINT
 GO
 
-3. Use this to see logrecs
+3. Use the script **3_lookatthelog.sql** to look at the log records:
+
+Note: You may need to run checkpoint again to "clear" the log before running this script.
 
 SELECT * FROM sys.fn_dblog(NULL);
 GO
 
-3. Now show a basic INSERT on a heap
+3. Now show a basic INSERT on a heap using **4_heapinsert.sql**
+
+Note: Clear the XEvent session first as it may contain diagnostics from other databases.
 
 -- Run this and show it doesn't generate a logrec
 BEGIN TRAN;
@@ -53,11 +65,17 @@ COMMIT TRAN;
 
 Walk throught the logrecs. What are all the other log reocrds for? It is for allocation a page and system table updates.
 
+Show columns like Operation, Context, Transaction ID, AllocUnitID, AllocUnitName, PageID, Transaction name, Descriptin (this is generated an not in the log record)
+
+Show the Extended Events output to match it.
+
+So a "user transaction" to start to wrap it but multiple "system transactions" inside it.
+
 4. Run an INSERT again (no COMMIT needed) and see what the logrecs look like. Just 3 logrecs now.
 
 Looking at the logrecs can you tell which log records go into a log block together?
 
-5. Create a table to show updates
+5. Create a table to show updates using **5_create_clustered_table.sql**
 
 USE simplerecoverydb;
 GO
@@ -68,7 +86,7 @@ GO
 INSERT into asimpleclusteredtable VALUES (1, 1);
 GO
 
-6. Update the primary key and look at the logrecs
+6. Update the primary key and look at the logrecs using **6_update_clindex_key.sql**
 
 USE simplerecoverydb;
 GO
@@ -79,9 +97,9 @@ UPDATE asimpleclusteredtable SET col1 = 10;
 COMMIT TRAN;
 GO
 
-Now example log records
+Now show there is A DELETE followed by an INSERT. The RowLog Contents 0 and 1 show the before and after values.
 
-7. Now update the non-key column update as in-place but also roll it back
+7. Now update the non-key column update as in-place but also roll it back using **7_update_clindex_nonkey.sql**:
 
 USE simplerecoverydb;
 GO
@@ -92,7 +110,7 @@ UPDATE asimpleclusteredtable SET col2 = 10;
 ROLLBACK TRAN;
 GO
 
-Now example log recs including rowlog contents for before and aftre images and the COMPENSATION record
+Now example log recs including rowlog contents for before and after images and the COMPENSATION records.
 
 8. What does TRUNCATE TABLE look like?
 
@@ -103,7 +121,7 @@ GO
 TRUNCATE TABLE asimpletable;
 GO
 
-9. What about CREATE INDEX?
+9. What about CREATE INDEX? (Bonus. Not shown in presentations typically) using **8_create_big_cl_index.sql**:
 
 USE simplerecoverydb;
 GO

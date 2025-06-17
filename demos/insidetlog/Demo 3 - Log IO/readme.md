@@ -1,6 +1,12 @@
 # Demo for Log I/O
 
-## Show log flushes
+## Log cache
+
+TODO: show DBCC DBTABLE to dump out the log cache
+
+## Show log flushes    
+
+TODO: Need to setup databases properly and be more presecriptive with T-SQL scripts.
 
 1. Show which sessions are Log Writers with this query
 
@@ -43,7 +49,7 @@ BEGIN TRAN
 INSERT INTO t VALUES (1);
 GO
 
-Now look at the event live data. Note: if you see a flush use the SQLCallStackResolver to see what it is. You will notice this is related to QDS
+Now look at the event live data. Note: if you see a flush use the SQLCallStackResolver to see what it is. You will notice this is related to QDS.
 
 Now do a COMMIT TRAN and look at the event live data. You will see a flush related to the commit. Notice the session is is from the Log Writers
 
@@ -85,4 +91,4 @@ Now run the following scenarios:
 
 Use the db with delayed OFF
 
-Run various transactions to show the size of log records but the writes are all sector size aligned. Show the offset and look at VLFs so you can see where they land
+Run various transactions to show the size of log records but the writes are all sector size aligned. Show the offset and look at VLFs so you can see where they land.

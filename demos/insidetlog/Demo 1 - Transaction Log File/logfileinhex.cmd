@@ -1,0 +1,1 @@
+list "C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\DATA\defaultdb_log.ldf"
