@@ -1,0 +1,4 @@
+CREATE TABLE #x (col1 int);
+GO
+INSERT INTO #x VALUES (1);
+GO
