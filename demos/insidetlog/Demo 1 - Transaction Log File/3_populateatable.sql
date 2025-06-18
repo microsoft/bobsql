@@ -11,6 +11,3 @@ BEGIN
 	INSERT INTO bigtab VALUES (@x, 'x');
 	SET @x = @x + 1;
 END;
-GO
-BACKUP DATABASE bulklogdb TO DISK = 'c:\temp\bulklogdb.bak' WITH INIT;
-GO

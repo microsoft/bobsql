@@ -1,0 +1,4 @@
+DBCC TRACEON(3604);
+GO
+DBCC DBTABLE('simplerecoverydb')
+GO

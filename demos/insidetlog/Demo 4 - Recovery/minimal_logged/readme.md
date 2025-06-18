@@ -1,78 +1,13 @@
 # Demo for minimially logged transactions
 
-1. Create the minimally logged database
+1. Create the minimally logged database using the script **1_create_bulklogdb.sql**
 
-USE MASTER;
-GO
-DROP DATABASE IF EXISTS bulklogdb;
-GO
-CREATE DATABASE bulklogdb;
-GO
-ALTER DATABASE bulklogdb
-SET RECOVERY BULK_LOGGED;
-GO
-ALTER DATABASE bulklogdb
-SET QUERY_STORE = OFF;
-GO
+2. Create a table and populate some rows using the s ript **2_createtab.sql**.
 
-2. Create a table and populate some rows
+3. Backup the db and log so I can truncate it to see the log records easier using the script **3_backupdbandlog.sql**.
 
-USE bulklogdb;
-GO
-DROP TABLE IF EXISTS bigtab;
-GO
-CREATE TABLE bigtab (col1 INT, col2 char(7000) not null);
-GO
-DECLARE @x int;
-SET @x = 0;
-WHILE (@x < 10)
-BEGIN
-	INSERT INTO bigtab VALUES (@x, 'x');
-	SET @x = @x + 1;
-END;
-GO
-BACKUP DATABASE bulklogdb TO DISK = 'c:\temp\bulklogdb.bak' WITH INIT;
-GO
+2. Run a SELECT INTO using **4_selectinto.sql**
 
-2. Run a SELECT INTO and look at logrecs
+3. Examine log records using the script **5_examinelogrecords.sql**. Notice the log records and the log record length. For minimally logged we just log changes to allocation pages.
 
-use bulklogdb;
-GO
-DROP TABLE IF EXISTS bigtab2;
-GO
-SELECT * INTO bigtab2 FROM bigtab;
-GO
-SELECT [Current LSN], Operation, Context, AllocUnitName, [Transaction Name], *
-FROM sys.fn_dblog(NULL, NULL)
-GO
-
-3. Now do the same for a full recovery db
-
-USE master;
-GO
-DROP DATABASE IF EXISTS fullrecdb;
-GO
-CREATE DATABASE fullrecdb;
-GO
-USE fullrecdb;
-GO
-DROP TABLE IF EXISTS bigtab;
-GO
-CREATE TABLE bigtab (col1 INT, col2 char(7000) not null);
-GO
-DECLARE @x int;
-SET @x = 0;
-WHILE (@x < 10)
-BEGIN
-	INSERT INTO bigtab VALUES (@x, 'x');
-	SET @x = @x + 1;
-END;
-GO
-DROP TABLE IF EXISTS bigtab2;
-GO
-SELECT * INTO bigtab2 FROM bigtab;
-GO
-SELECT [Current LSN], Operation, Context, AllocUnitName, [Transaction Name], *
-FROM sys.fn_dblog(NULL, NULL)
-GO
-
+1. Now do the same for a full recovery db in **6_fullrecdb.sql**. Notice here the "fully logged" is formatting full pages instead of logging INSERTs.

@@ -28,11 +28,11 @@ Now do a COMMIT TRAN and look at the event live data. You will see a flush relat
 
 1. Now see how log gets flushed when not committing but filling up the log buffer. Use the script **5_fill_log_buffer.sql**
 
-We will have delayed durability so there is no wait for flush.
+We will have delayed durability so there is no wait for flush.3_backupdbandlog
 
 1. Show the same for a transaction with tempdb using the script **6_tempdb_transaction.sql**.
 
-Note here there is no flush activity at all.\
+Note here there is no flush activity at all.
 
 ## BONUS: inline log writing
 

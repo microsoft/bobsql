@@ -75,10 +75,8 @@ This means the 1st log block is 4KB in size. You can see at 5000 at new log bloc
 
 iF you start scrolling down on the right side you can see strings which are part of log records.
 
-Note: Use in later lab on LSN. You can find a log block physically in a log file by using this formula:
+## Usding DBTABLE to look inside
 
-log block offset
-*0x200 (512 bytes)+
-sys.dm_db_log_info.vlf_begin_offset
+1. Use the script **dbtable.sql** to look at the log file and VLFs in a database. This script will show you the log file and VLFs in a database based on memory structure. WARNING: A completely undocumented and unsupported command.
 
-This is the physical offset of the log block in the log file.
+```sql

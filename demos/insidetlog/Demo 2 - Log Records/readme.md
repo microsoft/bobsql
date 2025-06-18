@@ -90,7 +90,14 @@ So a "user transaction" to start to wrap it but multiple "system transactions" i
 
 4. Run an INSERT again (no COMMIT needed) and see what the logrecs look like. Just 3 logrecs now.
 
-Looking at the logrecs can you tell which log records go into a log block together?
+Looking at the logrecs can you tell which log records go into a log block together? The offset of the log record is the offset in the log block (divided by sector size).
+
+You can find a log block physically in a log file by using this formula:
+
+<log block offset>*0x200 (512 bytes)+sys.dm_db_log_info.vlf_begin_offset
+
+
+```sql
 
 5. Create a table to show updates using **5_create_clustered_table.sql**
 
