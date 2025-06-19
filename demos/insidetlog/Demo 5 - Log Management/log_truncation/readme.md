@@ -1,162 +1,45 @@
 # Demo for log truncation
 
-1. Create a database like the following:
+1. Create a database from the script **1_createdb.sql**.
 
-USE MASTER;
-GO
-DROP DATABASE IF EXISTS letsgostars;
-GO
-CREATE DATABASE letsgostars;
-GO
+3. Look at VLFs and log_reuse column from **2_checkthelog.sql**.
 
-3. Look at VLFs and log_reuse column
+2. Create a table for to used to hold a transaction with the script **3_createtable.sql**
 
-USE letsgostars;
-GO
-SELECT * FROM sys.dm_db_log_info(NULL);
-GO
-SELECT name, log_reuse_wait_desc
-FROM sys.databases
-WHERE name = 'letsgostars';
-GO
+3. Backup the database using the script **4_backupdb.sql**.
 
-2. Create a table for to used to hold a transaction
+3. Open a transaction on this table using the script **5_newtransaction.sql**.
 
-USE letsgostars;
-GO
-DROP TABLE IF EXISTS holduplogtrunc;
-GO
-CREATE TABLE holduplogtrunc (col1 INT);
-GO
+4. Check log status with **2_checkthelog.sql**. Why doesn't it say ACTIVE_TRANSACTION? First kickoff next script as it takes some time.
 
-3. Backup the database
+4. Fill up the rest of the log using the script **6_fillthelog.sql**.
 
-BACKUP DATABASE letsgostars TO DISK = 'c:\temp\letsgostars.bak' WITH INIT;
-GO
+5. Check the log status again with **checkthelog.sql**. Why does it say LOG_BACKUP?
 
-3. Open a transaction on this table
+It says LOG_BACKUP is holding up truncation
 
-USE letsgostars;
-GO
-BEGIN TRAN
-INSERT INTO holduplogtrunc VALUES (1);
-GO
+6. Backup the log with the script **backuplog.sql**
 
-4. Fill up the rest of the log
+7 . Check the log status again with **checkthelog.sql**. Why does it say ACTIVE_TRANSACTION?
 
-USE letsgostars;
-GO
-DROP TABLE IF EXISTS fillthelog;
-GO
-CREATE TABLE fillthelog (col1 INT, col2 CHAR(7000) NOT NULL);
-GO
-DECLARE @x INT;
-SET @x = 0;
-WHILE (@x < 100000)
-BEGIN
-    INSERT INTO fillthelog VALUES (@x, '1');
-    SET @x = @x + 1;
-END;
-GO
-
-5. Check the log status
-
-USE letsgostars;
-GO
-SELECT * FROM sys.dm_db_log_info(NULL);
-GO
-SELECT name, log_reuse_wait_desc
-FROM sys.databases
-WHERE name = 'letsgostars';
-GO
-
-Says LOG_BACKUP is holding up truncation
-
-6. Backup the log
-
-BACKUP LOG letsgostars TO DISK = 'c:\temp\letsgostars_log.bak' WITH INIT;
-GO
-
-7. Check the log again
-
-USE letsgostars;
-GO
-SELECT * FROM sys.dm_db_log_info(NULL);
-GO
-SELECT name, log_reuse_wait_desc
-FROM sys.databases
-WHERE name = 'letsgostars';
-GO
-
-Now says active transaction
-
-6. Check for active transactions
-
-USE letsgostars;
-GO
--- The old way
-DBCC OPENTRAN();
-GO
--- A new way
-SELECT
-  GETDATE() as now,
-  DATEDIFF(SECOND, transaction_begin_time, GETDATE()) as tran_elapsed_time_seconds,
-  st.session_id,
-  txt.text, 
-  *
-FROM
-  sys.dm_tran_active_transactions at
-  INNER JOIN sys.dm_tran_session_transactions st ON st.transaction_id = at.transaction_id
-  LEFT OUTER JOIN sys.dm_exec_sessions sess ON st.session_id = sess.session_id
-  LEFT OUTER JOIN sys.dm_exec_connections conn ON conn.session_id = sess.session_id
-    OUTER APPLY sys.dm_exec_sql_text(conn.most_recent_sql_handle)  AS txt
-ORDER BY
-  tran_elapsed_time_seconds DESC;
+6. Check for active transactions using the script **8_checkactivetransactions.sql**
 
 Get the LSN from the OPENTRAN output and go back and see which VLF in the checklog output.
 
 Save this LSN
 
-7. COMMIT the transction
+7. COMMIT the transction from **5_newtransaction.sql**.
 
-Uncomment this
--- COMMIT TRAN
+8. Check the log again from **2_checkthelog.sql**. Why does it say ACTIVE_TRANSACTION?
 
-8. Check the log again
+Why does it say ACTIVE_TRANSACTION? Because even though the transaction is committed this is the last "known" reason we cannot truncate the log.
 
-USE letsgostars;
-GO
-SELECT * FROM sys.dm_db_log_info(NULL);
-GO
-SELECT name, log_reuse_wait_desc
-FROM sys.databases
-WHERE name = 'letsgostars';
-GO
+9. How about a CHECKPOINT? Run the script **9_checkpoint.sql**.
 
-Why does it say ACTIVE_TRANSACTION
+10. Now check the log status again with **2_checkthelog.sql**. Why does it say LOG_BACKUP?
 
-9. What about a CHECKPOINT?
+10. Backup the log again using the script from **10_backuplog2.sql**
 
-Need a backup since we committed the tran
+1. Check the log status again with **2_checkthelog.sql**. Log truncated and all good
 
-10. Backup the log again
-
-BACKUP LOG letsgostars TO DISK = 'c:\temp\letsgostars_log2.bak' WITH INIT;
-GO
-
-11. Check log again
-
-Log truncated and all good
-
-12. Can we see truncated log records?
-
-Using the saved LSN from the active transaction, run this query
-
-SELECT * FROM sys.fn_dblog(NULL, NULL);
-GO
-DBCC TRACEON(2537);
-GO
-SELECT * FROM sys.fn_dblog('39:730:1', NULL);
-GO
-
-
+12. Can we see truncated log records? Load the script **11_findoldlsn.sql** and paste in your active LSN.

@@ -96,7 +96,6 @@ You can find a log block physically in a log file by using this formula:
 
 <log block offset>*0x200 (512 bytes)+sys.dm_db_log_info.vlf_begin_offset
 
-
 ```sql
 
 5. Create a table to show updates using **5_create_clustered_table.sql**
