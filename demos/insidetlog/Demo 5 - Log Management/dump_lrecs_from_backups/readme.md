@@ -1,215 +1,23 @@
 # Show how to use sys.fn_db_dump_log()
 
-1. Create and backup a database with the following statements:
+1. Create and backup a database using the script **createdb.sql**.
 
-USE MASTER;
-GO
-DROP DATABASE IF EXISTS findmytransaction;
-GO
-CREATE DATABASE findmytransaction;
-GO
--- Turn off QDS to reduce log records
-ALTER DATABASE findmytransaction SET
-BACKUP DATABASE findmytrasaction TO DISK = 'c:\temp\findmytransaction.bak' WITH INIT;
-GO
+2. Create a table using the script **2_createtable.sql**
 
-2. Create a table and insert some data in a transaction
+3. Insert some data into the table using the script **3_insertdata.sql**. Only run the BEGIN TRAN and first 2 transactions. Don't execute the DELETE or COMMIT yet.
 
-USE findmytransaction;
-GO
-DROP TABLE IF EXISTS atablewithdata;
-GO
-CREATE TABLE atablewithdata (col int)
-GO
-BEGIN TRAN mytransaction;
-GO
-INSERT INTO atablewithdata(1);
-INSERT INTO atablewithdata(2);
-GO
+3. Run the query in the script **4_findtransaction.sql** to find the transaction. You should see the transaction in the result set.
 
-Leave this query window open
+3. Backup the log using the script **5_backuplog1.sql**.
 
-3. Run this query to see the transaction in the log
+4. In the window for the script **3_mytransaction.sql**, execute statements to delete and commit the transaction.
 
-USE findmytransaction;
-GO
-SELECT [Transaction Name], [Mark Name], [Operation], [Transaction ID]
-FROM sys.fn_dblog(NULL, NULL),
-	(SELECT [Transaction ID] tid
-	FROM sys.fn_dblog(NULL, NULL)
-	WHERE [Transaction Name] = 'mytransaction') [tran]
-WHERE [tran].[tid] = [Transaction ID]
-GO
+5. Backup the log again using the script **backuplog2.sql**.
 
-3. Backup the log using the following statements
-
-BACKUP LOG findmytransaction TO DISK = 'c:\temp\findmytransaction_log1.bak' WITH INIT;
-GO
-
-4. In the same query window run the delete and commit the tran
-
--- Run this delete after the 1st log backup
---
-DELETE FROM atablewithdata;
-COMMIT TRAN mytransaction;
-GO
-
-5. Backup the log again with this statements
-
-BACKUP LOG findmytransaction TO DISK = 'c:\temp\findmytransaction_log2.bak' WITH INIT;
-GO
-
-6. Try to find the transaction
-
-USE findmytransaction;
-GO
-SELECT [Transaction Name], [Mark Name], [Operation], [Transaction ID]
-FROM sys.fn_dblog(NULL, NULL),
-	(SELECT [Transaction ID] tid
-	FROM sys.fn_dblog(NULL, NULL)
-	WHERE [Transaction Name] = 'mytransaction') [tran]
-WHERE [tran].[tid] = [Transaction ID]
-GO
+6. Try to find the transaction using the script **3_findtrans.sql** again. You should see that the transaction is no longer there because the log has been truncated.
 
 You see the transaction is gone because the log is truncated. How can I figure out how the table became empty?
 
-7. Now try to find the transaction in the first backup using the following statement:
+7. Now try to find the transaction using the script **7_findmytransactionfromlogbackup.sql**. 
 
-SELECT [Transaction Name], [Transaction ID],[Operation], * FROM
-    fn_dump_dblog (
-        NULL, NULL, N'DISK', 1, N'c:\temp\findmytransaction_log1.bak',
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT),
-	(SELECT [Transaction ID] tid FROM
-    fn_dump_dblog (
-        NULL, NULL, N'DISK', 1, N'c:\temp\findmytransaction_log1.bak',
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT)
-	WHERE [Transaction Name] = 'mytransaction') [tran]
-WHERE [tran].[tid] = [Transaction ID];
-GO
-
-You can see only the start of the tran and the 2 INSERTs are there
-
-8. Let's now try to find our DELETE and COMMIT in the 2nd log backup
-
-SELECT [Mark Name], [Transaction ID],[Operation], * FROM
-    fn_dump_dblog (
-        NULL, NULL, N'DISK', 1, N'c:\temp\findmytransaction_log2.bak',
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT),
-	(SELECT [Transaction ID] tid FROM
-    fn_dump_dblog (
-        NULL, NULL, N'DISK', 1, N'c:\temp\findmytransaction_log2.bak',
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT,
-        DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT)
-	WHERE [Mark Name] = 'mytransaction') [tran]
-WHERE [tran].[tid] = [Transaction ID];
-GO
-
-You can now see the DELETE and COMMIT and have an exact timestamp when it occured
-
-## Log growth and truncation
-
-
-## Rebuliding the log
-
-1. Create a new database like this:
-
-USE master;
-GO
-DROP DATABASE IF EXISTS showmethemoney;
-GO
-CREATE DATABASE showmethemoney;
-GO
-
-2. Create a table and populate it with data like this
-
-USE showmethemoney;
-GO
-DROP TABLE IF EXISTS bankaccount;
-GO
-CREATE TABLE bankaccount (acctno INT, name nvarchar(30), balance decimal(10,2))
-GO
-BEGIN TRAN
-INSERT INTO bankaccount VALUES (1, 'Bob Ward', 1000000);
-GO
--- I forgot to roll back this back. Ooops...
--- No problem recovery will do this for me
-CHECKPOINT;
-Go
-USE MASTER;
-GO
-
-1. Kill the SQLSERVR.EXE process
-
-4. Find the transaction log file and delete it
-
-5. Restart SQL Server
-
-6. In a new query window in master try this command
-
-USE showmethemoney;
-GO
-
-You should see an error that the database is not avaialable.
-
-7. Check the ERRORLOG for errors
-
-8. Let's try to rebuild the log to bring db online
-
-USE MASTER;
-GO
-ALTER DATABASE [showmethemoney] SET EMERGENCY;
-GO
-ALTER DATABASE [showmethemoney] SET SINGLE_USER;
-GO
-DBCC CHECKDB (N'showmethemoney', REPAIR_ALLOW_DATA_LOSS) WITH ALL_ERRORMSGS, NO_INFOMSGS;
-GO
-
-Show the errors and results
-
-9. Check database status
-
-10. From master execute this
-
-USE MASTER;
-GO
-ALTER DATABASE [showmethemoney] SET MULTI_USER;
-GO
-
-11. Now execute this
-
-USE showmethemoney;
-GO
--- Uh oh
-SELECT * FROM bankaccount;
-GO
+The first batch finds the inserts but not the delete and commit. The second batch finds the delete including a date/time
