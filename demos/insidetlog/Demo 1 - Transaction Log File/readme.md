@@ -1,7 +1,5 @@
 # Example 1 - Transaction Log File
 
-SQL Server 2022 will be used for examples.
-
 ## Example 1.1 - Physical Log File
 
 1. Create a database in SSMS using the query editor with no options so all defaults are used
@@ -10,12 +8,13 @@ SQL Server 2022 will be used for examples.
 CREATE DATABASE defaultdb;
 GO
 ```
-2. Examine the default size and autogrow using the following query using the script **lookatlogfilesize.sql** in SSMS:
+
+2. Examine the default size and autogrow using the following query using the script **1_lookatlogfilesize.sql** in SSMS:
 
 
 ## Example 1.2 - Virtual Log File
 
-1. Let's see how VLFs are created for a physical log file. Using the example in Example 1.1, let's see what VLFs look like by executing the following query:
+1. Let's see how VLFs are created for a physical log file. Using the example in Example 1.1, let's see what VLFs look like by executing the following query from the script **2_lookatdefaultdbvlf.sql**.
 
 ```sql
 SELECT * FROM sys.dm_db_log_info(DB_ID('defaultdb'));
@@ -31,7 +30,7 @@ Let's break down the output of this query:
 - The vlf_parity is 64 which is 0x40 or 01000000.
 - The vlf_first_lsn is the first log record in the VLF which we will examine later
 
-2. Let's see what VLFs look like for other sized databases. Bring up the script **lookatvlfs.sql** in SSMS and execute it. This script will create a database with a specific size and autogrow settings, then it will show the VLFs for that database.
+2. Let's see what VLFs look like for other sized databases. Bring up the script **3_lookatvlfs.sql** in SSMS and execute it. This script will create a database with a specific size and autogrow settings, then it will show the VLFs for that database.
 
 -- A database log file of 64MB has 4 VLFs roughly 16Mb each
 -- A database log file of 1GB has 8 VLFs roughly 128Mb each
@@ -75,8 +74,8 @@ This means the 1st log block is 4KB in size. You can see at 5000 at new log bloc
 
 iF you start scrolling down on the right side you can see strings which are part of log records.
 
+Restart SQL Server
+
 ## Usding DBTABLE to look inside
 
-1. Use the script **dbtable.sql** to look at the log file and VLFs in a database. This script will show you the log file and VLFs in a database based on memory structure. WARNING: A completely undocumented and unsupported command.
-
-```sql
+1. Use the script **4_dbtable.sql** to look at the log file and VLFs in a database. This script will show you the log file and VLFs in a database based on memory structure. WARNING: A completely undocumented and unsupported command.
