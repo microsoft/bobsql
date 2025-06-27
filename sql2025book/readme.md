@@ -1,0 +1,1 @@
+# Will there be a SQL Server 2025 book?
