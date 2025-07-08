@@ -16,3 +16,6 @@ GO
 
 GRANT SELECT ON bigtab TO guyinacube;
 GO
+
+GRANT SHOWPLAN TO guyinacube;
+GO
