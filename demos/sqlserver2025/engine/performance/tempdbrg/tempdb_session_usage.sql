@@ -8,4 +8,5 @@ FROM
 JOIN 
     sys.dm_exec_sessions AS es ON ssu.session_id = es.session_id
 WHERE 
-    (ssu.user_objects_alloc_page_count > 0 OR ssu.internal_objects_alloc_page_count > 0)
+    (ssu.user_objects_alloc_page_count > 0 OR ssu.internal_objects_alloc_page_count > 0);
+GO

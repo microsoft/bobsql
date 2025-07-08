@@ -47,13 +47,15 @@ Load and execute the script **iknowsql.sql** in a SSMS query editor window. This
 
 2. Load and execute the script **checktempdbsize.sql** in a SSMS query editor window. This script will check the size of tempdb. Notice there is no growth of tempdb and space used is small. Even if the procedure were run by many concurrency users, overall tempdb space would not grow beyond the 512MB limit set.
 
+3. Load and execute the script **tempdb_session_usage.sql** in a SSMS query editor window. This shows the small amount of tempdb space used by the session that executed the stored procedure for an explicit temporary table. 
+
 ## Show uncontrolled tempdb usage
 
 1. Connect to SSMS using the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInACube" so you can see the application as unique and not from SSMS.
 
 2. Run a query that causes tempdb to grow using the same user.
 
-Load the and execute the script **guyinacubepoorquery.sql** in a SSMS query editor window. This script will take a few minutes to run. It wil run a query that requires a large sort which requires tempdb space.
+Load the and execute the script **guyinacubepoorquery.sql** in a SSMS query editor window. This script will take a few minutes to run. It wil run a query that requires a large sort which requires tempdb space. Use the show actual execution plan to see a sort has ocurred. This query will cause tempdb to grow significantly as it requires a large sort operation that exceeds the 512MB limit set for tempdb.
 
 3. Connect to SSMS using the sysadmin login from before to check the size of tempdb.
 
@@ -94,3 +96,11 @@ Could not allocate a new page for database 'tempdb' because that would exceed th
 Load and execute the script **checktempdbsize.sql** in a SSMS query editor window. This script will check the size of tempdb. Notice that the size of tempdb has not grown beyond the 512MB limit set as before.
 
 Load and execute the script **checktempdbrg.sql** in a SSMS query editor window. This script will show workload groups, their peak tempdb usage, and any violations of the tempdb space limit. You can see that the workload group for the user "GuyInACube" has violated the tempdb space limit set.
+
+## Resetting any resources
+
+To run through this demo again execut the following steps:
+
+1. Disable the Resource Governor for tempdb by executing the script **disablerg.sql** in a SSMS query editor window as a sysadmin login.
+
+2. Reset the tempdb size by executing the script **settempdbsize.sql** in a SSMS query editor window as a sysadmin login. Restart SQL Server.
