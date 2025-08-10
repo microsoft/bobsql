@@ -10,3 +10,4 @@ SELECT
     physical_name AS PhysicalFileName
 FROM 
     sys.database_files;
+GO
