@@ -10,8 +10,7 @@ GO
 CREATE USER guyinacube FOR LOGIN guyinacube;
 GO
 
--- Make the user the dbo for the database
-ALTER AUTHORIZATION ON DATABASE::guyinacubedb TO guyinacube;
+ALTER ROLE [db_owner] ADD MEMBER guyinacube;
 GO
 
 GRANT SELECT ON bigtab TO guyinacube;

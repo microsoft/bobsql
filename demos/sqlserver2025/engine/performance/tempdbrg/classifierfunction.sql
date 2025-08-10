@@ -10,7 +10,7 @@ BEGIN
     DECLARE @WorkloadGroup SYSNAME;
 
     -- Example logic: Assign sessions based on application name
-    IF APP_NAME() = 'GuyInACube'
+    IF APP_NAME() = 'GuyInCube'
     BEGIN
         SET @WorkloadGroup = 'GroupforUsersWhoDontKnowSQL';  -- Assign to your custom workload group
     END
