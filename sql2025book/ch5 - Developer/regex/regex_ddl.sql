@@ -10,17 +10,17 @@ GO
 USE hr;
 GO
 
--- Create an employees table with checks for valid email addresses
--- For Phone Numbers you must enforce this format type of format 
--- which cannot be done with LIKE such as (123) 456-7890
+-- Create an employees table with checks for valid email addresses and phone numbers
+-- With check that cannot be done with LIKE
 DROP TABLE IF EXISTS EMPLOYEES;
 GO
 CREATE TABLE EMPLOYEES (  
-    ID INT IDENTITY(101,1),  
+    ID INT IDENTITY PRIMARY KEY CLUSTERED,  
     [Name] VARCHAR(150),  
     Email VARCHAR(320)  
     CHECK (REGEXP_LIKE(Email, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')),  
-    Phone_Number NVARCHAR(20)  
-    CHECK (REGEXP_LIKE(Phone_Number, '^\(\d{3}\) \d{3}-\d{4}$'))  
-);
+    PhoneNumber NVARCHAR(20)  
+    CHECK (REGEXP_LIKE(PhoneNumber,'^\+\d{1,3}[ -]?(?:\([2-9]\d{2}\)[ -]?\d{3}-\d{4}|[2-9]\d{2}[ -]?\d{3}-\d{4})$')
+    )
+);  
 GO
