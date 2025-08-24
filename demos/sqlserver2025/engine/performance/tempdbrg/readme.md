@@ -51,7 +51,7 @@ Load and execute the script **iknowsql.sql** in a SSMS query editor window. This
 
 ## Show uncontrolled tempdb usage
 
-1. Connect to SSMS using the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInACube" so you can see the application as unique and not from SSMS.
+1. Connect to SSMS using the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInCube" so you can see the application as unique and not from SSMS.
 
 2. Run a query that causes tempdb to grow using the same user.
 
@@ -63,7 +63,7 @@ Load and execute the script **checktempdbsize.sql** in a SSMS query editor windo
 
 4. Using the same sysadmin login, check to see who has consumed the space.
 
-Load and execute the script **tempdb_session_usage.sql** in a SSMS query editor window. This script will show you the sessions that have consumed space in tempdb. You can see the session that caused the abnormal growth of tempdb is the one with the Application Name "GuyInACube".
+Load and execute the script **tempdb_session_usage.sql** in a SSMS query editor window. This script will show you the sessions that have consumed space in tempdb. You can see the session that caused the abnormal growth of tempdb is the one with the Application Name "GuyInCube".
 
 ## Setup Resource Governor to control tempdb space usage
 
@@ -77,11 +77,11 @@ Load and execute the script **setuprg.sql** in a SSMS query editor window. This 
 
 3. Create a new classifier function for the resource workload group
 
-Load and execute the script **classifierfunction.sql** in a SSMS query editor window. This script will create a classifier function that will classify the sessions based on the Application Name. In this case, it will classify the sessions with the Application Name "GuyInACube" to the workload group that has the tempdb space limit set.
+Load and execute the script **classifierfunction.sql** in a SSMS query editor window. This script will create a classifier function that will classify the sessions based on the Application Name. In this case, it will classify the sessions with the Application Name "GuyInCube" to the workload group that has the tempdb space limit set.
 
 ## Test our tempdb is now limited for the workload group
 
-1. Connect to SSMS again as the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInACube" so you can see the application as unique and not from SSMS.
+1. Connect to SSMS again as the SQL login created in the **createuser.sql** script. This will be the user that does not know how to control tempdb usage. You must set the Application Name in the connection properties to "GuyInCube" so you can see the application as unique and not from SSMS.
 
 2. Run the same query that caused tempdb to grow using the same user
 
