@@ -22,7 +22,7 @@ namespace Contoso.SQLEvents
         }
 
         [Function(nameof(SQLEventHubTrigger))]
-        public async Task Run([EventHubTrigger("sqleventhub", Connection = "sqleventhubspace_sqleventhubpolicy_EVENTHUB")] EventData[] events)
+        public async Task Run([EventHubTrigger("<AEH>", Connection = "<AEHspace>_<policy>_EVENTHUB")] EventData[] events)
         {
             foreach (EventData @event in events)
             {
