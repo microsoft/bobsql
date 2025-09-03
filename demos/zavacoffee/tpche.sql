@@ -458,5 +458,29 @@ WHERE run_id=@rid
 GROUP BY txn_name
 ORDER BY txn_name;
 
+Why this reflects TPC‑E‑style behavior (and how to tune it)
+
+Diverse transaction mix: Multiple read‑only analytic/lookup txns plus write txns that span several tables and enforce constraints—mirroring the complexity of TPC‑E vs. simpler workloads like TPC‑C. [Overview o...Benchmarks]
+Primary metric: We report tpsZR as the rate of completed ReceiveDelivery (our Trade‑Result analog), aligning with TPC‑E’s tpsE concept. [TPC-E Homepage]
+Non‑uniform access: The driver biases selection (Zipf‑ish) so some stores/products are “hot,” per TPC‑E’s spirit of skew and longer, multi‑step transactions. [From A to...e, the ...]
+Integrity & more complex joins: Procs touch multiple tables with RI, computed columns, and checks—again in the spirit of TPC‑E’s more realistic schema (33 tables, many FKs). [TPC Benchm...at Austin]
+Configurable mix & scale: TPC‑E defines an official mix and scale rules in the spec; here you can dial the TXN_MIX and data volume to approximate a read‑dominant production workload. (For the official current spec/tools list, see TPC site.) [TPC Current Specs]
+
+
+If you want to experiment with community TPC‑E‑like kits and ideas (again, not official), these are useful references: DBT‑5 and OLTP‑1. [1870.dvi - type.sk], [GitHub - l...benchmark]
+
+Running this in Microsoft Fabric
+
+Create a Notebook in your Fabric workspace and add your SQL Database as a data source (or use the -artifact parameter). Fabric supports native T‑SQL notebooks and Python notebooks with %%tsql cells that run directly on your SQL Database item. [Author and...oft Fabric], [Connect to...tebook ...]
+Fabric’s SQL Database uses the same TDS connectivity model as Azure SQL DB; you can connect with ODBC/JDBC and Entra ID auth. Copy the connection string from the item’s Settings → Connection strings. [Connect to...oft Fabric]
+
+Optional next steps
+
+Match your desired mix: If you want to emulate a specific TPC‑E transaction mix, tell me the weights you’d like and I’ll lock them into TXN_MIX (we’re keeping it configurable by design). The official mix details are in the TPC‑E spec; we’re staying within fair‑use “inspired” territory here. [TPC BENCHMARK E]
+Scale up: Increase stores/products and historical days; the driver will naturally increase contention and log pressure—surface‑level behaviors reported in TPC‑E studies (e.g., lock contention). [From A to...e, the ...]
+Add wait diagnostics: I can add per‑run snapshots of waits/blocking (reads from DMVs) and plot p95/p99 latency trends right in the notebook.
+
+
+
 
 
