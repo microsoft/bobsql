@@ -8,6 +8,8 @@ GO
 IF EXISTS(SELECT * FROM sys.[database_scoped_credentials] WHERE NAME = 'https://<azureai>')
 BEGIN
 	DROP DATABASE SCOPED CREDENTIAL [https://<azureai>]
+END;
+GO
 CREATE DATABASE SCOPED CREDENTIAL [https://<azureai]
 WITH IDENTITY = 'HTTPEndpointHeaders', SECRET = '{"api-key": "<apikey>"}';
 GO
