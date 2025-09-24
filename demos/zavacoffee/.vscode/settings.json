@@ -1,0 +1,20 @@
+{
+  "mssql.connections": [
+    {
+      "server": "x6eps4xrq2xudenlfv6naeo3i4-mws5brqkyb6urhe3ughl3a7dje.msit-database.fabric.microsoft.com,1433",
+      "database": "ZavaSCM-8ca4a989-bac6-4f83-b31f-fb8daef8571f",
+      "authenticationType": "AzureMFA",
+      "encrypt": "Mandatory",
+      "trustServerCertificate": false,
+      "profileName": "ZavaSCM (SQL Database)"
+    },
+    {
+      "server": ".",
+      "database": "master",
+      "authenticationType": "Integrated",
+      "encrypt": "Mandatory",
+      "trustServerCertificate": true,
+      "profileName": "sql 2025"
+    }
+  ]
+}

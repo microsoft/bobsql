@@ -1,0 +1,1 @@
+-- @mssql Chat Query Editor (x6eps4xrq2xudenlfv6naeo3i4-mws5brqkyb6urhe3ughl3a7dje.msit-database.fabric.microsoft.com,1433:ZavaSCM-8ca4a989-bac6-4f83-b31f-fb8daef8571f:Bob Ward - bobward@microsoft.com)
