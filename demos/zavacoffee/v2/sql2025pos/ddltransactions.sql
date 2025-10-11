@@ -24,7 +24,7 @@ CREATE TABLE edge.pos_txn_line (
     pos_txn_id      UNIQUEIDENTIFIER NOT NULL
         REFERENCES edge.pos_txn(pos_txn_id) ON DELETE CASCADE,
     line_no         INT              NOT NULL,
-    product_id      BIGINT           NOT NULL
+    product_id      INT           NOT NULL
         REFERENCES edge.product(product_id),
     quantity        DECIMAL(18,3)    NOT NULL CHECK (quantity > 0),
     unit_price      DECIMAL(19,4)    NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE edge.kiosk_basket_item (
     session_id      UNIQUEIDENTIFIER NOT NULL 
         REFERENCES edge.kiosk_session(session_id) ON DELETE CASCADE,
     line_no         INT              NOT NULL,
-    product_id      BIGINT           NOT NULL 
+    product_id      INT           NOT NULL 
         REFERENCES edge.product(product_id),
     quantity        DECIMAL(18,3)    NOT NULL CHECK (quantity > 0),
     unit_price      DECIMAL(19,4)    NOT NULL,   -- snapshot price at add time
@@ -109,7 +109,7 @@ CREATE TABLE edge.kiosk_search_result (
     query_id        UNIQUEIDENTIFIER NOT NULL 
         REFERENCES edge.kiosk_search_query(query_id) ON DELETE CASCADE,
     rank_no         INT              NOT NULL,
-    product_id      BIGINT           NOT NULL 
+    product_id      INT           NOT NULL 
         REFERENCES edge.product(product_id),
     score           FLOAT            NOT NULL,        -- cosine similarity or dot product
     was_selected    BIT              NOT NULL DEFAULT(0),

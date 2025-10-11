@@ -1,0 +1,48 @@
+USE [zavapos];
+GO
+CREATE OR ALTER PROCEDURE edge.usp_SearchProducts_ByPrompt
+    @prompt        NVARCHAR(MAX),
+    @topK          INT          = 10,             -- number of results
+    @metric        VARCHAR(20)  = 'cosine'        -- 'cosine' | 'euclidean' | 'dot'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @prompt IS NULL OR LTRIM(RTRIM(@prompt)) = ''
+    BEGIN
+        RAISERROR('Prompt cannot be empty.', 16, 1);
+        RETURN;
+    END;
+
+    /* 1) Generate query embedding from the prompt using your EXTERNAL MODEL */
+    DECLARE @qv VECTOR(768);
+
+    SELECT @qv = AI_GENERATE_EMBEDDINGS(@prompt USE MODEL MyLocalEmbeddingModel);
+
+    IF @qv IS NULL
+    BEGIN
+        RAISERROR('Failed to generate embedding for the prompt.', 16, 1);
+        RETURN;
+    END;
+
+    /* 2) Exact k-NN with VECTOR_DISTANCE (no index, full scan of candidate set) */
+    ;WITH scored AS
+    (
+        SELECT TOP (@topK)
+               p.product_id,
+               p.product_sku,
+               p.product_name,
+               p.product_desc,
+               p.list_price,
+               VECTOR_DISTANCE(@metric, @qv, pe.embeddings) AS distance
+        FROM   edge.product_Embeddings AS pe
+        JOIN   edge.product            AS p
+               ON p.product_id = pe.product_id
+        WHERE  p.is_active = 1
+        ORDER BY distance ASC
+    )
+    SELECT *
+    FROM   scored
+    ORDER BY distance ASC;
+END
+GO

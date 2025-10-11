@@ -1,0 +1,4 @@
+DROP DATABASE IF EXISTS zavapos;
+GO
+CREATE DATABASE zavapos;
+GO

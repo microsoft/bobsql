@@ -1,0 +1,98 @@
+USE [zavapos];
+GO
+
+CREATE OR ALTER PROCEDURE edge.usp_SearchProducts_ByPrompt_ANN
+    @prompt            NVARCHAR(MAX),
+    @type              NVARCHAR(50) = NULL,    -- JSON $.type (e.g., 'beverage','food','retail','merch')
+    @subtype           NVARCHAR(50) = NULL,    -- JSON $.subtype (e.g., 'latte','espresso','cold_brew',...)
+    @serve             NVARCHAR(10) = NULL,    -- JSON $.serve ('hot'|'cold')
+    @store_id          INT          = NULL,    -- optional scope to a store
+    @topK              INT          = 10,      -- final rows to return
+    @oversample_factor INT          = 5        -- ANN post-filter mitigation (TOP_N = topK * factor)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    /* ---- Validate inputs ---- */
+    IF @prompt IS NULL OR LTRIM(RTRIM(@prompt)) = ''
+    BEGIN
+        RAISERROR('Prompt cannot be empty.', 16, 1);
+        RETURN;
+    END;
+
+    IF @oversample_factor IS NULL OR @oversample_factor < 1
+        SET @oversample_factor = 3;   -- reasonable default
+
+    /* ---- 1) Create query embedding ---- */
+    DECLARE @qv VECTOR(768);
+
+    SELECT @qv = AI_GENERATE_EMBEDDINGS(@prompt USE MODEL MyLocalEmbeddingModel);
+    -- If your build exposes AI_GENERATE_EMBEDDING (singular), swap it in.
+
+    IF @qv IS NULL
+    BEGIN
+        RAISERROR('Failed to generate embedding for the prompt.', 16, 1);
+        RETURN;
+    END;
+
+    /* ---- 2) Approximate k-NN with VECTOR_SEARCH (ANN) ----
+       NOTE: Filters are post-filtered in current preview; oversample to retain K. */
+    DECLARE @topN INT = @topK * @oversample_factor;
+
+    ;WITH ann AS
+    (
+        SELECT  pe.product_id,
+                pe.embeddings,
+                r.distance                 -- distance comes from result alias
+        FROM    VECTOR_SEARCH(
+                    TABLE      = edge.product_embeddings AS pe,  -- source-table alias
+                    COLUMN     = embeddings,
+                    SIMILAR_TO = @qv,
+                    METRIC     = 'cosine',                       -- hardcoded metric
+                    TOP_N      = @topN
+                ) AS r                                           -- result alias
+        -- Per docs: select base-table columns through 'pe', and distance through 'r'.
+        -- This is the key to avoid “Invalid column name” errors.  [1](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-search-transact-sql?view=sql-server-ver17)
+    ),
+    joined AS
+    (
+        SELECT  p.product_id,
+                p.product_sku,
+                p.product_name,
+                p.product_desc,
+                p.product_attribute,
+                p.list_price,
+                inv.on_hand_qty,
+                ann.distance
+        FROM    ann
+        JOIN    edge.product AS p
+                ON p.product_id = ann.product_id
+        /* Only join inventory when @store_id is provided
+           (avoids fan-out when store scope is not requested). */
+        LEFT JOIN edge.inventory AS inv
+               ON inv.product_id = p.product_id
+              AND (@store_id IS NOT NULL AND inv.store_id = @store_id)
+        WHERE   p.is_active = 1
+          AND  (@type    IS NULL OR JSON_VALUE(p.product_attribute, '$.type')    = @type)
+          AND  (@subtype IS NULL OR JSON_VALUE(p.product_attribute, '$.subtype') = @subtype)
+          AND  (@serve   IS NULL OR JSON_VALUE(p.product_attribute, '$.serve')   = @serve)
+          AND  (
+                 @store_id IS NULL
+                 OR (inv.store_id = @store_id)  -- show only items with inventory rows for that store
+               )
+    )
+    SELECT TOP (@topK)
+           j.product_id,
+           j.product_sku,
+           j.product_name,
+           j.product_desc,
+           JSON_VALUE(j.product_attribute,'$.type')    AS [type],
+           JSON_VALUE(j.product_attribute,'$.subtype') AS [subtype],
+           JSON_VALUE(j.product_attribute,'$.serve')   AS [serve],
+           j.list_price,
+           j.on_hand_qty,
+           j.distance,
+           1.0 - j.distance AS cosine_similarity       -- similarity = 1 - cosine_distance per doc range
+    FROM   joined AS j
+    ORDER BY j.distance ASC;  -- smallest distance = most similar
+END
