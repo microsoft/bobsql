@@ -1,4 +1,4 @@
-![Book Graphic](./graphics/sql2025bookcover.tif)
+![Book Graphic](./graphics/sql2025bookcover.jpg)
 
 # SQL Server 2025 Revealed
 
