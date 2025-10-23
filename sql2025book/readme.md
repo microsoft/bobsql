@@ -16,7 +16,7 @@ The example scripts for this book are available through scripts in folders per c
 
 This book was authored during the preview period of SQL Server 2025. Therefore, some details about SQL Server 2025 that are announced at General Availability may not have made it into the book. This section is intended to supplement those details.
 
-**Note: **Check back after the General Availability of SQL Server 2025 for any updates to this section.
+**Note:** Check back after the General Availability of SQL Server 2025 for any updates to this section.
 
 ## Book errata
 
