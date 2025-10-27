@@ -22,4 +22,6 @@ This book was authored during the preview period of SQL Server 2025. Therefore, 
 
 If you find any errors in the book, please report them as issues as part of this GitHub repository at https://github.com/microsoft/bobsql/issues. Please include the chapter and page number, along with a description of the error.
 
+1. In Chapter 1 on page 9 the title of this section should be May 2025 Events and Launch.
+
 
