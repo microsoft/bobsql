@@ -1,36 +1,47 @@
-# AI features for SQL Server 2025
+# SQL Server 2025 AI Demos
 
-These are demos for new AI buit-in capabilities in SQL Server 2025. This includes AI model definition, vector data type, embedding generation, vector index, and vector search.
+This directory contains demonstrations of SQL Server 2025's AI capabilities, specifically focusing on vector search and semantic similarity using different AI model providers.
 
-Demos include examples for AI models hosted by Azure OpenAI, Ollama, and an OpenAI compatible endpoint.
+## Overview
 
-## Pre-requisites
+These demos showcase how SQL Server 2025 can integrate with various AI embedding models to perform vector search on product descriptions using the AdventureWorks database. Each folder demonstrates the same core functionality but uses a different AI provider for generating embeddings.
 
-Here are the minimum requirements to run the demos:
+## Folders
 
-- SQL Server 2025 Preview using Evaluation or Developer Editions.
-- SQL Server Management Studio (SSMS) 21 installed from https://aka.ms/ssms21
+### vector_search_azureai
 
-2. All demos will use the same database to show the differences with AI model capabilities Therefore, you will need to download the sample database AdventureWorks from <https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak>.
+Demonstrates vector search using **Azure OpenAI** embeddings service. Uses Azure OpenAI's `text-embedding-3-large` model to generate embeddings via REST API. Ideal for enterprise scenarios with Azure integration and managed cloud services.
 
-There may be other prerequisites for specific demos. Please refer to the individual demo instructions for details.
+### vector_search_openai
 
-## References
+Demonstrates vector search using **OpenAI-compatible API** endpoints. Works with OpenAI or any OpenAI-compatible service using the `embeddinggemma` model. Provides flexibility for development and testing with various compatible providers.
 
-Find out more about SQL Server 2025 at https://aka.ms/sqlserver2025docs.
+### vector_search_ollama
 
-## Demos
+Demonstrates vector search using **Ollama** embedding models running locally. Uses Ollama's native API with the `mxbai-embed-large` model. Runs completely on-premises with no external dependencies, making it great for development, testing, and privacy-sensitive scenarios.
 
-The following demos are included in this folder:
+### vector_search_onnx
 
-**Azure OpenAI**
+Demonstrates vector search using **ONNX Runtime** with local models. Uses the `all-MiniLM-L6-v2` model in ONNX format for completely offline operation with no network calls required. Provides the best performance for local deployments but requires ONNX Runtime installation.
 
-This demo shows the new AI buit-in capabilities in SQL Server 2025. This includes AI model definition, vector data type, embedding generation, vector index, and vector search. Embedding models will be used in this demo from Azure OpenAI.
+## Key SQL Server 2025 Features
 
-**Ollama**
+These demos showcase SQL Server 2025's new AI capabilities including:
+- **CREATE EXTERNAL MODEL** for defining AI models from various providers
+- **AI_GENERATE_EMBEDDINGS()** for generating vector embeddings from text
+- **Vector Indexes** for fast similarity search
+- **Vector Distance Functions** for calculating semantic similarity
+- **Hybrid Search** combining traditional full-text with semantic vector search
 
-**Coming soon** This demo shows the new AI buit-in capabilities in SQL Server 2025. This includes AI model definition, vector data type, embedding generation, vector index, and vector search. Embedding models will be used in this demo from Ollama on-premises.
+## Choosing a Provider
 
-**OpenAI**
+| Provider | Best For | Pros | Cons |
+|----------|----------|------|------|
+| **Azure OpenAI** | Enterprise production | High quality, managed service, scalable | Requires Azure subscription, API costs |
+| **OpenAI** | General purpose | Good quality, flexible endpoints | Requires API key, network dependency |
+| **Ollama** | Local development | Free, private, no API keys needed | Requires local setup, model downloads |
+| **ONNX** | High performance local | Fastest, fully offline, no dependencies | Requires ONNX Runtime setup, model conversion |
 
-**Coming soon**. This demo shows the new AI buit-in capabilities in SQL Server 2025. This includes AI model definition, vector data type, embedding generation, vector index, and vector search. Embedding models will be used in this demo from an OpenAI compatible endpoint.
+## Getting Started
+
+Each folder contains its own detailed readme with step-by-step instructions. Choose the provider that best fits your requirements and follow the instructions in that folder's readme.

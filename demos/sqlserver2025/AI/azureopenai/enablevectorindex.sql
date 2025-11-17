@@ -1,2 +1,0 @@
-DBCC TRACEON (466, 13981, -1);
-GO
