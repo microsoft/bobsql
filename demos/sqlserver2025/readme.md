@@ -87,7 +87,7 @@ Shows how optimized locking improves concurrency by avoiding lock escalation and
 
 **Use Cases:** Batch processing, high-concurrency applications, Availability Groups, large table updates, ETL operations
 
-**Prerequisites:** SQL Server 2025 (CTP 1.0+), AdventureWorks database, Accelerated Database Recovery
+**Prerequisites:** SQL Server 2025 Developer Edition, AdventureWorks database, Accelerated Database Recovery
 
 [See optimized_locking/readme.md for detailed demo](./optimized_locking/readme.md)
 
@@ -209,14 +209,14 @@ Each demo folder contains:
 
 ## Feature Comparison
 
-| Feature | Status | Best For | Complexity |
-|---------|--------|----------|------------|
-| **AI/Vector Search** | Preview | Semantic search, RAG applications | Medium-High |
-| **ABORT_QUERY_EXECUTION** | Preview | Query governance, incident response | Low |
-| **Native JSON** | Preview | Modern apps, flexible schemas | Low-Medium |
-| **Optimized Locking** | Preview | High-concurrency workloads | Medium |
-| **Regular Expressions** | Preview | Data validation, pattern matching | Low |
-| **TempDB RG** | Preview | Multi-tenant, system protection | Medium |
+| Feature | Best For | Complexity |
+|---------|----------|------------|
+| **AI/Vector Search** | Semantic search, RAG applications | Medium-High |
+| **ABORT_QUERY_EXECUTION** | Query governance, incident response | Low |
+| **Native JSON** | Modern apps, flexible schemas | Low-Medium |
+| **Optimized Locking** | High-concurrency workloads | Medium |
+| **Regular Expressions** | Data validation, pattern matching | Low |
+| **TempDB RG** | Multi-tenant, system protection | Medium |
 
 ## Common Scenarios
 
@@ -312,17 +312,17 @@ Each demo folder contains:
 
 ## Support and Feedback
 
-These demos showcase SQL Server 2025 preview features. For:
+These demos showcase SQL Server 2025 features. For:
 - **Issues** - Report via SQL Server feedback channels
 - **Questions** - Use SQL Server forums and communities  
 - **Feature Requests** - Submit via SSMS feedback tools
 
 ## Important Notes
 
-⚠️ **Preview Features** - Features demonstrated are in preview and subject to change  
-⚠️ **Test Environments Only** - Do not deploy to production without thorough testing  
-⚠️ **Performance Testing** - Always benchmark with your specific workloads  
-⚠️ **Documentation** - Check official docs for latest feature status  
+⚠️ **Test Environments Only** - Always test thoroughly before deploying to production  
+⚠️ **Performance Testing** - Benchmark with your specific workloads  
+⚠️ **Documentation** - Check official docs for latest feature information  
+⚠️ **Best Practices** - Follow SQL Server best practices for implementation  
 
 ## Contributing
 
@@ -336,7 +336,7 @@ Improvements to these demos are welcome:
 ---
 
 **Last Updated:** November 2025  
-**SQL Server Version:** 2025 (Preview)  
-**Status:** Active Development
+**SQL Server Version:** 2025 Developer Edition  
+**Status:** Active
 
 For the latest updates and additional demos, check the repository regularly.
