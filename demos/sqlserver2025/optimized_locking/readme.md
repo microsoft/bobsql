@@ -4,7 +4,7 @@ This demo demonstrates optimized locking in SQL Server 2025, which improves conc
 
 ## Prerequisites
 
-- **SQL Server 2025 Developer Edition (CTP 1.0 or later)** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
+- **SQL Server 2025 Developer Edition** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
 - **AdventureWorks Database** - [Download AdventureWorks2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak)
 - **SQL Server Management Studio (SSMS) 21** - [Download here](https://aka.ms/ssms21)
 
@@ -290,7 +290,7 @@ Re-enables Read Committed Snapshot Isolation if you disabled it earlier.
 - Works best with READ COMMITTED isolation level
 
 **Limitations:**
-- Still in preview - test thoroughly before production use
+- Test thoroughly before production use
 - Some specific scenarios may not benefit
 - Monitor performance after enabling
 

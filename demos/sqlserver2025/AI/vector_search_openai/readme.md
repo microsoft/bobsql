@@ -25,7 +25,7 @@ You'll need an OpenAI-compatible endpoint that supports embeddings. This could b
 | `00_a_enablerestapi.sql` | Enables REST API endpoint support in SQL Server |
 | `00_b_restore_adventureworks.sql` | Restores the AdventureWorks sample database |
 | `00_c_createft.sql` | Creates full-text catalog and index for comparison demos |
-| `00_d_enable_preview_features.sql` | Enables SQL Server 2025 preview features |
+| `00_d_enable_preview_features.sql` | Enables PREVIEW_FEATURES configuration for vector indexing |
 | `00_e_search_productdescription.sql` | Demonstrates traditional full-text search (for comparison) |
 | `01_search_productdescription.sql` | Traditional search examples for comparison |
 | `02_create_external_model_openai.sql` | Creates external model using OpenAI API format |
@@ -61,13 +61,13 @@ Restores the AdventureWorks sample database containing product information.
 
 Optional but useful for comparing traditional search with vector search.
 
-### Step 4: Enable Preview Features
+### Step 4: Enable PREVIEW_FEATURES Configuration
 ```sql
--- Enable SQL Server 2025 preview features
+-- Enable PREVIEW_FEATURES for vector indexing
 -- Run: 00_d_enable_preview_features.sql
 ```
 
-Enables the AI and vector search features in SQL Server 2025.
+Enables the PREVIEW_FEATURES database scoped configuration required for vector indexing in SQL Server 2025.
 
 ### Step 5: Test Traditional Search (Optional)
 ```sql
