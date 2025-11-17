@@ -1,99 +1,378 @@
-# Demo for Optimized Locking in SQL Server 2025
+# Optimized Locking in SQL Server 2025
 
-This is a demonstration of optimized locking for SQL Server 2025. It shows how optimized locking can help avoid lock escalation and improve concurrency. Another benefit of optimized locking is with transaction ID locking since only the transaction ID lock is logged. Not logging row and page locks improves performance by reducing redo on secondary replicas.
+This demo demonstrates optimized locking in SQL Server 2025, which improves concurrency by avoiding lock escalation and reducing lock memory overhead through transaction ID locking.
 
 ## Prerequisites
 
-1. Install SQL Server 2025 Developer or Evaluation Edition. This feature is available starting in CTP 1.0. This demonstration can work for SQL Server on Windows or Linux.
+- **SQL Server 2025 Developer Edition (CTP 1.0 or later)** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
+- **AdventureWorks Database** - [Download AdventureWorks2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak)
+- **SQL Server Management Studio (SSMS) 21** - [Download here](https://aka.ms/ssms21)
 
-2. Download the same database AdventureWorks from <https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak>.
+## Overview
 
-3. Install SQL Server Management Studio (SSMS) 21 from https://aka.ms/ssms21. Scripts in this demo can be run through scripts with any tool that connects to SQL Server.
+Optimized locking is a significant enhancement in SQL Server 2025 that addresses two major concurrency challenges:
 
-4. Restore the database using the script **restore_adventureworks.sql** (You may need to edit the file paths for the backup and/or database and log files). You can also use the **AdventureWorks.bacpac** file to import data and schema.
+1. **Lock Escalation** - Traditionally, updating many rows causes SQL Server to escalate from row/page locks to table locks, blocking other queries
+2. **Lock Memory Overhead** - Each row and page lock consumes memory, limiting scalability
 
-5. Enable Accelerated Database Recovery for the database AdventureWorks using the script **enableadr.sql**.
+**How Optimized Locking Works:**
+- Uses transaction ID (TID) locks instead of traditional row/page locks
+- Only the TID lock is logged in the transaction log
+- Dramatically reduces redo work on secondary replicas (AG, log shipping)
+- Avoids lock escalation scenarios
+- Improves concurrency for large updates
 
-6. Make sure optimized locking is not enabled by executing the script **disableoptimizedlocking.sql**.
+## Files
 
-## Demo 1 - Lock Escalation
+| File | Purpose |
+|------|---------|
+| `00_a_restore_adventureworks.sql` | Restores the AdventureWorks sample database |
+| `00_b_enableadr.sql` | Enables Accelerated Database Recovery (required) |
+| `00_c_disableoptimizedlocking.sql` | Disables optimized locking for comparison |
+| `01_getlocks.sql` | Query to observe current locks in the database |
+| `02_updatefreightsmall.sql` | Updates 2500 rows to show traditional locking |
+| `03_updatefreightbig.sql` | Updates 10000 rows to demonstrate lock escalation |
+| `04_updatefreightmax.sql` | Concurrent update to show blocking from escalation |
+| `05_showblocking.sql` | Displays blocking sessions |
+| `06_enableoptimizedlocking.sql` | Enables optimized locking feature |
+| `07_disablercsi.sql` | Disables RCSI (for TID lock demonstration) |
+| `08_updatefreightpo1.sql` | First concurrent update with optimized locking |
+| `09_updatefreightpo2.sql` | Second concurrent update with optimized locking |
+| `10_enablercsi.sql` | Re-enables RCSI |
 
-In this demonstration you will see how optimized locking can avoid scenarios that typically require lock escalation and can affect the concurrency and availability of applications. In this scenario, the application needs to update a large number of rows with at T-SQL UPDATE statement on the table Sales.SalesOrderHeader. The developer of the application has been seeing blocking problems with this update and Adminstrators have seen excessive lock memory required.
+## Step-by-Step Instructions
 
-### Show Lock Escalation without optimized locking
+## Demo 1: Lock Escalation Without Optimized Locking
 
-1. Load the script **getlocks.sql** in a SSMS query edtior window. You will use this script to observe locking behavior.
+This demonstration shows how traditional locking causes lock escalation and blocking issues.
 
-2. Load the script **updatefreightsmall.sql** in a SSMS query editor window.  
+### Step 1: Setup Environment
+```sql
+-- Run: 00_a_restore_adventureworks.sql
+```
 
-This script will increase the freight costs for each order by 1 for the first 2500 rows. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+Restores the AdventureWorks database. Edit file paths as needed for your environment.
 
-3. Switch to the query editor window for **getlocks.sql** and look at the results
+```sql
+-- Run: 00_b_enableadr.sql
+```
 
-You will see ~2500 KEY X locks and 111 PAGE locks. Without optimized locking, key and page locks are held as long as the transaaction is active. If more rows are updated, lock escalation can occur. Move forward to the next steps to see how.
+Enables Accelerated Database Recovery, which is required for optimized locking.
 
-First execute the ```ROLLBACK TRAN``` statement in the **updatefreightsmall.sql** script. This will release all locks and allow the next step to proceed.
+```sql
+-- Run: 00_c_disableoptimizedlocking.sql
+```
 
-4. Observe lock escalation by loading the script **updatefreightbig.sql** in a SSMS query editor window
+Ensures optimized locking is disabled so you can see traditional behavior first.
 
-This script will increase the freight costs for each order by 1 for the first 10000 rows. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+### Step 2: Observe Traditional Locking Behavior
 
-5. Switch to the query editor window for **getlocks.sql** and look at the results
+Open `01_getlocks.sql` in one SSMS query window. You'll use this throughout the demo to observe locking behavior.
 
-You will see that lock escalation has occurred. You will now only see an OBJECT X lock. This is because the number of locks has exceeded the threshold for lock escalation.
+```sql
+-- Open in separate window: 01_getlocks.sql
+```
 
-6. You can see this harms concurrency. Load the script **updatefreightmax.sql** in a SSMS query editor window.
+This query shows:
+- Lock types (KEY, PAGE, OBJECT)
+- Lock modes (S, X, U, etc.)
+- Lock counts
+- Resource descriptions
 
-This script updates the freight for a row not affected by the previous update. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch does not complete. This is because the update is blocked by the OBJECT X lock.
+### Step 3: Update Small Number of Rows
+```sql
+-- Run: 02_updatefreightsmall.sql
+```
 
-7. Load the script **showblocking.sql** in a SSMS query editor window. This script will show you the blocking problem.
+This script updates the first 2500 rows in `Sales.SalesOrderHeader`, increasing freight costs by 10%.
 
-8. Rollback the transactions in **updatefreightbig.sql** and **updatefreightmax.sql**. You can do this by executing the ```ROLLBACK TRAN``` statement in those scripts. Leave all query editor windows open for the next steps.
+**Execute only the first batch** up to the `GO` statement. Do NOT execute `ROLLBACK TRAN` yet.
 
-### Show Lock Escalation with optimized locking
+### Step 4: Examine Locks for Small Update
 
-1. Enable optimized locking by loading and executing the script **enableoptimizedlocking.sql** in a SSMS query editor window. This will enable optimized locking for the database AdventureWorks.
+Switch to the `01_getlocks.sql` window and execute it.
 
-5. To see how lock escalation is avoided, execute the batch in **updatefreightbig.sql** up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+**Expected Results:**
+- ~2500 KEY (X) locks - one per row updated
+- ~111 PAGE locks
+- Lock memory is consumed for each lock
+- Transaction holds all these locks until commit/rollback
 
-6. Check the locks in the **getlocks.sql** query editor window. You will see an OBJECT IX lock and a XACT X lock. There is no lock escalation.
+This demonstrates traditional row-level locking behavior.
 
-7. Execute the first batch in **updatefreightmax.sql** up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch is not blocked.
+**Now rollback:** Switch back to `02_updatefreightsmall.sql` and execute the `ROLLBACK TRAN` statement.
 
-8. Rollback the transactions in **updatefreightbig.sql** and **updatefreightmax.sql**. You can do this by executing the ```ROLLBACK TRAN``` statement in those scripts.
+### Step 5: Demonstrate Lock Escalation
+```sql
+-- Run: 03_updatefreightbig.sql
+```
 
-9. For the next demo you can close all query editor windows for scripts **except for getlocks.sql and showblocking.sql**
+This script updates 10,000 rows - enough to trigger lock escalation.
 
-## Demo 2 - Lock After Qualification (LAQ) with optimized locking
+**Execute only the first batch** up to the `GO` statement. Do NOT execute `ROLLBACK TRAN` yet.
 
-Lock after qualification (LAQ) is an optimization that evaluates query predicates using the latest committed version of the row without acquiring a lock, thus improving concurrency.
+### Step 6: Observe Lock Escalation
 
-LAQ requires both optimized locking AND read committed snapshot isolation (RCSI) to be enabled. Without optimized locking and RCSI, DML statements can require update and exclusive locks when qualifying rows from the query criteria. If optimized locking is enabled but not RCSI, qualificatoin is still required for TID (XACT) locks. However, if RCSI is also enabled, this qualification is not required. This demonstration will show you the benefits of LAQ.
+Switch to `01_getlocks.sql` and execute it.
 
-Let's look at a scenario for the AdventureWorks database where LAQ can improve the concurrency of the application. In this scenario, the application needs to execute an update for specific PurchaseOrderNumbers in the Sales.SalesOrderHeader. Developers have seen blocking problems with this update. This column does not have an index currently so an update for a specific row can require a scan of the clustered index. This table is not large so the scan can be fast and so an index was not created. Developers and adminstrators are looking for ways to avoid the blocking problem.
+**Expected Results:**
+- Only ONE OBJECT (X) lock - the table is now locked!
+- No individual KEY or PAGE locks visible
+- Lock escalation occurred to reduce lock memory overhead
 
-### Blocking for updates without LAQ
+This is the problem: the entire table is now locked, blocking all other queries.
 
-Let's see what the blocking problem looks like without LAQ. Remember to have the **getlocks.sql** and **showblocking.sql** scripts loaded in query editor windows in SSMS.
+### Step 7: Demonstrate Blocking from Escalation
 
-1. The AdventureWorks sample database has RCSI enabled by default so run the script **disablercsi.sql** to disable RCSI.
+Keep the transaction from Step 5 open. Now open another window:
 
-2. Load the **updatefreightpo1.sql** script in a SSMS query editor window. This script will update the freight for a specific PurchaseOrderNumber. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+```sql
+-- In new window, run: 04_updatefreightmax.sql
+```
 
-3. Load the **updatefreightpo2.sql** script in a SSMS query editor window. This script will update the freight for a different specific PurchaseOrderNumber. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch is blocked.
+This script attempts to update a SINGLE ROW that was NOT affected by the previous update.
 
-4. Run the query in the **showblocking.sql** query editor window. You will see that the second update is blocked by the first update. The waiting resource is an XACT resource. Run the query in the **getlocks.sql** query editor window to see the locks being held and attempted. Notice the second update is requesting and waiting for a Shared (S) XACT lock on the same row that the first update has locked.
+**Execute only the first batch** up to the `GO` statement.
 
-5. Rollback the transaction in **updatefreightpo1.sql** by executing the ```ROLLBACK TRAN``` statement. Then rollback the transaction in **updatefreightpo2.sql** by executing the ```ROLLBACK TRAN``` statement.
+**Expected Result:** The query hangs! It cannot complete because the table is locked by the other transaction.
 
-Leave all query editor windows open for the next steps.
+### Step 8: Confirm Blocking
+```sql
+-- In another window, run: 05_showblocking.sql
+```
 
-### Blocking for updates with LAQ
+This shows the blocking session and what it's waiting on.
 
-1. Enable RCSI by executing the script **enablercsi.sql** in a SSMS query editor window.
+**Cleanup:** 
+- Rollback the transaction in `03_updatefreightbig.sql`
+- This will unblock and complete the transaction in `04_updatefreightmax.sql`
+- Rollback that transaction too
 
-2. Execute the query in the **updatefreightpo1.sql** script in a SSMS query editor window. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement.
+## Demo 2: Optimized Locking Eliminates Lock Escalation
 
-3. Execute the query in the **updatefreightpo2.sql** script in a SSMS query editor window. Execute the first batch in the query script up to the ```GO``` statement. Do not execute the ```ROLLBACK TRAN``` statement. Notice this batch is not blocked.
+Now see how optimized locking solves these problems.
 
-4. Execute the query in **getlocks.sql** query editor window to see the locks being held and attempted. Notice that both sessions now have Exclusive (X) XACT locks. This is because LAQ allows the second update to qualify rows that don't meet the query criteria without acquiring a lock.
+### Step 9: Enable Optimized Locking
+```sql
+-- Run: 06_enableoptimizedlocking.sql
+```
+
+Enables the optimized locking feature at the database level.
+
+### Step 10: Disable RCSI (Optional but Recommended)
+```sql
+-- Run: 07_disablercsi.sql
+```
+
+Disables Read Committed Snapshot Isolation to better demonstrate TID locking behavior. With RCSI enabled, readers don't acquire locks anyway, so disabling it makes the demo clearer.
+
+### Step 11: Large Update with Optimized Locking
+
+Open two SSMS query windows side by side.
+
+**Window 1:**
+```sql
+-- Run: 08_updatefreightpo1.sql
+```
+
+This updates freight for orders with odd-numbered purchase order numbers.
+
+**Execute only the first batch** up to the `GO` statement. Leave the transaction open.
+
+### Step 12: Check Locks with Optimized Locking
+
+In your `01_getlocks.sql` window, execute the query.
+
+**Expected Results:**
+- Very few locks visible!
+- No thousands of KEY locks
+- No lock escalation
+- Uses TID (Transaction ID) locking instead
+
+### Step 13: Concurrent Update - No Blocking!
+
+While Window 1's transaction is still open:
+
+**Window 2:**
+```sql
+-- Run: 09_updatefreightpo2.sql
+```
+
+This updates freight for orders with even-numbered purchase order numbers.
+
+**Execute only the first batch** up to the `GO` statement.
+
+**Expected Result:** This query completes immediately! No blocking occurs even though both transactions are updating the same table with thousands of rows.
+
+Check locks again with `01_getlocks.sql` - you'll see both transactions' locks coexist without escalation.
+
+**Key Point:** With optimized locking:
+- No lock escalation to table level
+- Concurrent updates on same table succeed
+- Improved concurrency and throughput
+- Reduced lock memory consumption
+
+**Cleanup:**
+- Rollback both transactions (`08_updatefreightpo1.sql` and `09_updatefreightpo2.sql`)
+
+### Step 14: Re-enable RCSI (Optional)
+```sql
+-- Run: 10_enablercsi.sql
+```
+
+Re-enables Read Committed Snapshot Isolation if you disabled it earlier.
+
+## What You'll Learn
+
+- How traditional locking leads to lock escalation
+- Impact of lock escalation on concurrency and blocking
+- How optimized locking uses TID locks instead of row/page locks
+- Benefits of reduced lock memory and redo overhead
+- Improved concurrency for large batch updates
+- When and how to enable optimized locking
+
+## Key Concepts
+
+**Lock Escalation:** SQL Server's mechanism to reduce lock memory by converting many fine-grained locks (row/page) to fewer coarse-grained locks (table), which reduces concurrency.
+
+**Transaction ID (TID) Locking:** Optimized locking approach where only the transaction ID lock is maintained, avoiding individual row and page locks.
+
+**Accelerated Database Recovery (ADR):** Required prerequisite for optimized locking; provides fast recovery and enables transaction-level locking.
+
+**Lock Memory:** Memory consumed by the lock manager; each lock requires memory, limiting scalability for large updates.
+
+**Redo Overhead:** Work required on secondary replicas (Availability Groups, log shipping) to replay transaction log; reduced with optimized locking since only TID locks are logged.
+
+## Benefits of Optimized Locking
+
+✅ **Eliminates Lock Escalation** - No more table locks from large updates  
+✅ **Improved Concurrency** - Multiple large updates can run simultaneously  
+✅ **Reduced Lock Memory** - Dramatically less memory consumed by locks  
+✅ **Better Secondary Replica Performance** - Less redo work on AG secondaries  
+✅ **Higher Throughput** - More queries can execute concurrently  
+✅ **Fewer Blocking Issues** - Applications experience less contention  
+
+## Use Cases
+
+**Batch Processing:**
+- Large ETL operations
+- Bulk data updates
+- Nightly maintenance jobs
+- Data warehouse loads
+
+**High-Concurrency Applications:**
+- SaaS applications with many concurrent users
+- E-commerce platforms
+- Financial systems
+- Multi-tenant applications
+
+**Availability Groups:**
+- Reduce redo latency on secondary replicas
+- Improve secondary replica read performance
+- Better replica synchronization
+
+**Large Tables:**
+- Updates affecting thousands/millions of rows
+- Maintenance operations on large tables
+- Index rebuilds and maintenance
+
+## Performance Considerations
+
+**When Optimized Locking Helps Most:**
+- Large batch updates (thousands+ rows)
+- High concurrency workloads
+- Availability Group environments
+- Lock escalation issues in current workload
+
+**Requirements:**
+- Accelerated Database Recovery must be enabled
+- Database compatibility level 160 (SQL Server 2025)
+- Works best with READ COMMITTED isolation level
+
+**Limitations:**
+- Still in preview - test thoroughly before production use
+- Some specific scenarios may not benefit
+- Monitor performance after enabling
+
+## Monitoring Optimized Locking
+
+**Check if Enabled:**
+```sql
+SELECT name, is_optimized_locking_on
+FROM sys.databases
+WHERE name = 'AdventureWorks';
+```
+
+**Monitor Lock Behavior:**
+```sql
+SELECT 
+    request_session_id,
+    resource_type,
+    resource_description,
+    request_mode,
+    request_status
+FROM sys.dm_tran_locks
+WHERE resource_database_id = DB_ID('AdventureWorks');
+```
+
+**Extended Events:**
+Monitor lock escalation events to confirm they're eliminated:
+```sql
+CREATE EVENT SESSION [TrackLockEscalation] ON SERVER
+ADD EVENT sqlserver.lock_escalation
+ADD TARGET package0.event_file(SET filename=N'LockEscalation.xel')
+WITH (MAX_MEMORY=4096 KB);
+GO
+ALTER EVENT SESSION [TrackLockEscalation] ON SERVER STATE = START;
+```
+
+## Best Practices
+
+1. **Test Thoroughly** - Validate in non-production first
+2. **Enable ADR First** - Required prerequisite
+3. **Monitor Performance** - Compare before/after metrics
+4. **Check Secondary Replicas** - Verify redo improvements in AG scenarios
+5. **Update Statistics** - Ensure query plans are optimal
+6. **Document Changes** - Track when/why optimized locking was enabled
+7. **Start with Test Workloads** - Enable for specific databases initially
+
+## Troubleshooting
+
+**Optimized Locking Not Working:**
+- Verify ADR is enabled: `SELECT is_accelerated_database_recovery_on FROM sys.databases`
+- Check database compatibility level: Must be 160+
+- Confirm feature is enabled: `SELECT is_optimized_locking_on FROM sys.databases`
+- Restart connections after enabling
+
+**Performance Not Improved:**
+- May not benefit small updates (< 1000 rows)
+- Check if lock escalation was actually a problem
+- Review query plans for other issues
+- Monitor wait stats for actual bottlenecks
+
+**Unexpected Behavior:**
+- Review isolation level settings
+- Check for application-level locking hints
+- Verify ADR is functioning correctly
+- Check SQL Server error logs for messages
+
+## Comparison: Before and After
+
+| Aspect | Traditional Locking | Optimized Locking |
+|--------|-------------------|-------------------|
+| **Lock Count** | Thousands of locks | Minimal locks |
+| **Lock Memory** | High (MBs) | Low (KBs) |
+| **Lock Escalation** | Occurs frequently | Eliminated |
+| **Concurrency** | Blocked by escalation | High concurrency |
+| **Redo Overhead** | All locks logged | Only TID logged |
+| **Blocking** | Common with large updates | Rare |
+
+## Next Steps
+
+- Enable optimized locking in test environments
+- Measure performance improvements
+- Test with your workload patterns
+- Roll out to production gradually
+- Monitor and document benefits
+- Consider enabling for all databases with concurrency issues
+- Combine with other SQL Server 2025 features for maximum performance

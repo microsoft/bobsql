@@ -8,7 +8,7 @@ This demo demonstrates how to use SQL Server 2025's vector search capabilities w
 - **AdventureWorks Database** - [Download AdventureWorksLT2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorksLT2022.bak)
 - **Ollama** - [Download and install Ollama](https://ollama.ai)
 - **Embedding Model** - Pull the embedding model: `ollama pull mxbai-embed-large`
-- **SQL Server Management Studio (SSMS)** or **Azure Data Studio**
+- **SQL Server Management Studio (SSMS)**
 
 ## Ollama Setup
 

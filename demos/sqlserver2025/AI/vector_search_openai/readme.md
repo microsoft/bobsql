@@ -9,7 +9,7 @@ This demo demonstrates how to use SQL Server 2025's vector search capabilities w
 - **OpenAI-Compatible Service** - Either:
   - OpenAI API account with API key
   - Local service running OpenAI-compatible API (e.g., Ollama with OpenAI compatibility)
-- **SQL Server Management Studio (SSMS)** or **Azure Data Studio**
+- **SQL Server Management Studio (SSMS)**
 
 ## OpenAI API Setup
 
