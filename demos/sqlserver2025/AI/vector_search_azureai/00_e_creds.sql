@@ -5,12 +5,12 @@ BEGIN
     CREATE MASTER KEY ENCRYPTION BY PASSWORD = N'$StrongPassw0rd';
 END;
 GO
-IF EXISTS(SELECT * FROM sys.[database_scoped_credentials] WHERE NAME = 'https://productsopenai.openai.azure.com')
+IF EXISTS(SELECT * FROM sys.[database_scoped_credentials] WHERE NAME = '<azure ai URL>')
 BEGIN
-	DROP DATABASE SCOPED CREDENTIAL [https://productsopenai.openai.azure.com]
+	DROP DATABASE SCOPED CREDENTIAL [<azure ai URL>]
 END
-CREATE DATABASE SCOPED CREDENTIAL [https://productsopenai.openai.azure.com]
-WITH IDENTITY = 'HTTPEndpointHeaders', SECRET = '{"api-key": "G0kOcAVo0E0p1aRjcjAdbGpOv71wkxwaWYXmFWF2d9ESRwHpOYOAJQQJ99BIACYeBjFXJ3w3AAABACOGrjwu"}';
+CREATE DATABASE SCOPED CREDENTIAL [<azure ai URL>]
+WITH IDENTITY = 'HTTPEndpointHeaders', SECRET = '{"api-key": "<api_key>"}';
 GO
 
 

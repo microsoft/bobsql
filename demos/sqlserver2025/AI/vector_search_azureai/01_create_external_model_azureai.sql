@@ -8,11 +8,11 @@ GO
 -- Create the EXTERNAL MODEL
 CREATE EXTERNAL MODEL MyAzureOpenAIModel
 WITH ( 
-      LOCATION = 'https://productsopenai.openai.azure.com/openai/deployments/text-embedding-3-large/embeddings?api-version=2023-05-15',
+      LOCATION = '<azure AI model endpoint>',
       API_FORMAT = 'Azure OpenAI',
       MODEL_TYPE = EMBEDDINGS,
       MODEL = 'text-embedding-3-large',
-      CREDENTIAL = [https://productsopenai.openai.azure.com],
+      CREDENTIAL = [<azure ai URL>],
       PARAMETERS = '{ "sql_rest_options": { "retry_count": 10 } }'
       );
 GO
