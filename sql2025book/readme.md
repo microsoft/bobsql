@@ -34,10 +34,10 @@ You can also see the story of SQL Server 2025 from the Microsoft Ignite session 
 
 6. On page 26 I mentioned SQL Server 2025 editions which I could not give details out when I turned in the manuscript as the book was available before GA. The changes to our editions are one of the "hero" stories of the release. These changes include:
 
-1. SQL Server Express gets a bump up for max database size to 50GB.
-1. SQL Server Standard Edition increases cores to 32 and memory to 256GB. In addition, resource governor is now available in Standard Edition.
+    - SQL Server Express gets a bump up for max database size to 50GB.
+    - SQL Server Standard Edition increases cores to 32 and memory to 256GB. In addition, resource governor is now available in Standard Edition.
 
-Read all the details at https://aka.ms/sqlserver2025editions.
+    Read all the details at https://aka.ms/sqlserver2025editions.
 
 ### Chapter 3
 
