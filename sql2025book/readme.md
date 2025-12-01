@@ -45,15 +45,19 @@ You can also see the story of SQL Server 2025 from the Microsoft Ignite session 
 
 ### Chapter 4
 
-1. On page 74 I mention the new vector data type. By GA we also introduced a new half-precision floating point option for a vector data type. This allows you to go past the existing 1998 dimension limit. Read more at https://learn.microsoft.com/sql/t-sql/data-types/vector-data-type-half-precision-float. 
+1. On page 74 I mention the new vector data type. By GA we also introduced a new half-precision floating point option for a vector data type. This allows you to go past the existing 1998 dimension limit. Read more at https://learn.microsoft.com/sql/t-sql/data-types/vector-data-type-half-precision-float.
 
-2.  On page 89 I have a complete end-to-end example for using vector searching. I have updated examples you can also use at https://aka.ms/sqlserver2025demos under the AI folder. This includes complete examples with all API_TYPE formats.
+2. On page 81 the book talks about normalized vectors. My colleague Davide Mauri correctly pointed out that the cosine distance alogrithm works great with vectors that are not normalized or normalized. The dot and euclidean distance options work best if vectors are normalized.
+
+3. On page 89 I have a complete end-to-end example for using vector searching. I have updated examples you can also use at https://aka.ms/sqlserver2025demos under the AI folder. This includes complete examples with all API_TYPE formats.
 
 ### Chapter 5
 
 1. On page 112 I have an example using the new JSON index. I found on machines with more processors the example without the JSON index was just as fast as the index. This is because that plan uses DOP. I have an updated example you can see at https://aka.ms/sqlserver2025demos under the json folder.
 
 2. On page 126 I have an example using the new REGEXP_LIKE function. I found out while testing this with SSMS 22 and GitHub Copilot, that my expressions were not totally complete. You can see an updated example at https://aka.ms/sqlserver2025demos under the regex folder.
+
+3. On page 149 I introduce the system procedure sp_invoke_external_rest_endpoint. My colleague Davide Mauri gave me the history behind the "long name". He said "The name started from the fact that in order to run something "outside" the engine the stored procedure sp_execute_external_script was already existing. So, to invoke a service outside SQL engine, something using "call" or "invoke" should have been appropriate. We couldn't use the word "execute" with a service since you don't really execute any code directly, so we went with "invoke". The root was established to be "sp_invoke_external_<something>" What to use instead of "something"? The procedure really allows to call any HTTP endpoint, so originally with thought to call it sp_invoke_external_http_service but it was too broad. We didn't (nor we couldn't) allow to send and return binary data, as we needed to avoid any possible security implications, and so we limited the payload to JSON (in the very first version). JSON is the most common way to send and receive REST data, so we decided to go with "rest" in the name. Then, instead of "service" we decide to move to  use "endpoint" to be more generic, and to imply that you can use it to get data from everything - even a file - as long as it is compliant with REST standard. so, the final name, in line with the existing convention and correctly indicating the purpose of the procedure was set to be sp_invoke_external_rest_endpoint which i probably one of the longest and most difficult name to pronounce ever created."
 
 3. On page 156 I have an example using sp_invoke_external_endpoint to show how to take results of a vector searching and generate interesting results with a local AI chat completion model. I have a new alternate example you can see at https://aka.ms/sqlserver2025demos under the REST folder.
 
