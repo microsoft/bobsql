@@ -5,7 +5,7 @@ This demo demonstrates how to use SQL Server 2025's vector search capabilities w
 ## Prerequisites
 
 - **SQL Server 2025 Developer Edition** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
-- **AdventureWorks Database** - [Download AdventureWorksLT2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorksLT2022.bak)
+- **AdventureWorks Database** - [Download AdventureWorks2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak)
 - **Azure OpenAI Service** - You'll need an Azure subscription with Azure OpenAI access and a deployed embedding model
 - **SQL Server Management Studio (SSMS)**
 

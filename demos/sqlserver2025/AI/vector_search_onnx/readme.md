@@ -5,7 +5,7 @@ This demo demonstrates how to use SQL Server 2025's vector search capabilities w
 ## Prerequisites
 
 - **SQL Server 2025 Developer Edition** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
-- **AdventureWorks Database** - [Download AdventureWorksLT2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorksLT2022.bak)
+- **AdventureWorks Database** - [Download AdventureWorks2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak)
 - **ONNX Runtime** - [Download ONNX Runtime](https://github.com/microsoft/onnxruntime/releases)
 - **ONNX Embedding Model** - Download an ONNX-format embedding model (e.g., all-MiniLM-L6-v2)
 - **SQL Server Management Studio (SSMS)**
