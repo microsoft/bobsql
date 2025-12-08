@@ -8,7 +8,7 @@ GO
 -- Create the EXTERNAL MODEL
 CREATE EXTERNAL MODEL MyOpenAIModel
 WITH ( 
-      LOCATION = 'https://localhost/v1/embeddings',
+      LOCATION = 'https://localhost/v1/embeddings', -- This is the syntax to use the OpenAI API compatible endpoint for Ollama.
       API_FORMAT = 'OpenAI',
       MODEL_TYPE = EMBEDDINGS,
       MODEL = 'embeddinggemma',

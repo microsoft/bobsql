@@ -7,8 +7,32 @@ This demo demonstrates how to use SQL Server 2025's vector search capabilities w
 - **SQL Server 2025 Developer Edition** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
 - **AdventureWorks Database** - [Download AdventureWorks2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak))
 - **Ollama** - [Download and install Ollama](https://ollama.ai)
+- **Proxy** - Because Ollama does not support HTTPS, you will need a proxy server like Caddy or Nginx to serve HTTPS locally.
 - **Embedding Model** - Pull the embedding model: `ollama pull mxbai-embed-large`
 - **SQL Server Management Studio (SSMS)**
+
+## Proxy Setup
+
+You can use whatever proxy software you would like to support HTTPS and redirect to Ollama's HTTP endpoint. I've been successful with caddy, https://caddyserver.com. Use this website to download caddy for your OS of choice.
+
+I've included in these examples a caddyfile that will work with the default Ollama configuration. You can use it to serve https://localhost and redirect to http://localhost:11434.
+
+Place this caddyfile in the same directory as caddy.exe and run caddy from that directory with a command like:
+
+```caddy run```
+
+When you run caddy, it will not return. Let the command window stay open. You can close it with Ctrl+C if you need to stop the proxy server.
+
+To use caddy with SQL Server, you need certificates to be installed on Windows that are provided by caddy so any program like SQL Server can trust the certificate to use HTTPS. Caddy will install these certificates for you when you run caddy for the first time
+
+You will neeed to perform the following steps to install the certificate:
+
+1. Locate the caddy’s certificate from %APPDATA%\Caddy\pki\authorities\local\root.crt
+2. Run certlm.msc
+    •	Navigate to Trusted Root Certification Authorities → Certificates
+    •	Right-click → All Tasks → Import
+    •	Select root.crt and complete the wizard
+3. Restart the SQL Server service to ensure it picks up the updated trust store.
 
 ## Ollama Setup
 
@@ -94,12 +118,6 @@ Before proceeding, ensure Ollama is running and accessible:
 -- Create the external model
 -- Run: 01_create_external_model.sql
 ```
-
-**IMPORTANT:** Edit this script if needed to match your Ollama configuration:
-- Default `LOCATION` is `https://localhost/api/embed` (Ollama's embed endpoint)
-- If Ollama runs on a different port, update the URL (e.g., `http://localhost:11434/api/embed`)
-- The `MODEL` should match your pulled model: `mxbai-embed-large`
-- No credentials needed for local Ollama
 
 This creates an external model reference that SQL Server will use to generate embeddings locally.
 

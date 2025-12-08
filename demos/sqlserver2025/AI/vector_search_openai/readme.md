@@ -1,22 +1,51 @@
 # Vector Search with OpenAI-Compatible APIs
 
-This demo demonstrates how to use SQL Server 2025's vector search capabilities with OpenAI-compatible API endpoints for semantic product search on the AdventureWorks database.
+This demo demonstrates how to use SQL Server 2025's vector search capabilities with OpenAI-compatible API endpoints for semantic product search on the AdventureWorks database. The popular local hosting service Ollama now supports OpenAI-compatible API endpoints, making it easier to integrate with SQL Server 2025 for semantic search capabilities.
 
 ## Prerequisites
 
 - **SQL Server 2025 Developer Edition** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
 - **AdventureWorks Database** - [Download AdventureWorks2022.bak](https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak)
-- **OpenAI-Compatible Service** - Either:
-  - OpenAI API account with API key
-  - Local service running OpenAI-compatible API (e.g., Ollama with OpenAI compatibility)
+- **Ollama** - [Download and install Ollama](https://ollama.ai)
+- **Proxy** - Because Ollama does not support HTTPS, you will need a proxy server like Caddy or Nginx to serve HTTPS locally.
+- **Embedding Model** - Pull the embedding model: `ollama pull embeddinggemma`. Note this is a different model from the one used with the Ollama API_TYPE to show a different emnbedding model example.
 - **SQL Server Management Studio (SSMS)**
 
-## OpenAI API Setup
+## Proxy Setup
 
-You'll need an OpenAI-compatible endpoint that supports embeddings. This could be:
-- **OpenAI API:** Requires an API key from OpenAI
-- **Local OpenAI-Compatible Service:** Such as Ollama running with OpenAI compatibility mode
-- **Other Compatible Services:** Any service implementing the OpenAI embeddings API format
+You can use whatever proxy software you would like to support HTTPS and redirect to Ollama's HTTP endpoint. I've been successful with caddy, https://caddyserver.com. Use this website to download caddy for your OS of choice.
+
+I've included in these examples a caddyfile that will work with the default Ollama configuration. You can use it to serve https://localhost and redirect to http://localhost:11434.
+
+Place this caddyfile in the same directory as caddy.exe and run caddy from that directory with a command like:
+
+```caddy run```
+
+When you run caddy, it will not return. Let the command window stay open. You can close it with Ctrl+C if you need to stop the proxy server.
+
+To use caddy with SQL Server, you need certificates to be installed on Windows that are provided by caddy so any program like SQL Server can trust the certificate to use HTTPS. Caddy will install these certificates for you when you run caddy for the first time
+
+You will neeed to perform the following steps to install the certificate:
+
+1. Locate the caddy’s certificate from %APPDATA%\Caddy\pki\authorities\local\root.crt
+2. Run certlm.msc
+    •	Navigate to Trusted Root Certification Authorities → Certificates
+    •	Right-click → All Tasks → Import
+    •	Select root.crt and complete the wizard
+3. Restart the SQL Server service to ensure it picks up the updated trust store.
+
+## Ollama Setup
+
+1. Install Ollama from https://ollama.ai
+2. Pull the embedding model:
+   ```bash
+   ollama pull embeddinggemma
+   ```
+3. Verify Ollama is running (default: http://localhost:11434)
+4. Test the model:
+   ```bash
+   ollama run embeddinggemm
+   ```
 
 ## Files
 
@@ -83,20 +112,6 @@ Demonstrates traditional keyword and full-text search for comparison purposes.
 -- Create the external model
 -- Run: 02_create_external_model_openai.sql
 ```
-
-**IMPORTANT:** Before running, edit this script to configure your OpenAI-compatible endpoint:
-- Update the `LOCATION` with your API endpoint URL
-  - For OpenAI: `https://api.openai.com/v1/embeddings`
-  - For local Ollama with OpenAI compatibility: `https://localhost:11434/v1/embeddings`
-  - For other services: Your service's embeddings endpoint
-- Update the `MODEL` parameter with your model name (e.g., `text-embedding-3-small`)
-- If using OpenAI or a service requiring authentication, add credentials:
-  ```sql
-  CREATE DATABASE SCOPED CREDENTIAL [your-endpoint]
-  WITH IDENTITY = 'HTTPEndpointHeaders', 
-  SECRET = '{"Authorization": "Bearer YOUR_API_KEY"}';
-  ```
-
 This creates an external model reference for generating embeddings.
 
 ### Step 7: Generate and Store Embeddings
