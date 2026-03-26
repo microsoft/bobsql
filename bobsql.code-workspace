@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"dataworkspace.excludedProjects": [
+			"demos/devops_sqlcontainers/databaseprojects/bwsql/bwsql.sqlproj",
+			"demos/devops_sqlcontainers/githubactions/bwdb.sqlproj"
+		]
+	}
+}
