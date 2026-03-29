@@ -58,7 +58,7 @@ BEGIN
   DECLARE @evidence NVARCHAR(MAX) =
   (
     SELECT STRING_AGG(
-             CONCAT('• [', ISNULL(DocType,'?'), '] ', Title, ': ', LEFT(ChunkText, 1000)),
+             CONCAT('ï¿½ [', ISNULL(DocType,'?'), '] ', Title, ': ', LEFT(ChunkText, 1000)),
              CHAR(10)
            ) WITHIN GROUP (ORDER BY Score)
     FROM #rag_topk
@@ -227,4 +227,196 @@ SELECT JSON_VALUE(@raw, '$.response.status.http.code') AS HttpCode,
 
 -- Verify ledger append
 SELECT * FROM care.CarePlanLedger;
+GO
+
+CREATE OR ALTER PROCEDURE care.usp_ai_agent_care_plan_hybrid
+  @prompt         NVARCHAR(MAX),
+  @patient_json   JSON,
+  @patient_id     NVARCHAR(64),
+  @topk           INT = 5,
+  @raw_response   JSON OUTPUT,
+  @careplan_json  JSON OUTPUT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  IF @patient_json IS NULL
+      SET @patient_json = TRY_CAST(N'{}' AS JSON);
+
+  IF OBJECT_ID('tempdb..#search_out') IS NOT NULL DROP TABLE #search_out;
+  CREATE TABLE #search_out
+  (
+    Title     NVARCHAR(400),
+    DocType   NVARCHAR(50),
+    ChunkText NVARCHAR(MAX),
+    distance  FLOAT
+  );
+
+  INSERT INTO #search_out (Title, DocType, ChunkText, distance)
+  EXEC content.SearchChunksByPrompt_Vector
+       @Prompt = @prompt,
+       @TopK   = @topk;
+
+  IF OBJECT_ID('tempdb..#rag_topk') IS NOT NULL DROP TABLE #rag_topk;
+  CREATE TABLE #rag_topk
+  (
+    Title     NVARCHAR(400),
+    DocType   NVARCHAR(50),
+    ChunkText NVARCHAR(MAX),
+    Score     FLOAT
+  );
+
+  INSERT INTO #rag_topk (Title, DocType, ChunkText, Score)
+  SELECT TOP (@topk)
+         Title, DocType, ChunkText, distance
+  FROM #search_out
+  ORDER BY distance ASC;
+
+  DECLARE @patient_json_text NVARCHAR(MAX) =
+    CONVERT(NVARCHAR(MAX), JSON_QUERY(@patient_json, '$'));
+
+  DECLARE @evidence NVARCHAR(MAX) =
+  (
+    SELECT STRING_AGG(
+             CONCAT('- [', ISNULL(DocType,'?'), '] ', Title, ': ', LEFT(ChunkText, 1000)),
+             CHAR(10)
+           ) WITHIN GROUP (ORDER BY Score)
+    FROM #rag_topk
+  );
+
+  DECLARE @system_prompt NVARCHAR(MAX) =
+N'You are a clinical assistant drafting a provisional outpatient care plan for clinician review.
+Use only the provided patient context and evidence; do not invent facts. If uncertain, state assumptions.
+Adjust recommendations for age, weight (weight-based dosing), vitals, allergies, comorbidities, renal/hepatic function, and pregnancy if provided.
+Return STRICT JSON that matches the schema exactly, with no markdown fences and no extra prose. This is not medical advice.';
+
+  DECLARE @user_prompt NVARCHAR(MAX) =
+    CONCAT(
+      N'Patient input (free text):', CHAR(10), ISNULL(@prompt, N''), CHAR(10), CHAR(10),
+      N'Patient context (JSON):',    CHAR(10), ISNULL(@patient_json_text, N'{}'), CHAR(10), CHAR(10),
+      N'Evidence (top K chunks):',   CHAR(10), ISNULL(@evidence, N'[no evidence]'), CHAR(10), CHAR(10),
+      N'Task:', CHAR(10),
+      N'Draft a provisional care plan using this JSON schema (return ONLY JSON):', CHAR(10),
+      N'{',
+      N'  "care_plan": {',
+      N'    "assessment": [ {"problem": "string", "supporting_evidence": ["string"] } ],',
+      N'    "immediate_actions": ["string"],',
+      N'    "diagnostics": ["string"],',
+      N'    "medications": [ {"name":"string","dose":"string","route":"string","frequency":"string","notes":"string"} ],',
+      N'    "nonpharmacologic": ["string"],',
+      N'    "monitoring": ["string"],',
+      N'    "patient_education": ["string"],',
+      N'    "follow_up": {"timeline":"string","criteria_to_escalate":["string"]},',
+      N'    "references": ["string"]',
+      N'  }',
+      N'}'
+    );
+
+  DECLARE @PROMPT_MODEL NVARCHAR(200) = N'Phi-4-generic-cpu';
+  DECLARE @payload NVARCHAR(MAX) =
+    JSON_OBJECT(
+      'model':    @PROMPT_MODEL,
+      'messages': JSON_ARRAY(
+                    JSON_OBJECT('role':'system','content':@system_prompt),
+                    JSON_OBJECT('role':'user',  'content':@user_prompt)
+                  ),
+      'max_tokens': 1200,
+      'stream':   CAST(0 AS bit)
+    );
+
+  DECLARE @headers NVARCHAR(MAX) = N'{"Content-Type":"application/json","Accept":"application/json"}';
+  DECLARE @FOUNDRY_CHAT_URL NVARCHAR(4000) = N'https://localhost/v1/chat/completions';
+  DECLARE @timeout_seconds INT = 300;
+  DECLARE @resp NVARCHAR(MAX);
+  DECLARE @rc INT;
+
+  EXEC @rc = sys.sp_invoke_external_rest_endpoint
+      @url      = @FOUNDRY_CHAT_URL,
+      @method   = 'POST',
+      @headers  = @headers,
+      @payload  = @payload,
+      @timeout  = @timeout_seconds,
+      @response = @resp OUTPUT;
+
+  SET @raw_response = TRY_CAST(@resp AS JSON);
+
+  DECLARE @http_code INT =
+    TRY_CONVERT(INT, JSON_VALUE(@raw_response, '$.response.status.http.code'));
+
+  DECLARE @body_text NVARCHAR(MAX) =
+    CONVERT(NVARCHAR(MAX), JSON_QUERY(@raw_response, '$.result'));
+
+  DECLARE @assistant_txt NVARCHAR(MAX);
+
+  SELECT @assistant_txt = content
+  FROM OPENJSON(@body_text)
+  WITH (content NVARCHAR(MAX) '$.choices[0].message.content');
+
+  IF @assistant_txt LIKE '%```%'
+  BEGIN
+    SET @assistant_txt = REPLACE(@assistant_txt, '```json', '');
+    SET @assistant_txt = REPLACE(@assistant_txt, '```', '');
+  END
+
+  SET @careplan_json = TRY_CAST(JSON_QUERY(@assistant_txt, '$.care_plan') AS JSON);
+
+  DECLARE @evidence_json_text NVARCHAR(MAX) =
+  (
+    SELECT
+      Title,
+      DocType,
+      Score,
+      ChunkPreview = LEFT(ChunkText, 400)
+    FROM #rag_topk
+    ORDER BY Score
+    FOR JSON PATH
+  );
+
+  INSERT INTO care.CarePlanLedger
+  (
+    PatientId,
+    Prompt,
+    PatientJson,
+    PlanJson,
+    EvidenceJson,
+    Model,
+    OllamaUrl,
+    HttpStatus,
+    RawResponse
+  )
+  SELECT
+    @patient_id,
+    @prompt,
+    CONVERT(NVARCHAR(MAX), JSON_QUERY(@patient_json, '$')),
+    CONVERT(NVARCHAR(MAX), JSON_QUERY(@careplan_json, '$')),
+    @evidence_json_text,
+    N'mxbai-embed-large + ' + @PROMPT_MODEL,
+    @FOUNDRY_CHAT_URL,
+    @http_code,
+    @resp;
+END
+GO
+
+DECLARE @raw_hybrid JSON, @plan_hybrid JSON;
+DECLARE @patient_hybrid NVARCHAR(MAX) = N'{
+  "age": 60,
+  "sex": "M",
+  "weight_kg": 97,
+  "vitals": { "bp": "186/112", "hr": 102, "rr": 20, "spo2": "95% RA", "temp_c": 37.0 },
+  "allergies": ["penicillin"],
+  "comorbidities": ["hypertension", "migraine with aura"],
+  "medications": ["HCTZ 12.5 mg qd"]
+}';
+
+EXEC care.usp_ai_agent_care_plan_hybrid
+     @prompt        = N'Bad migraine, blurry vision',
+     @patient_json  = @patient_hybrid,
+     @patient_id    = N'PT-000182',
+     @topk          = 5,
+     @raw_response  = @raw_hybrid OUTPUT,
+     @careplan_json = @plan_hybrid OUTPUT;
+
+SELECT JSON_VALUE(@raw_hybrid, '$.response.status.http.code') AS HttpCode,
+       @raw_hybrid AS raw,
+       @plan_hybrid AS CarePlanJson;
 GO

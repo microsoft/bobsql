@@ -2,18 +2,26 @@
 
 This demo demonstrates a complete healthcare RAG (Retrieval Augmented Generation) solution using SQL Server 2025's REST API capabilities combined with vector search and AI embeddings.
 
+It now supports two care-plan generation paths:
+
+- `care.usp_ai_agent_care_plan` keeps both embeddings and prompt completion on the Ollama path.
+- `care.usp_ai_agent_care_plan_hybrid` keeps Ollama for embeddings/vector search and uses Foundry Local Phi-4 for the final care-plan completion step.
+
 ## Prerequisites
 
 - **SQL Server 2025 Developer Edition** - [Download here](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
 - **SQL Server Management Studio (SSMS)**
 - **Ollama** - [Download and install Ollama](https://ollama.ai) with `mxbai-embed-large` model
 - Run: `ollama pull mxbai-embed-large`
+- **Foundry Local** - Optional for the hybrid care-plan procedure
+- Load Phi-4 and expose the OpenAI-compatible endpoint at `https://localhost/v1/chat/completions`
 
 ## Overview
 
 This demo showcases a complete healthcare application scenario where SQL Server 2025 integrates with external AI services via REST APIs to provide intelligent patient care recommendations. The solution combines:
 
 - REST API integration with Ollama for embeddings
+- Optional Foundry Local prompt completion for the hybrid care-plan flow
 - Vector search for semantic similarity
 - Healthcare knowledge base with patient data
 - RAG pattern for care plan generation
@@ -30,7 +38,7 @@ This demo showcases a complete healthcare application scenario where SQL Server 
 | `05_create_vector_index.sql` | Creates DiskANN vector index for fast search |
 | `06_create_proc_for_vector_search.sql` | Creates stored procedure for semantic search |
 | `07_example_vector_search.sql` | Demonstrates vector search queries |
-| `08_care_plan_prompt.sql` | Generates personalized care plan prompts |
+| `08_care_plan_prompt.sql` | Creates both the Ollama-only and hybrid care-plan stored procedures |
 
 ## Architecture
 
@@ -46,6 +54,8 @@ Patient Data (PHI - Separate Schema)
 RAG: Retrieve Relevant Knowledge + Patient Context
     ↓
 Generate Personalized Care Plan Prompts
+    ↓
+Either Ollama chat or Foundry Local Phi-4 completion
 ```
 
 ## Step-by-Step Instructions
@@ -82,6 +92,10 @@ This comprehensive script creates:
 - Creates external model pointing to local Ollama instance
 - Configures `mxbai-embed-large` embedding model
 - Enables vector search features
+
+**Vector Index Setup Note:**
+- `05_create_vector_index.sql` requires `SET QUOTED_IDENTIFIER ON`
+- The checked-in script now includes that setting so the DiskANN index can be created successfully
 
 **Key Design:** Separates PHI (patient schema) from non-PHI (content schema) for security and compliance.
 
@@ -145,12 +159,23 @@ Demonstrates semantic search queries:
 -- Run: 08_care_plan_prompt.sql
 ```
 
-The final demonstration shows the complete RAG pattern:
+The final demonstration now creates two procedures:
+
+- `care.usp_ai_agent_care_plan`: Ollama embeddings + Ollama chat completion
+- `care.usp_ai_agent_care_plan_hybrid`: Ollama embeddings + Foundry Local Phi-4 chat completion
+
+The shared RAG pattern is:
 
 1. **Retrieve Patient Context** - Get patient conditions, medications, observations
 2. **Semantic Search** - Find relevant knowledge base content
 3. **Generate Prompt** - Combine patient data + relevant knowledge
-4. **Output** - Structured prompt ready for LLM to generate care plan
+4. **Output** - Structured JSON care plan returned by the selected completion model
+
+Hybrid procedure requirements:
+
+- Ollama must be available at `https://localhost/api/embed` for embeddings and vector search
+- Foundry Local must be available at `https://localhost/v1/chat/completions`
+- Phi-4 must be loaded in Foundry Local, for example `Phi-4-generic-cpu`
 
 Example output:
 ```
@@ -228,6 +253,7 @@ Generate appropriate care recommendations.
 **API Integration:**
 - Local Ollama keeps data on-premises
 - No external API calls with patient data
+- Foundry Local can also stay on-premises for the hybrid completion path
 - Consider Azure OpenAI with private endpoints for production
 
 ## Performance Optimization
@@ -257,13 +283,14 @@ Generate appropriate care recommendations.
 ## Production Considerations
 
 1. **Scale Ollama** - Use GPU for faster embedding generation
-2. **Consider Azure OpenAI** - For managed, enterprise-grade AI
-3. **Implement Caching** - Cache embeddings and search results
-4. **Monitor Performance** - Track API latency and search times
-5. **HIPAA Compliance** - Ensure all components meet healthcare requirements
-6. **Backup Strategy** - Regular backups of knowledge base and patient data
-7. **Version Control** - Track changes to clinical guidelines
-8. **Audit Logging** - Log all access to PHI
+2. **Scale Foundry Local** - Use a pinned local port and preload Phi-4 for the hybrid path
+3. **Consider Azure OpenAI** - For managed, enterprise-grade AI
+4. **Implement Caching** - Cache embeddings and search results
+5. **Monitor Performance** - Track API latency and search times
+6. **HIPAA Compliance** - Ensure all components meet healthcare requirements
+7. **Backup Strategy** - Regular backups of knowledge base and patient data
+8. **Version Control** - Track changes to clinical guidelines
+9. **Audit Logging** - Log all access to PHI
 
 ## Next Steps
 

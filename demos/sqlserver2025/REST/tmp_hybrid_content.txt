@@ -1,0 +1,26 @@
+Changed database context to 'zavacliniq'.
+```json
+{
+  "care_plan": {
+    "assessment": [
+      {
+        "problem": "Hypertensive emergency with neurological symptoms",
+        "supporting_evidence": [
+          "Symptom Playbook: Headache with Neurologic Signs: Headache with BP = 180/110 and confusion or visual changes: treat as hypertensive emergency per protocol; initiate IV agent and continuous BP monitoring.",
+          "Symptom Playbook: Head & Neck Pain (Adult Outpatient): Headache + blurry vision: obtain urgent non-contrast head CT."
+        ]
+      }
+    ],
+    "immediate_actions": [
+      "Initiate IV antihypertensive therapy to gradually lower BP",
+      "Arrange urgent non-contrast head CT"
+    ],
+    "diagnostics": [
+      "Non-contrast head CT",
+      "If CT negative but suspicion remains high, proceed to CT angiography of head/neck"
+    ],
+    "medications": [
+      {
+
+
+(1 rows affected)
