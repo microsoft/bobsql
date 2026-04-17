@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Automatic Index Compaction</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.15em;
+    color: #ffffff;
+  }
+  .subtitle {
+    font-size: 1.05rem;
+    color: #8b949e;
+    margin-bottom: 2.2em;
+    font-weight: 400;
+  }
+  .cards {
+    display: flex;
+    gap: 2.2rem;
+    align-items: stretch;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 1.8rem 2.2rem;
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .card.degraded { border-color: #da3633; }
+  .card.recovered { border-color: #3fb950; }
+
+  .card-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    margin-bottom: 0.3em;
+  }
+  .card.baseline .card-label { color: #8b949e; }
+  .card.degraded .card-label { color: #da3633; }
+  .card.recovered .card-label { color: #3fb950; }
+
+  .card-phase {
+    font-size: 0.85rem;
+    color: #6e7681;
+    margin-bottom: 1.6em;
+  }
+
+  /* Page density ring */
+  .ring-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 1.4em;
+  }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg {
+    fill: none;
+    stroke: #21262d;
+    stroke-width: 10;
+  }
+  .ring-fg {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s ease;
+  }
+  .card.baseline .ring-fg { stroke: #58a6ff; }
+  .card.degraded .ring-fg { stroke: #da3633; }
+  .card.recovered .ring-fg { stroke: #3fb950; }
+  .ring-value {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.55rem;
+    font-weight: 700;
+  }
+  .ring-unit {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #8b949e;
+  }
+  .ring-caption {
+    font-size: 0.75rem;
+    color: #6e7681;
+    margin-top: -0.6em;
+    margin-bottom: 1.3em;
+  }
+
+  /* Metric rows */
+  .metrics { width: 100%; }
+  .metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55em 0;
+    border-top: 1px solid #21262d;
+  }
+  .metric:last-child { border-bottom: 1px solid #21262d; }
+  .metric-name {
+    font-size: 0.82rem;
+    color: #8b949e;
+  }
+  .metric-val {
+    font-size: 1rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Delta badges */
+  .delta {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15em 0.5em;
+    border-radius: 6px;
+    margin-left: 0.4em;
+    vertical-align: middle;
+  }
+  .delta.bad {
+    background: rgba(218,54,51,0.15);
+    color: #f85149;
+  }
+  .delta.good {
+    background: rgba(63,185,80,0.15);
+    color: #3fb950;
+  }
+
+  /* Arrow between cards */
+  .arrow {
+    display: flex;
+    align-items: center;
+    font-size: 1.6rem;
+    color: #30363d;
+    margin-top: 2.5rem;
+  }
+
+  /* Bottom tagline */
+  .tagline {
+    margin-top: 2em;
+    font-size: 0.85rem;
+    color: #6e7681;
+  }
+  .tagline strong { color: #3fb950; font-weight: 600; }
+
+  .card-note {
+    font-size: 0.7rem;
+    color: #6e7681;
+    font-style: italic;
+    margin-top: 0.8em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Automatic Index Compaction</h1>
+<p class="subtitle">Azure SQL Hyperscale &mdash; zero-downtime background index optimization</p>
+
+<div class="cards">
+
+  <!-- Baseline -->
+  <div class="card baseline">
+    <div class="card-label">Baseline</div>
+    <div class="card-phase">1M rows &middot; after REBUILD</div>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <circle class="ring-bg" cx="60" cy="60" r="50"/>
+        <circle class="ring-fg" cx="60" cy="60" r="50"
+          stroke-dasharray="314.16"
+          stroke-dashoffset="0.63"/><!-- 99.8% -->
+      </svg>
+      <span class="ring-value">99.8<span class="ring-unit">%</span></span>
+    </div>
+    <div class="ring-caption">page density</div>
+    <div class="metrics">
+      <div class="metric">
+        <span class="metric-name">Pages</span>
+        <span class="metric-val">16,953</span>
+      </div>
+      <div class="metric">
+        <span class="metric-name">Logical Reads</span>
+        <span class="metric-val">17,012</span>
+      </div>
+      <div class="metric">
+        <span class="metric-name">Elapsed</span>
+        <span class="metric-val">463 ms</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">&#x276F;</div>
+
+  <!-- Degraded -->
+  <div class="card degraded">
+    <div class="card-label">Degraded</div>
+    <div class="card-phase">500K rows deleted &middot; pages kept</div>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <circle class="ring-bg" cx="60" cy="60" r="50"/>
+        <circle class="ring-fg" cx="60" cy="60" r="50"
+          stroke-dasharray="314.16"
+          stroke-dashoffset="166.2"/><!-- 47.1% -->
+      </svg>
+      <span class="ring-value">47.1<span class="ring-unit">%</span></span>
+    </div>
+    <div class="ring-caption">page density</div>
+    <div class="metrics">
+      <div class="metric">
+        <span class="metric-name">Pages</span>
+        <span class="metric-val">18,004 <span class="delta bad">+6%</span></span>
+      </div>
+      <div class="metric">
+        <span class="metric-name">Logical Reads</span>
+        <span class="metric-val">18,165 <span class="delta bad">+7%</span></span>
+      </div>
+      <div class="metric">
+        <span class="metric-name">Elapsed</span>
+        <span class="metric-val">550 ms <span class="delta bad">+19%</span></span>
+      </div>
+    </div>
+    <div class="card-note">ADR version pointers caused page splits</div>
+  </div>
+
+  <div class="arrow">&#x276F;</div>
+
+  <!-- Recovered -->
+  <div class="card recovered">
+    <div class="card-label">After AIC</div>
+    <div class="card-phase">500K rows &middot; compacted online</div>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <circle class="ring-bg" cx="60" cy="60" r="50"/>
+        <circle class="ring-fg" cx="60" cy="60" r="50"
+          stroke-dasharray="314.16"
+          stroke-dashoffset="15.71"/><!-- 95.0% -->
+      </svg>
+      <span class="ring-value">95.0<span class="ring-unit">%</span></span>
+    </div>
+    <div class="ring-caption">page density</div>
+    <div class="metrics">
+      <div class="metric">
+        <span class="metric-name">Pages</span>
+        <span class="metric-val">8,909 <span class="delta good">&minus;51%</span></span>
+      </div>
+      <div class="metric">
+        <span class="metric-name">Logical Reads</span>
+        <span class="metric-val">9,070 <span class="delta good">&minus;50%</span></span>
+      </div>
+      <div class="metric">
+        <span class="metric-name">Elapsed</span>
+        <span class="metric-val">316 ms <span class="delta good">&minus;43%</span></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="tagline">No rebuild. No maintenance window. <strong>AIC just handled it.</strong></p>
+
+</body>
+</html>
