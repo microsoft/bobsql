@@ -14,7 +14,15 @@ Shows version chains at the page level using DBCC PAGE, proves cross-database co
 
 ## Dependencies
 
-Start the DBCC PAGE Viewer before demo3a:
+### Python Packages
+
+```
+pip install flask mssql-python
+```
+
+### DBCC PAGE Viewer
+
+Start before demo3a:
 
 ```
 python dbcc_page_viewer.py
