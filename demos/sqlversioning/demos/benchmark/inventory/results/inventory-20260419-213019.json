@@ -1,0 +1,80 @@
+{
+  "benchmark": "inventory",
+  "description": "Reader-writer contention workload — 40 threads (15 writers + 25 readers), 30 seconds, 50K products across 20 categories",
+  "timestamp": "2026-04-19T21:30:19",
+  "server": "localhost",
+  "duration_seconds": 30,
+  "threads": 40,
+  "table_rows": 50000,
+  "categories": 20,
+  "workload_mix": {
+    "writers": { "warehouse_restock": 10, "order_fulfillment": 5 },
+    "readers": { "check_availability": 15, "category_report": 10 }
+  },
+  "configs": [
+    {
+      "name": "Baseline",
+      "database": "inventory_baseline",
+      "total_executions": 48996,
+      "errors": 27,
+      "deadlocks": 27,
+      "avg_latency_ms": 24.88,
+      "runtime_seconds": 31.700,
+      "queries": {
+        "warehouse_restock":  { "executions": 2472,  "threads": 10, "avg_elapsed_ms": 121.727, "avg_cpu_ms": 44.563, "max_elapsed_ms": 5951.005, "avg_logical_reads": 15183.7 },
+        "order_fulfillment":  { "executions": 35573, "threads": 5,  "avg_elapsed_ms": 3.730,   "avg_cpu_ms": 0.158,  "max_elapsed_ms": 3294.890, "avg_logical_reads": 4.2 },
+        "check_availability": { "executions": 10921, "threads": 15, "avg_elapsed_ms": 41.273,  "avg_cpu_ms": 3.695,  "max_elapsed_ms": 5798.096, "avg_logical_reads": 23.9 },
+        "category_report":    { "executions": 30,    "threads": 10, "avg_elapsed_ms": 10514.197, "avg_cpu_ms": 13.033, "max_elapsed_ms": 23259.855, "avg_logical_reads": 450.8 }
+      },
+      "totals": { "total_elapsed_ms": 1199765, "server_elapsed_ms": 1132995, "server_cpu_ms": 156528, "logical_reads": 37956244 }
+    },
+    {
+      "name": "RCSI",
+      "database": "inventory_rcsi",
+      "total_executions": 46614,
+      "errors": 1,
+      "deadlocks": 1,
+      "avg_latency_ms": 25.78,
+      "runtime_seconds": 30.472,
+      "queries": {
+        "warehouse_restock":  { "executions": 506,   "threads": 10, "avg_elapsed_ms": 595.503, "avg_cpu_ms": 65.370, "max_elapsed_ms": 10347.454, "avg_logical_reads": 15184.8 },
+        "order_fulfillment":  { "executions": 3279,  "threads": 5,  "avg_elapsed_ms": 45.529,  "avg_cpu_ms": 0.257,  "max_elapsed_ms": 9915.877,  "avg_logical_reads": 4.1 },
+        "check_availability": { "executions": 37771, "threads": 15, "avg_elapsed_ms": 11.914,  "avg_cpu_ms": 3.231,  "max_elapsed_ms": 685.473,   "avg_logical_reads": 26.9 },
+        "category_report":    { "executions": 5058,  "threads": 10, "avg_elapsed_ms": 59.357,  "avg_cpu_ms": 38.141, "max_elapsed_ms": 200.916,   "avg_logical_reads": 532.5 }
+      },
+      "totals": { "total_elapsed_ms": 1200834, "server_elapsed_ms": 1121119, "server_cpu_ms": 348887, "logical_reads": 11406856 }
+    },
+    {
+      "name": "ADR + RCSI",
+      "database": "inventory_adr_rcsi",
+      "total_executions": 43342,
+      "errors": 1,
+      "deadlocks": 1,
+      "avg_latency_ms": 27.73,
+      "runtime_seconds": 30.435,
+      "queries": {
+        "warehouse_restock":  { "executions": 141,   "threads": 10, "avg_elapsed_ms": 2136.112, "avg_cpu_ms": 84.454, "max_elapsed_ms": 15224.583, "avg_logical_reads": 22734.9 },
+        "order_fulfillment":  { "executions": 788,   "threads": 5,  "avg_elapsed_ms": 186.802,  "avg_cpu_ms": 0.378,  "max_elapsed_ms": 7451.508,  "avg_logical_reads": 9.0 },
+        "check_availability": { "executions": 37936, "threads": 15, "avg_elapsed_ms": 11.861,   "avg_cpu_ms": 3.698,  "max_elapsed_ms": 806.526,   "avg_logical_reads": 46.7 },
+        "category_report":    { "executions": 4477,  "threads": 10, "avg_elapsed_ms": 67.119,   "avg_cpu_ms": 52.178, "max_elapsed_ms": 275.921,   "avg_logical_reads": 1054.0 }
+      },
+      "totals": { "total_elapsed_ms": 1198853, "server_elapsed_ms": 1132698, "server_cpu_ms": 386096, "logical_reads": 9703089 }
+    },
+    {
+      "name": "ADR + RCSI + OL",
+      "database": "inventory_adr_rcsi_ol",
+      "total_executions": 41840,
+      "errors": 0,
+      "deadlocks": 0,
+      "avg_latency_ms": 28.72,
+      "runtime_seconds": 30.477,
+      "queries": {
+        "warehouse_restock":  { "executions": 467,   "threads": 10, "avg_elapsed_ms": 644.376, "avg_cpu_ms": 82.415, "max_elapsed_ms": 4949.457, "avg_logical_reads": 22717.5 },
+        "order_fulfillment":  { "executions": 3568,  "threads": 5,  "avg_elapsed_ms": 42.106,  "avg_cpu_ms": 0.332,  "max_elapsed_ms": 4399.220, "avg_logical_reads": 7.0 },
+        "check_availability": { "executions": 34819, "threads": 15, "avg_elapsed_ms": 12.926,  "avg_cpu_ms": 4.415,  "max_elapsed_ms": 884.810,  "avg_logical_reads": 48.1 },
+        "category_report":    { "executions": 2986,  "threads": 10, "avg_elapsed_ms": 100.611, "avg_cpu_ms": 60.206, "max_elapsed_ms": 688.462,  "avg_logical_reads": 1046.9 }
+      },
+      "totals": { "total_elapsed_ms": 1201648, "server_elapsed_ms": 1121939, "server_cpu_ms": 373162, "logical_reads": 15433917 }
+    }
+  ]
+}

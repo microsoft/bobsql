@@ -1,0 +1,8 @@
+{
+    "duration_seconds": 30,
+    "workloads": [
+        { "file": "workload-warehouse-restock.sql", "threads":  3 },
+        { "file": "workload-order-fulfillment.sql", "threads":  5 },
+        { "file": "workload-check-availability.sql", "threads": 25 }
+    ]
+}

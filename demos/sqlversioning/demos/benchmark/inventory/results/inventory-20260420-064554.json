@@ -1,0 +1,87 @@
+{
+  "benchmark": "inventory",
+  "description": "Reader-writer contention workload — 40 threads (15 writers + 25 readers), 30 seconds, 200K products across 20 categories (~10K per category, exceeds 5K lock escalation threshold)",
+  "timestamp": "2026-04-20T06:45:54",
+  "server": "localhost",
+  "duration_seconds": 30,
+  "threads": 40,
+  "table_rows": 200000,
+  "categories": 20,
+  "rows_per_category": 10000,
+  "workload_mix": {
+    "writers": { "warehouse_restock": 10, "order_fulfillment": 5 },
+    "readers": { "check_availability": 15, "category_report": 10 }
+  },
+  "lock_escalation": {
+    "baseline":       { "attempts": 17408, "successes": 0, "row_locks": 11289598, "row_lock_waits": 446, "row_lock_wait_ms": 144243 },
+    "rcsi":           { "attempts": 1046,  "successes": 0, "row_locks": 1059800,  "row_lock_waits": 29,  "row_lock_wait_ms": 148831 },
+    "adr_rcsi":       { "attempts": 1241,  "successes": 1, "row_locks": 1093014,  "row_lock_waits": 12,  "row_lock_wait_ms": 142784 },
+    "adr_rcsi_ol":    { "attempts": 0,     "successes": 0, "row_locks": 1041184,  "row_lock_waits": 0,   "row_lock_wait_ms": 0 }
+  },
+  "configs": [
+    {
+      "name": "Baseline",
+      "database": "inventory_baseline",
+      "total_executions": 5045,
+      "errors": 10,
+      "deadlocks": 10,
+      "avg_latency_ms": 239.80,
+      "runtime_seconds": 30.594,
+      "queries": {
+        "warehouse_restock":  { "executions": 544,  "threads": 10, "avg_elapsed_ms": 555.753, "avg_cpu_ms": 184.165, "max_elapsed_ms": 5077.818, "avg_logical_reads": 90711.5 },
+        "order_fulfillment":  { "executions": 2982, "threads": 5,  "avg_elapsed_ms": 46.912,  "avg_cpu_ms": 0.252,   "max_elapsed_ms": 4811.932, "avg_logical_reads": 6.6 },
+        "check_availability": { "executions": 1509, "threads": 15, "avg_elapsed_ms": 300.934, "avg_cpu_ms": 11.048,  "max_elapsed_ms": 5064.025, "avg_logical_reads": 79.5 },
+        "category_report":    { "executions": 10,   "threads": 10, "avg_elapsed_ms": 30415.188, "avg_cpu_ms": 34.400, "max_elapsed_ms": 30464.392, "avg_logical_reads": 1818.0 }
+      },
+      "totals": { "total_elapsed_ms": 1200483, "server_elapsed_ms": 1173602, "server_cpu_ms": 117951, "logical_reads": 49504805 }
+    },
+    {
+      "name": "RCSI",
+      "database": "inventory_rcsi",
+      "total_executions": 9901,
+      "errors": 1,
+      "deadlocks": 1,
+      "avg_latency_ms": 121.67,
+      "runtime_seconds": 30.596,
+      "queries": {
+        "warehouse_restock":  { "executions": 33,   "threads": 10, "avg_elapsed_ms": 9159.511, "avg_cpu_ms": 290.606, "max_elapsed_ms": 30109.493, "avg_logical_reads": 90730.4 },
+        "order_fulfillment":  { "executions": 442,  "threads": 5,  "avg_elapsed_ms": 338.879,  "avg_cpu_ms": 0.247,   "max_elapsed_ms": 24813.363, "avg_logical_reads": 6.2 },
+        "check_availability": { "executions": 7906, "threads": 15, "avg_elapsed_ms": 56.983,   "avg_cpu_ms": 16.986,  "max_elapsed_ms": 2908.882,  "avg_logical_reads": 95.9 },
+        "category_report":    { "executions": 1520, "threads": 10, "avg_elapsed_ms": 198.386,  "avg_cpu_ms": 147.759, "max_elapsed_ms": 746.981,   "avg_logical_reads": 2158.1 }
+      },
+      "totals": { "total_elapsed_ms": 1204102, "server_elapsed_ms": 1183277, "server_cpu_ms": 368585, "logical_reads": 7035603 }
+    },
+    {
+      "name": "ADR + RCSI",
+      "database": "inventory_adr_rcsi",
+      "total_executions": 9481,
+      "errors": 1,
+      "deadlocks": 1,
+      "avg_latency_ms": 127.74,
+      "runtime_seconds": 31.744,
+      "queries": {
+        "warehouse_restock":  { "executions": 35,   "threads": 10, "avg_elapsed_ms": 8774.919, "avg_cpu_ms": 382.629, "max_elapsed_ms": 30276.432, "avg_logical_reads": 91461.9 },
+        "order_fulfillment":  { "executions": 775,  "threads": 5,  "avg_elapsed_ms": 190.800,  "avg_cpu_ms": 0.646,   "max_elapsed_ms": 28396.863, "avg_logical_reads": 19.8 },
+        "check_availability": { "executions": 7611, "threads": 15, "avg_elapsed_ms": 59.216,   "avg_cpu_ms": 19.642,  "max_elapsed_ms": 1236.168,  "avg_logical_reads": 160.4 },
+        "category_report":    { "executions": 1060, "threads": 10, "avg_elapsed_ms": 284.562,  "avg_cpu_ms": 135.738, "max_elapsed_ms": 3480.397,  "avg_logical_reads": 4172.4 }
+      },
+      "totals": { "total_elapsed_ms": 1207318, "server_elapsed_ms": 1182975, "server_cpu_ms": 307271, "logical_reads": 8860030 }
+    },
+    {
+      "name": "ADR + RCSI + OL",
+      "database": "inventory_adr_rcsi_ol",
+      "total_executions": 10847,
+      "errors": 1,
+      "deadlocks": 1,
+      "avg_latency_ms": 111.36,
+      "runtime_seconds": 31.368,
+      "queries": {
+        "warehouse_restock":  { "executions": 52,   "threads": 10, "avg_elapsed_ms": 5853.173, "avg_cpu_ms": 367.769, "max_elapsed_ms": 25880.649, "avg_logical_reads": 91286.2 },
+        "order_fulfillment":  { "executions": 803,  "threads": 5,  "avg_elapsed_ms": 186.005,  "avg_cpu_ms": 0.737,   "max_elapsed_ms": 21214.361, "avg_logical_reads": 18.5 },
+        "check_availability": { "executions": 8983, "threads": 15, "avg_elapsed_ms": 50.134,   "avg_cpu_ms": 21.806,  "max_elapsed_ms": 2624.076,  "avg_logical_reads": 170.7 },
+        "category_report":    { "executions": 1009, "threads": 10, "avg_elapsed_ms": 298.084,  "avg_cpu_ms": 195.693, "max_elapsed_ms": 1412.151,  "avg_logical_reads": 4120.5 }
+      },
+      "totals": { "total_elapsed_ms": 1204846, "server_elapsed_ms": 1177178, "server_cpu_ms": 413057, "logical_reads": 10452869 }
+    }
+  ]
+}
