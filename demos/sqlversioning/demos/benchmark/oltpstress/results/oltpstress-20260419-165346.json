@@ -1,0 +1,63 @@
+{
+  "benchmark": "oltpstress",
+  "description": "Pure INSERT/UPDATE/DELETE workload — 40 threads (20 point + 10 batch + 10 insert/delete), 30 seconds, 50K rows",
+  "timestamp": "2026-04-19T16:53:46",
+  "server": "localhost",
+  "duration_seconds": 30,
+  "threads": 40,
+  "table_rows": 50000,
+  "configs": [
+    {
+      "name": "Baseline",
+      "database": "stress_baseline",
+      "total_executions": 560764,
+      "avg_latency_ms": 2.14,
+      "runtime_seconds": 30.569,
+      "queries": {
+        "point_updates": { "executions": 388331, "threads": 20, "avg_elapsed_ms": 1.543, "avg_server_elapsed_ms": 0.775, "avg_cpu_ms": 0.172, "avg_logical_reads": 2.0 },
+        "batch_updates": { "executions": 491, "threads": 10, "avg_elapsed_ms": 613.180, "avg_server_elapsed_ms": 609.574, "avg_cpu_ms": 37.452, "avg_logical_reads": 445.4 },
+        "insert_delete": { "executions": 171942, "threads": 10, "avg_elapsed_ms": 1.743, "avg_server_elapsed_ms": 0.201, "avg_cpu_ms": 0.144, "avg_logical_reads": 8.0 }
+      },
+      "totals": { "total_elapsed_ms": 1199984, "server_elapsed_ms": 634789, "server_cpu_ms": 109744, "logical_reads": 2392598 }
+    },
+    {
+      "name": "RCSI",
+      "database": "stress_rcsi",
+      "total_executions": 490652,
+      "avg_latency_ms": 2.45,
+      "runtime_seconds": 30.624,
+      "queries": {
+        "point_updates": { "executions": 329677, "threads": 20, "avg_elapsed_ms": 1.818, "avg_server_elapsed_ms": 1.025, "avg_cpu_ms": 0.189, "avg_logical_reads": 3.1 },
+        "batch_updates": { "executions": 437, "threads": 10, "avg_elapsed_ms": 690.173, "avg_server_elapsed_ms": 685.414, "avg_cpu_ms": 41.430, "avg_logical_reads": 926.8 },
+        "insert_delete": { "executions": 160538, "threads": 10, "avg_elapsed_ms": 1.867, "avg_server_elapsed_ms": 0.242, "avg_cpu_ms": 0.149, "avg_logical_reads": 11.2 }
+      },
+      "totals": { "total_elapsed_ms": 1200813, "server_elapsed_ms": 676318, "server_cpu_ms": 104245, "logical_reads": 3208927 }
+    },
+    {
+      "name": "ADR + RCSI",
+      "database": "stress_adr_rcsi",
+      "total_executions": 443565,
+      "avg_latency_ms": 2.71,
+      "runtime_seconds": 30.837,
+      "queries": {
+        "point_updates": { "executions": 303198, "threads": 20, "avg_elapsed_ms": 1.978, "avg_server_elapsed_ms": 1.198, "avg_cpu_ms": 0.168, "avg_logical_reads": 3.1 },
+        "batch_updates": { "executions": 311, "threads": 10, "avg_elapsed_ms": 974.606, "avg_server_elapsed_ms": 958.325, "avg_cpu_ms": 70.656, "avg_logical_reads": 1390.7 },
+        "insert_delete": { "executions": 140056, "threads": 10, "avg_elapsed_ms": 2.140, "avg_server_elapsed_ms": 0.325, "avg_cpu_ms": 0.171, "avg_logical_reads": 11.2 }
+      },
+      "totals": { "total_elapsed_ms": 1202579, "server_elapsed_ms": 706894, "server_cpu_ms": 96821, "logical_reads": 2922784 }
+    },
+    {
+      "name": "ADR + RCSI + OL",
+      "database": "stress_adr_rcsi_ol",
+      "total_executions": 179927,
+      "avg_latency_ms": 6.67,
+      "runtime_seconds": 30.304,
+      "queries": {
+        "point_updates": { "executions": 81556, "threads": 20, "avg_elapsed_ms": 7.361, "avg_server_elapsed_ms": 6.264, "avg_cpu_ms": 0.206, "avg_logical_reads": 3.4 },
+        "batch_updates": { "executions": 2414, "threads": 10, "avg_elapsed_ms": 124.463, "avg_server_elapsed_ms": 121.836, "avg_cpu_ms": 50.118, "avg_logical_reads": 1192.5 },
+        "insert_delete": { "executions": 95957, "threads": 10, "avg_elapsed_ms": 3.124, "avg_server_elapsed_ms": 0.683, "avg_cpu_ms": 0.164, "avg_logical_reads": 10.2 }
+      },
+      "totals": { "total_elapsed_ms": 1200591, "server_elapsed_ms": 870502, "server_cpu_ms": 153528, "logical_reads": 4128437 }
+    }
+  ]
+}
