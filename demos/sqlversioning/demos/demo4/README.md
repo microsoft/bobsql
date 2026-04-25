@@ -23,7 +23,15 @@ ADR versioning internals: in-row vs off-row version storage, PVS Cleaner deep di
 
 ## Dependencies
 
-Start the ADR DBCC PAGE Viewer before demo4a/4b:
+### Python Packages
+
+```
+pip install flask mssql-python
+```
+
+### ADR DBCC PAGE Viewer
+
+Start before demo4a/4b:
 
 ```
 python dbcc_page_viewer_adr.py
