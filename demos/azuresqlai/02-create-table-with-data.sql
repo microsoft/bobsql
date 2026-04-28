@@ -5,7 +5,9 @@
 -- Inserts 110+ rows to meet the 100-row minimum for vector index creation.
 -- ============================================================================
 
--- Create the knowledge base table with a native vector column
+-- Drop and recreate the table for a clean setup
+DROP TABLE IF EXISTS dbo.azure_sql_knowledge;
+
 CREATE TABLE dbo.azure_sql_knowledge
 (
     id INT IDENTITY(1,1) PRIMARY KEY CLUSTERED,

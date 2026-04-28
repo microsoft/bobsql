@@ -12,6 +12,10 @@ GO
 
 -- Create a DiskANN vector index on the embedding column
 -- This enables approximate nearest neighbor search with high recall and low latency
+-- Drop existing index if present for clean re-runs
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'vec_idx_knowledge_embedding')
+    DROP INDEX vec_idx_knowledge_embedding ON dbo.azure_sql_knowledge;
+
 CREATE VECTOR INDEX vec_idx_knowledge_embedding
     ON dbo.azure_sql_knowledge (embedding)
     WITH (METRIC = 'cosine', TYPE = 'DISKANN');

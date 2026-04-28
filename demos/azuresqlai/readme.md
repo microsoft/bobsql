@@ -16,7 +16,7 @@ This demo shows how to use Azure SQL Database's native AI capabilities including
 
 - **Azure subscription** with permissions to create resources
 - **Azure CLI** (`az`): [Install](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- **PowerShell 7+** with the **SqlServer** module (auto-installed by `run-demo.ps1` if missing)
+- **PowerShell 7+** with the **SqlServer** module (auto-installed by `setup-demo.ps1` if missing)
 - **Azure OpenAI access** enabled on your subscription
 - Logged in to Azure CLI: `az login`
 
@@ -25,8 +25,8 @@ This demo shows how to use Azure SQL Database's native AI capabilities including
 | File | Description |
 |------|-------------|
 | `deploy.ps1` | Deploys all Azure resources (resource group, Azure OpenAI, Azure SQL Database, RBAC) |
-| `run-demo.ps1` | Executes all 7 SQL scripts in order against the database |
-| `test-demo.ps1` | Runs vector search and RAG chat completion test queries |
+| `setup-demo.ps1` | Executes all 7 SQL scripts in order against the database |
+| `run-demo.ps1` | Runs the demo: shows table/index structure, vector search, and RAG chat |
 | `01-setup-external-model.sql` | Creates master key, managed identity credential, and external model |
 | `02-create-table-with-data.sql` | Creates knowledge base table and inserts 110 rows |
 | `03-generate-embeddings.sql` | Generates embeddings for all rows via Azure OpenAI |
@@ -55,18 +55,18 @@ This creates:
 ### Step 2: Run the Demo Scripts
 
 ```powershell
-.\run-demo.ps1
+.\setup-demo.ps1
 ```
 
 Executes all 7 SQL scripts in order using `Invoke-Sqlcmd` with an Azure CLI access token for Entra authentication.
 
-### Step 3: Run Tests
+### Step 3: Run the Demo
 
 ```powershell
-.\test-demo.ps1
+.\run-demo.ps1
 ```
 
-Runs vector search and RAG chat completion queries to verify everything works.
+Shows table structure, vector index details, runs approximate vector search with plan verification, and exercises the RAG chat completion.
 
 ## Using the Stored Procedures
 
@@ -95,8 +95,8 @@ All three PowerShell scripts accept parameters to override default resource name
 
 ```powershell
 .\deploy.ps1 -sqlServerName "my-server" -aoaiName "my-aoai" -location "westus2"
+.\setup-demo.ps1 -sqlServerName "my-server" -sqlDatabaseName "my-db"
 .\run-demo.ps1 -sqlServerName "my-server" -sqlDatabaseName "my-db"
-.\test-demo.ps1 -sqlServerName "my-server" -sqlDatabaseName "my-db"
 ```
 
 The SQL scripts use a `@AoaiName` variable (in script 01) and `@aoai_name` parameter (in script 07's stored procedure) that default to `aoai-sqlai-demo`. Update these if using a different Azure OpenAI resource name.
