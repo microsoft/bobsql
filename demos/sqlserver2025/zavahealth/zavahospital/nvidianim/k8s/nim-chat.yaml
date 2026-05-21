@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nim-chat
+  labels:
+    app: nim-chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nim-chat
+  template:
+    metadata:
+      labels:
+        app: nim-chat
+    spec:
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "present"
+          effect: "NoSchedule"
+      nodeSelector:
+        gpu-type: nvidia-t4
+      containers:
+        - name: nim-chat
+          image: nvcr.io/nim/meta/llama-3.2-3b-instruct:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-secret
+                  key: NGC_API_KEY
+            - name: NIM_MAX_MODEL_LEN
+              value: "4096"
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+            requests:
+              nvidia.com/gpu: "1"
+              memory: "16Gi"
+              cpu: "2"
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /v1/health/live
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+      imagePullSecrets:
+        - name: ngc-registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nim-chat
+spec:
+  selector:
+    app: nim-chat
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP
