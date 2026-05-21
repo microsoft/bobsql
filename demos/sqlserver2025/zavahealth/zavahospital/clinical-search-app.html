@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zava - Clinical Case Search</title>
+    <link rel="stylesheet" href="clinical-search-styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <img src="Picture1.png" alt="Zava Logo" width="48" height="48">
+                </div>
+                <div class="logo-text">
+                    <h1>Zava</h1>
+                    <p class="subtitle">Clinical Case Search</p>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="user-badge">Medical Student</div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-container">
+                    <div class="search-header">
+                        <h2>Find Similar Clinical Cases</h2>
+                        <p>Use natural language to search for similar patient encounters and clinical patterns</p>
+                    </div>
+                    
+                    <div class="search-input-wrapper">
+                        <div class="search-input-container">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <textarea 
+                                id="searchInput" 
+                                class="search-input" 
+                                placeholder="Describe the clinical scenario you're looking for..."
+                                rows="2"
+                            ></textarea>
+                        </div>
+                        <button id="searchButton" class="search-button">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M8 1L15 8L8 15M15 8H1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Search Cases
+                        </button>
+                    </div>
+
+                    <!-- Example Queries -->
+                    <div class="example-queries">
+                        <span class="example-label">Try an example:</span>
+                        <button class="example-chip" data-query="patient with shortness of breath with fever and IV antibiotics">
+                            🫁 Respiratory + Fever + Antibiotics
+                        </button>
+                        <button class="example-chip" data-query="chest pain with elevated troponin">
+                            💔 Cardiac Symptoms
+                        </button>
+                        <button class="example-chip" data-query="abdominal pain with nausea and vomiting">
+                            🤢 GI Symptoms
+                        </button>
+                    </div>
+
+                    <!-- Search Parameters -->
+                    <div class="search-params">
+                        <details class="params-details">
+                            <summary>Advanced Search Parameters</summary>
+                            <div class="params-grid">
+                                <div class="param-group">
+                                    <label for="returnTopN">Results to Return</label>
+                                    <input type="number" id="returnTopN" value="20" min="1" max="100">
+                                </div>
+                                <div class="param-group">
+                                    <label for="searchTopN">Search Top N</label>
+                                    <input type="number" id="searchTopN" value="10" min="1" max="50">
+                                </div>
+                                <div class="param-group">
+                                    <label for="maxDistance">Max Distance</label>
+                                    <input type="number" id="maxDistance" value="0.45" min="0" max="1" step="0.01">
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h3>Search Results</h3>
+                    <div class="results-meta">
+                        <span id="resultsCount">0 cases found</span>
+                        <button id="exportButton" class="export-button">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M14 10v4H2v-4M8 2v9m0 0l3-3m-3 3L5 8" stroke="#0078D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="results-container" id="resultsContainer">
+                    <!-- Results will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Searching clinical database...</p>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Zava Training System &copy; 2025 | Powered by Vector Search</p>
+        </footer>
+    </div>
+
+    <script src="clinical-search-script.js"></script>
+</body>
+</html>

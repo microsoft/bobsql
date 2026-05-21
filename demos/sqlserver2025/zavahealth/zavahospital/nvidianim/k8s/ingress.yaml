@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nim-ingress
+  annotations:
+    spec.ingressClassName: webapprouting.kubernetes.azure.com
+    # Fix Content-Type: SQL Server sends "application/json;charset=utf-8"
+    # but NIM rejects anything other than "application/json"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Content-Type "application/json";
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  tls:
+    - hosts:
+        - nim-aks.local
+      secretName: nim-tls
+  rules:
+    - host: nim-aks.local
+      http:
+        paths:
+          - path: /v1/chat/completions
+            pathType: Prefix
+            backend:
+              service:
+                name: nim-chat
+                port:
+                  number: 8000
+          - path: /v1/embeddings
+            pathType: Prefix
+            backend:
+              service:
+                name: nim-embedding
+                port:
+                  number: 8000
+          - path: /v1/health
+            pathType: Prefix
+            backend:
+              service:
+                name: nim-chat
+                port:
+                  number: 8000
