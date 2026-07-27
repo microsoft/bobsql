@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#4A5568"/>
+    </marker>
+    <marker id="aEnd" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#4A5568"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#0A2342">What is Data API builder (DAB)?</text>
+  <text x="40" y="84" font-size="17" fill="#4A5568">Config-driven REST + GraphQL over your database objects — no middle-tier code.</text>
+
+  <!-- ===================== Consumers ===================== -->
+  <rect x="40" y="250" width="180" height="215" rx="14" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="130" y="286" font-size="17" font-weight="700" fill="#0A2342" text-anchor="middle">Consumers</text>
+  <text x="130" y="318" font-size="12.5" fill="#33415C" text-anchor="middle">Web &amp; mobile apps</text>
+  <text x="130" y="340" font-size="12.5" fill="#33415C" text-anchor="middle">SPAs / Blazor</text>
+  <text x="130" y="362" font-size="12.5" fill="#33415C" text-anchor="middle">Power Platform</text>
+  <text x="130" y="384" font-size="12.5" fill="#33415C" text-anchor="middle">Integrations &amp; tools</text>
+  <text x="130" y="418" font-size="11" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">any HTTP client</text>
+
+  <!-- Arrow consumers <-> DAB (a single HTTP channel; REST/GraphQL shown by the pills) -->
+  <text x="260" y="320" font-size="11" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">HTTP(S)</text>
+  <line x1="222" y1="333" x2="298" y2="333" stroke="#4A5568" stroke-width="2.6" marker-start="url(#a2)" marker-end="url(#a2)"/>
+
+  <!-- ===================== DAB engine ===================== -->
+  <rect x="300" y="175" width="540" height="380" rx="16" fill="#F7F9FC" stroke="#869397" stroke-width="2"/>
+  <text x="320" y="206" font-size="19" font-weight="700" fill="#0A2342">Data API builder</text>
+
+  <!-- config strip -->
+  <rect x="320" y="219" width="500" height="34" rx="8" fill="#FFF8E1" stroke="#E0B400" stroke-width="1.5"/>
+  <text x="570" y="241" font-size="13.5" font-weight="600" fill="#6B5300" text-anchor="middle">dab-config.json — one file, in source control</text>
+
+  <!-- surface pills -->
+  <rect x="320" y="277" width="150" height="44" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"/>
+  <text x="395" y="298" font-size="15" font-weight="700" fill="#0D47A1" text-anchor="middle">REST</text>
+  <text x="395" y="314" font-size="11.5" fill="#33415C" text-anchor="middle" font-family="Consolas, monospace">/api</text>
+
+  <rect x="320" y="332" width="150" height="44" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"/>
+  <text x="395" y="353" font-size="15" font-weight="700" fill="#6A1B9A" text-anchor="middle">GraphQL</text>
+  <text x="395" y="369" font-size="11.5" fill="#33415C" text-anchor="middle" font-family="Consolas, monospace">/graphql</text>
+
+  <!-- value props -->
+  <text x="492" y="292" font-size="13" fill="#33415C"><tspan fill="#2E7D32" font-weight="700">✓</tspan> RBAC per entity &amp; action (field-level)</text>
+  <text x="492" y="320" font-size="13" fill="#33415C"><tspan fill="#2E7D32" font-weight="700">✓</tspan> Parameterized — no string-built SQL</text>
+  <text x="492" y="348" font-size="13" fill="#33415C"><tspan fill="#2E7D32" font-weight="700">✓</tspan> Policies + Row-Level Security</text>
+  <text x="492" y="376" font-size="13" fill="#33415C"><tspan fill="#2E7D32" font-weight="700">✓</tspan> Caching · OpenTelemetry · health</text>
+
+  <!-- no middle-tier band -->
+  <rect x="320" y="398" width="500" height="42" rx="8" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.5"/>
+  <text x="570" y="424" font-size="13.5" font-weight="600" fill="#1B5E20" text-anchor="middle">No middle-tier code — the API layer you'd have hand-built, as configuration.</text>
+
+  <text x="570" y="463" font-size="12" font-style="italic" fill="#4A148C" text-anchor="middle">DAB reads your schema once at startup and caches it in memory (columns · keys · proc shapes)</text>
+  <text x="570" y="490" font-size="13.5" font-weight="600" fill="#33415C" text-anchor="middle">Exposes your tables · views · stored procedures</text>
+  <text x="570" y="520" font-size="12" fill="#5A6B85" text-anchor="middle">parameterized execution — the model/app never string-builds SQL</text>
+
+  <!-- Arrow DAB <-> database: startup schema read + runtime data -->
+  <line x1="842" y1="360" x2="976" y2="360" stroke="#4A5568" stroke-width="2.2" marker-start="url(#a2)" marker-end="url(#aEnd)"/>
+  <text x="909" y="344" font-size="10" fill="#5A6B85" text-anchor="middle">startup: read schema</text>
+  <text x="909" y="378" font-size="10" fill="#5A6B85" text-anchor="middle">runtime: reads / writes</text>
+
+  <!-- ===================== Your database ===================== -->
+  <rect x="980" y="205" width="265" height="350" rx="16" fill="#FFFFFF" stroke="#0A2342" stroke-width="2"/>
+  <text x="995" y="235" font-size="16" font-weight="700" fill="#0A2342">Your database</text>
+
+  <rect x="1000" y="250" width="225" height="42" rx="8" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"/>
+  <text x="1112" y="276" font-size="14" font-weight="600" fill="#1B5E20" text-anchor="middle">Tables</text>
+  <rect x="1000" y="300" width="225" height="42" rx="8" fill="#E0F7FA" stroke="#00838F" stroke-width="2"/>
+  <text x="1112" y="326" font-size="14" font-weight="600" fill="#006064" text-anchor="middle">Views</text>
+  <rect x="1000" y="350" width="225" height="42" rx="8" fill="#FFF3E0" stroke="#E65100" stroke-width="2"/>
+  <text x="1112" y="376" font-size="14" font-weight="600" fill="#BF360C" text-anchor="middle">Stored procedures</text>
+
+  <line x1="1000" y1="410" x2="1225" y2="410" stroke="#D5DCE5" stroke-width="1.5"/>
+  <text x="1112" y="432" font-size="11.5" font-weight="700" fill="#5A6B85" text-anchor="middle">RUNS ON</text>
+  <text x="1112" y="454" font-size="12" fill="#33415C" text-anchor="middle">SQL Server 2025 · Azure SQL</text>
+  <text x="1112" y="474" font-size="12" fill="#33415C" text-anchor="middle">Fabric SQL DB · PostgreSQL</text>
+  <text x="1112" y="494" font-size="12" fill="#33415C" text-anchor="middle">MySQL · Cosmos DB</text>
+
+  <!-- Listens on -->
+  <rect x="40" y="566" width="386" height="104" rx="12" fill="#F1F5FB" stroke="#B7C2D0" stroke-width="1.5"/>
+  <text x="58" y="589" font-size="13.5" font-weight="700" fill="#0A2342">Listens on</text>
+  <text x="58" y="610" font-size="11.5" fill="#33415C">Cross-platform .NET (Kestrel) · Windows · Linux · macOS</text>
+  <text x="58" y="627" font-size="11.5" fill="#33415C">HTTP · port :5000 · set via ASPNETCORE_URLS</text>
+  <text x="58" y="644" font-size="11.5" fill="#33415C">/api · /graphql</text>
+  <text x="58" y="661" font-size="11.5" fill="#33415C">HTTPS via Kestrel or the host</text>
+
+  <!-- Connects with -->
+  <rect x="446" y="566" width="386" height="104" rx="12" fill="#F1F5FB" stroke="#B7C2D0" stroke-width="1.5"/>
+  <text x="464" y="589" font-size="13.5" font-weight="700" fill="#0A2342">Connects with</text>
+  <text x="464" y="610" font-size="11.5" fill="#33415C"><tspan font-family="Consolas, monospace">Microsoft.Data.SqlClient</tspan> → T-SQL</text>
+  <text x="464" y="627" font-size="11.5" fill="#33415C">SQL login · Windows · Microsoft Entra</text>
+  <text x="464" y="644" font-size="11.5" fill="#33415C">(Default / Managed Identity)</text>
+  <text x="464" y="661" font-size="11.5" fill="#33415C">connects as DAB's identity · claims → SESSION_CONTEXT</text>
+
+  <!-- Hosted in -->
+  <rect x="852" y="566" width="393" height="104" rx="12" fill="#F1F5FB" stroke="#B7C2D0" stroke-width="1.5"/>
+  <text x="870" y="589" font-size="13.5" font-weight="700" fill="#0A2342">Hosted in</text>
+  <text x="870" y="610" font-size="11.5" fill="#33415C">As a container — ACA · App Service · AKS / K8s</text>
+  <text x="870" y="627" font-size="11.5" fill="#33415C">or as the dab .NET tool — a plain process</text>
+  <text x="870" y="644" font-size="11.5" fill="#33415C">any host · on-prem · or local self-host (dev)</text>
+  <text x="870" y="661" font-size="10.5" fill="#5A6B85" font-family="Consolas, monospace">MIT · github.com/Azure/data-api-builder</text>
+</svg>

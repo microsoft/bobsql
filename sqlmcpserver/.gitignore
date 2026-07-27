@@ -1,0 +1,4 @@
+# Large downloaded artifacts — do not commit the AdventureWorks backup (~200 MB)
+build/artifacts/
+*.bak
+*.bacpac

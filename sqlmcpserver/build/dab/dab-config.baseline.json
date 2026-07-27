@@ -1,0 +1,153 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('DAB_CONNECTION_STRING')",
+    "options": {
+      "set-session-context": false
+    }
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api",
+      "request-body-strict": true
+    },
+    "graphql": {
+      "enabled": true,
+      "path": "/graphql",
+      "allow-introspection": true
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "description": "Adventure Works — the bike retailer's operational database. Use this server for questions about products and their bills of materials (component parts), product models and categories, sales orders and order details, customers, and sales reps and territories. Read-only, governed tools; the model never writes SQL (NL2DAB). Call describe_entities first to see the available entities and fields."
+    },
+    "host": {
+      "cors": {
+        "origins": [],
+        "allow-credentials": false
+      },
+      "authentication": {
+        "provider": "Unauthenticated"
+      },
+      "mode": "development"
+    }
+  },
+  "entities": {
+    "ProductComponents": {
+      "description": "The parts (bill of materials) that make up each product, one row per component. Ask by product MODEL name (for example 'Touring-1000', 'Mountain-100', 'Road-150'). Read-only, backed by a single SQL view that joins the product model to its bill of materials and component parts. Filter on ProductModel to get one product's complete parts list in a single call.",
+      "source": {
+        "object": "mcp.vProductComponents",
+        "type": "view"
+      },
+      "fields": [
+        {
+          "name": "ProductModel",
+          "description": "Product model name, e.g. 'Touring-1000'. Filter on this field to get one product's complete parts list.",
+          "primary-key": true
+        },
+        {
+          "name": "ComponentName",
+          "description": "Name of a component part used in the product, e.g. 'HL Touring Frame' or 'HL Headset'.",
+          "primary-key": true
+        },
+        {
+          "name": "Quantity",
+          "description": "How many of this component are used per finished product.",
+          "primary-key": false
+        },
+        {
+          "name": "UnitOfMeasure",
+          "description": "Unit of measure for the quantity, e.g. 'Each'.",
+          "primary-key": false
+        }
+      ],
+      "rest": {
+        "enabled": false
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Products": {
+      "description": "Products Adventure Works makes or sells (bikes, components, clothing, accessories). Useful columns: ProductID, Name, ProductNumber, Color, Size, StandardCost, ListPrice, ProductModelID, ProductSubcategoryID, SellStartDate. Look up a product here to get its ProductID for bill-of-materials tools.",
+      "source": { "object": "Production.Product", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "ProductCategories": {
+      "description": "Top-level product categories: Bikes, Components, Clothing, Accessories. Columns: ProductCategoryID, Name.",
+      "source": { "object": "Production.ProductCategory", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "ProductSubcategories": {
+      "description": "Product subcategories under each category (e.g. Road Bikes, Mountain Bikes, Wheels, Helmets). Columns: ProductSubcategoryID, ProductCategoryID, Name.",
+      "source": { "object": "Production.ProductSubcategory", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "ProductModels": {
+      "description": "Product models. A model groups color/size variants under one name, e.g. 'Touring-1000'. Columns: ProductModelID, Name. Join Products.ProductModelID to a model.",
+      "source": { "object": "Production.ProductModel", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesOrders": {
+      "description": "Sales order headers — one row per customer order. Columns: SalesOrderID, OrderDate, DueDate, ShipDate, CustomerID, SalesPersonID, TerritoryID, SubTotal, TaxAmt, Freight, TotalDue, Status, OnlineOrderFlag. Line items are in SalesOrderDetails (join SalesOrderID).",
+      "source": { "object": "Sales.SalesOrderHeader", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesOrderDetails": {
+      "description": "Sales order line items — one row per product on an order. Columns: SalesOrderID, SalesOrderDetailID, ProductID, OrderQty, UnitPrice, UnitPriceDiscount, LineTotal. Join SalesOrderID to SalesOrders and ProductID to Products.",
+      "source": { "object": "Sales.SalesOrderDetail", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "Customers": {
+      "description": "Customers. Columns: CustomerID, PersonID, StoreID, TerritoryID, AccountNumber. A customer is an individual (PersonID) and/or a store (StoreID); join TerritoryID to SalesTerritories.",
+      "source": { "object": "Sales.Customer", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesPeople": {
+      "description": "Sales representatives. Columns: BusinessEntityID (the sales rep's id — this is the SalesPersonID on orders), TerritoryID, SalesQuota, Bonus, CommissionPct, SalesYTD, SalesLastYear.",
+      "source": { "object": "Sales.SalesPerson", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesTerritories": {
+      "description": "Sales territories / regions. Columns: TerritoryID, Name, CountryRegionCode, [Group] (e.g. North America, Europe, Pacific), SalesYTD, SalesLastYear.",
+      "source": { "object": "Sales.SalesTerritory", "type": "table" },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "GetWhereUsedProductID": {
+      "description": "Reverse bill of materials: for a given component ProductID, returns every assembly/product that USES that component (recursively), as of a date. Parameters: StartProductID (the component's ProductID), CheckDate (as-of date).",
+      "source": {
+        "object": "dbo.uspGetWhereUsedProductID",
+        "type": "stored-procedure",
+        "parameters": { "StartProductID": 948, "CheckDate": "2013-05-30" }
+      },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "execute" } ] } ]
+    },
+    "GetManagerEmployees": {
+      "description": "Org chart DOWN: returns all employees who report (directly or indirectly) to the given manager. Parameter: BusinessEntityID (the manager's id).",
+      "source": {
+        "object": "dbo.uspGetManagerEmployees",
+        "type": "stored-procedure",
+        "parameters": { "BusinessEntityID": 2 }
+      },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "execute" } ] } ]
+    },
+    "GetEmployeeManagers": {
+      "description": "Org chart UP: returns the management chain above an employee, from the employee up to the top. Parameter: BusinessEntityID (the employee's id).",
+      "source": {
+        "object": "dbo.uspGetEmployeeManagers",
+        "type": "stored-procedure",
+        "parameters": { "BusinessEntityID": 9 }
+      },
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "execute" } ] } ]
+    }
+  }
+}

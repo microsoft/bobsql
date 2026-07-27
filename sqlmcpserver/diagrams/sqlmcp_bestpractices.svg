@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Light panel background -->
+  <rect x="0" y="0" width="1280" height="720" rx="20" fill="#F4F6FA"/>
+  <rect x="0" y="0" width="1280" height="720" rx="20" fill="none" stroke="#DCE3ED" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="56" y="72" font-size="34" font-weight="700" fill="#1A2B45">Best practices — SQL MCP Server</text>
+  <text x="56" y="104" font-size="17" fill="#5A6B85">The model never writes SQL. You govern everything through config, descriptions, and RBAC.</text>
+
+  <!-- Bullet 1 -->
+  <text x="60" y="180" font-size="26" font-family="Segoe UI Emoji, Segoe UI, Arial">🛡️</text>
+  <text x="108" y="176" font-size="20" font-weight="700" fill="#1A2B45">Least-privilege RBAC</text>
+  <text x="108" y="200" font-size="15" fill="#5A6B85">Grant each role only the actions it needs — unauthorized calls are denied before any SQL runs.</text>
+
+  <!-- Bullet 2 -->
+  <text x="60" y="256" font-size="26" font-family="Segoe UI Emoji, Segoe UI, Arial">📝</text>
+  <text x="108" y="252" font-size="20" font-weight="700" fill="#1A2B45">Describe everything</text>
+  <text x="108" y="276" font-size="15" fill="#5A6B85">Server, entity, and field descriptions are how the model picks the right tool (NL2DAB). No descriptions = guessing.</text>
+
+  <!-- Bullet 3 -->
+  <text x="60" y="332" font-size="26" font-family="Segoe UI Emoji, Segoe UI, Arial">🙈</text>
+  <text x="108" y="328" font-size="20" font-weight="700" fill="#1A2B45">Don't expose sensitive data</text>
+  <text x="108" y="352" font-size="15" fill="#5A6B85">Leave objects unpublished, and disable risky tools (delete / create) in production.</text>
+
+  <!-- Bullet 4 -->
+  <text x="60" y="408" font-size="26" font-family="Segoe UI Emoji, Segoe UI, Arial">🪟</text>
+  <text x="108" y="404" font-size="20" font-weight="700" fill="#1A2B45">Views for JOINs, custom tools for key ops</text>
+  <text x="108" y="428" font-size="15" fill="#5A6B85"><tspan font-family="Consolas, monospace" fill="#0D47A1">read_records</tspan> is single-entity — wrap complexity in a view; promote the procs agents should call by name to <tspan font-family="Consolas, monospace" fill="#0D47A1">mcp.custom-tool</tspan> (the rest ride <tspan font-family="Consolas, monospace" fill="#0D47A1">execute_entity</tspan>).</text>
+
+  <!-- Bullet 5 -->
+  <text x="60" y="484" font-size="26" font-family="Segoe UI Emoji, Segoe UI, Arial">🔐</text>
+  <text x="108" y="480" font-size="20" font-weight="700" fill="#1A2B45">Passwordless auth + row-level security</text>
+  <text x="108" y="504" font-size="15" fill="#5A6B85">Connect with Entra / managed identity (no secrets); enforce RLS in SQL — it holds no matter which tool calls.</text>
+
+  <!-- Bullet 6 -->
+  <text x="60" y="560" font-size="26" font-family="Segoe UI Emoji, Segoe UI, Arial">📊</text>
+  <text x="108" y="556" font-size="20" font-weight="700" fill="#1A2B45">Observe &amp; bound</text>
+  <text x="108" y="580" font-size="15" fill="#5A6B85">Enable OpenTelemetry tracing across MCP + REST + GraphQL, and set query timeouts on aggregations.</text>
+
+  <!-- Golden rule footer -->
+  <rect x="56" y="614" width="1168" height="66" rx="12" fill="#EAF0F7" stroke="#A9B7CC" stroke-width="2"/>
+  <text x="640" y="647" font-size="18" font-weight="700" fill="#1A2B45" text-anchor="middle" font-family="Segoe UI Emoji, Segoe UI, Arial">🏆  One config, three surfaces, governed tools — deterministic, parameterized T-SQL every time.</text>
+</svg>

@@ -1,0 +1,309 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('DAB_CONNECTION_STRING')",
+    "options": {
+      "set-session-context": false
+    }
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api",
+      "request-body-strict": true
+    },
+    "graphql": {
+      "enabled": true,
+      "path": "/graphql",
+      "allow-introspection": true
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "description": "Adventure Works — the bike retailer's operational database. Use this server for questions about products and their bills of materials (component parts), product models and categories, sales orders and order details, customers, and sales reps and territories. Read-only, governed tools; the model never writes SQL (NL2DAB). Call describe_entities first to see the available entities and fields."
+    },
+    "host": {
+      "cors": {
+        "origins": [],
+        "allow-credentials": false
+      },
+      "authentication": {
+        "provider": "Unauthenticated"
+      },
+      "mode": "development"
+    }
+  },
+  "entities": {
+    "ProductComponents": {
+      "description": "The parts (bill of materials) that make up each product, one row per component. Ask by product MODEL name (for example 'Touring-1000', 'Mountain-100', 'Road-150'). Read-only, backed by a single SQL view that joins the product model to its bill of materials and component parts. Filter on ProductModel to get one product's complete parts list in a single call.",
+      "source": {
+        "object": "mcp.vProductComponents",
+        "type": "view"
+      },
+      "fields": [
+        {
+          "name": "ProductModel",
+          "description": "Product model name, e.g. 'Touring-1000'. Filter on this field to get one product's complete parts list.",
+          "primary-key": true
+        },
+        {
+          "name": "ComponentName",
+          "description": "Name of a component part used in the product, e.g. 'HL Touring Frame' or 'HL Headset'.",
+          "primary-key": true
+        },
+        {
+          "name": "Quantity",
+          "description": "How many of this component are used per finished product.",
+          "primary-key": false
+        },
+        {
+          "name": "UnitOfMeasure",
+          "description": "Unit of measure for the quantity, e.g. 'Each'.",
+          "primary-key": false
+        }
+      ],
+      "rest": {
+        "enabled": false
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Products": {
+      "description": "Products Adventure Works makes or sells (bikes, components, clothing, accessories). Useful columns: ProductID, Name, ProductNumber, Color, Size, StandardCost, ListPrice, ProductModelID, ProductSubcategoryID, SellStartDate. Look up a product here to get its ProductID for bill-of-materials tools.",
+      "source": { "object": "Production.Product", "type": "table" },
+      "fields": [
+        { "name": "ProductID", "description": "Surrogate primary key for the product; used by bill-of-materials tools." },
+        { "name": "Name", "description": "Product name, e.g. 'Road-150 Red, 62'." },
+        { "name": "ProductNumber", "description": "Unique product SKU / part number, e.g. 'BK-R93R-62'." },
+        { "name": "MakeFlag", "description": "1 = manufactured in-house, 0 = purchased from a vendor." },
+        { "name": "FinishedGoodsFlag", "description": "1 = a salable finished product, 0 = a component/sub-assembly." },
+        { "name": "Color", "description": "Product color, e.g. 'Red', 'Black'." },
+        { "name": "SafetyStockLevel", "description": "Minimum inventory quantity to keep on hand." },
+        { "name": "ReorderPoint", "description": "Inventory level that triggers a reorder." },
+        { "name": "StandardCost", "description": "Standard cost to make or buy the product." },
+        { "name": "ListPrice", "description": "Selling (list) price." },
+        { "name": "Size", "description": "Product size, e.g. '58', 'L'." },
+        { "name": "SizeUnitMeasureCode", "description": "Unit of measure for Size (e.g. 'CM')." },
+        { "name": "WeightUnitMeasureCode", "description": "Unit of measure for Weight (e.g. 'G', 'LB')." },
+        { "name": "Weight", "description": "Product weight." },
+        { "name": "DaysToManufacture", "description": "Number of days required to make the product." },
+        { "name": "ProductLine", "description": "Product line code: R=Road, M=Mountain, T=Touring, S=Standard." },
+        { "name": "Class", "description": "Product class: H=High, M=Medium, L=Low." },
+        { "name": "Style", "description": "Style code: W=Womens, M=Mens, U=Universal." },
+        { "name": "ProductSubcategoryID", "description": "Foreign key to ProductSubcategories." },
+        { "name": "ProductModelID", "description": "Foreign key to ProductModels (the model name that groups color/size variants)." },
+        { "name": "SellStartDate", "description": "Date the product became available for sale." },
+        { "name": "SellEndDate", "description": "Date the product was withdrawn from sale (null if still sold)." },
+        { "name": "DiscontinuedDate", "description": "Date the product was discontinued (null if active)." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "ProductCategories": {
+      "description": "Top-level product categories: Bikes, Components, Clothing, Accessories. Columns: ProductCategoryID, Name.",
+      "source": { "object": "Production.ProductCategory", "type": "table" },
+      "fields": [
+        { "name": "ProductCategoryID", "description": "Surrogate primary key for the category." },
+        { "name": "Name", "description": "Category name: Bikes, Components, Clothing, or Accessories." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "ProductSubcategories": {
+      "description": "Product subcategories under each category (e.g. Road Bikes, Mountain Bikes, Wheels, Helmets). Columns: ProductSubcategoryID, ProductCategoryID, Name.",
+      "source": { "object": "Production.ProductSubcategory", "type": "table" },
+      "fields": [
+        { "name": "ProductSubcategoryID", "description": "Surrogate primary key for the subcategory." },
+        { "name": "ProductCategoryID", "description": "Foreign key to the parent ProductCategories row." },
+        { "name": "Name", "description": "Subcategory name, e.g. 'Road Bikes', 'Helmets', 'Wheels'." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "ProductModels": {
+      "description": "Product models. A model groups color/size variants under one name, e.g. 'Touring-1000'. Columns: ProductModelID, Name. Join Products.ProductModelID to a model.",
+      "source": { "object": "Production.ProductModel", "type": "table" },
+      "fields": [
+        { "name": "ProductModelID", "description": "Surrogate primary key for the product model." },
+        { "name": "Name", "description": "Model name that groups color/size variants, e.g. 'Touring-1000'." },
+        { "name": "CatalogDescription", "description": "XML marketing/catalog description for the model." },
+        { "name": "Instructions", "description": "XML manufacturing instructions for the model." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesOrders": {
+      "description": "Sales order headers — one row per customer order. Columns: SalesOrderID, OrderDate, DueDate, ShipDate, CustomerID, SalesPersonID, TerritoryID, SubTotal, TaxAmt, Freight, TotalDue, Status, OnlineOrderFlag. Line items are in SalesOrderDetails (join SalesOrderID).",
+      "source": { "object": "Sales.SalesOrderHeader", "type": "table" },
+      "fields": [
+        { "name": "SalesOrderID", "description": "Surrogate primary key for the order." },
+        { "name": "RevisionNumber", "description": "Number of times the order has been revised." },
+        { "name": "OrderDate", "description": "Date the order was placed." },
+        { "name": "DueDate", "description": "Date the order is due to the customer." },
+        { "name": "ShipDate", "description": "Date the order shipped (null if not yet shipped)." },
+        { "name": "Status", "description": "Order status code: 1=In process, 2=Approved, 3=Backordered, 4=Rejected, 5=Shipped, 6=Cancelled." },
+        { "name": "OnlineOrderFlag", "description": "1 = placed online by the customer, 0 = taken by a sales rep." },
+        { "name": "SalesOrderNumber", "description": "Human-readable order number, e.g. 'SO43659'." },
+        { "name": "PurchaseOrderNumber", "description": "Customer's purchase-order number." },
+        { "name": "AccountNumber", "description": "Financial account number for the order." },
+        { "name": "CustomerID", "description": "Foreign key to Customers." },
+        { "name": "SalesPersonID", "description": "Foreign key to SalesPeople (BusinessEntityID) — the rep who took the order; null for online orders." },
+        { "name": "TerritoryID", "description": "Foreign key to SalesTerritories." },
+        { "name": "BillToAddressID", "description": "Foreign key to the billing address." },
+        { "name": "ShipToAddressID", "description": "Foreign key to the shipping address." },
+        { "name": "ShipMethodID", "description": "Foreign key to the shipping method." },
+        { "name": "CreditCardID", "description": "Foreign key to the credit card used." },
+        { "name": "CreditCardApprovalCode", "description": "Approval code returned by the card processor." },
+        { "name": "CurrencyRateID", "description": "Foreign key to the currency exchange rate applied." },
+        { "name": "SubTotal", "description": "Order subtotal before tax and freight." },
+        { "name": "TaxAmt", "description": "Tax amount on the order." },
+        { "name": "Freight", "description": "Freight (shipping) charge." },
+        { "name": "TotalDue", "description": "Total amount due = SubTotal + TaxAmt + Freight." },
+        { "name": "Comment", "description": "Free-text comment on the order." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesOrderDetails": {
+      "description": "Sales order line items — one row per product on an order. Columns: SalesOrderID, SalesOrderDetailID, ProductID, OrderQty, UnitPrice, UnitPriceDiscount, LineTotal. Join SalesOrderID to SalesOrders and ProductID to Products.",
+      "source": { "object": "Sales.SalesOrderDetail", "type": "table" },
+      "fields": [
+        { "name": "SalesOrderID", "description": "Foreign key to the SalesOrders header." },
+        { "name": "SalesOrderDetailID", "description": "Surrogate primary key for the line item." },
+        { "name": "CarrierTrackingNumber", "description": "Shipment tracking number for this line." },
+        { "name": "OrderQty", "description": "Quantity of the product ordered on this line." },
+        { "name": "ProductID", "description": "Foreign key to Products." },
+        { "name": "SpecialOfferID", "description": "Foreign key to the special offer applied to this line." },
+        { "name": "UnitPrice", "description": "Selling price per unit." },
+        { "name": "UnitPriceDiscount", "description": "Discount per unit (as a fraction)." },
+        { "name": "LineTotal", "description": "Computed line total: OrderQty * UnitPrice after discount." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "Customers": {
+      "description": "Customers. Columns: CustomerID, PersonID, StoreID, TerritoryID, AccountNumber. A customer is an individual (PersonID) and/or a store (StoreID); join TerritoryID to SalesTerritories.",
+      "source": { "object": "Sales.Customer", "type": "table" },
+      "fields": [
+        { "name": "CustomerID", "description": "Surrogate primary key for the customer." },
+        { "name": "PersonID", "description": "Foreign key to the individual person (null for pure store customers)." },
+        { "name": "StoreID", "description": "Foreign key to the reseller store (null for individual consumers)." },
+        { "name": "TerritoryID", "description": "Foreign key to SalesTerritories." },
+        { "name": "AccountNumber", "description": "Customer account number, e.g. 'AW00000001'." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesPeople": {
+      "description": "Sales representatives. Columns: BusinessEntityID (the sales rep's id — this is the SalesPersonID on orders), TerritoryID, SalesQuota, Bonus, CommissionPct, SalesYTD, SalesLastYear.",
+      "source": { "object": "Sales.SalesPerson", "type": "table" },
+      "fields": [
+        { "name": "BusinessEntityID", "description": "The sales rep's id; this is the SalesPersonID referenced on SalesOrders." },
+        { "name": "TerritoryID", "description": "Foreign key to the rep's SalesTerritories row." },
+        { "name": "SalesQuota", "description": "The rep's annual sales quota." },
+        { "name": "Bonus", "description": "Bonus amount earned by the rep." },
+        { "name": "CommissionPct", "description": "Commission percentage on sales." },
+        { "name": "SalesYTD", "description": "Rep's sales year-to-date." },
+        { "name": "SalesLastYear", "description": "Rep's sales in the prior year." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "SalesTerritories": {
+      "description": "Sales territories / regions. Columns: TerritoryID, Name, CountryRegionCode, [Group] (e.g. North America, Europe, Pacific), SalesYTD, SalesLastYear.",
+      "source": { "object": "Sales.SalesTerritory", "type": "table" },
+      "fields": [
+        { "name": "TerritoryID", "description": "Surrogate primary key for the territory." },
+        { "name": "Name", "description": "Territory name, e.g. 'Northwest', 'Canada', 'France'." },
+        { "name": "CountryRegionCode", "description": "ISO country/region code, e.g. 'US', 'CA', 'FR'." },
+        { "name": "Group", "description": "Region group the territory belongs to: North America, Europe, or Pacific." },
+        { "name": "SalesYTD", "description": "Territory sales year-to-date." },
+        { "name": "SalesLastYear", "description": "Territory sales in the prior year." },
+        { "name": "CostYTD", "description": "Territory cost year-to-date." },
+        { "name": "CostLastYear", "description": "Territory cost in the prior year." },
+        { "name": "rowguid", "description": "Row global unique identifier used for replication." },
+        { "name": "ModifiedDate", "description": "Timestamp the row was last modified." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "read" } ] } ]
+    },
+    "GetWhereUsedProductID": {
+      "description": "Reverse bill of materials: for a given component ProductID, returns every assembly/product that USES that component (recursively), as of a date. Parameters: StartProductID (the component's ProductID), CheckDate (as-of date).",
+      "source": {
+        "object": "dbo.uspGetWhereUsedProductID",
+        "type": "stored-procedure",
+        "parameters": [
+          { "name": "StartProductID", "description": "ProductID of the COMPONENT part to trace upward (Production.Product.ProductID). Returns every assembly/product that uses this component, recursively.", "required": true, "default": "948" },
+          { "name": "CheckDate", "description": "As-of date (yyyy-MM-dd) for the bill-of-materials validity; only BOM links effective on this date are followed.", "required": true, "default": "2013-05-30" }
+        ]
+      },
+      "fields": [
+        { "name": "ProductAssemblyID", "description": "ProductID of the assembly/product that uses the component." },
+        { "name": "ComponentID", "description": "ProductID of the component (matches the StartProductID input)." },
+        { "name": "ComponentDesc", "description": "Name/description of the component product." },
+        { "name": "TotalQuantity", "description": "Total quantity of the component required by the assembly, aggregated across the BOM path." },
+        { "name": "StandardCost", "description": "Standard cost of the assembly product, in USD." },
+        { "name": "ListPrice", "description": "List price of the assembly product, in USD." },
+        { "name": "BOMLevel", "description": "Bill-of-materials level of the assembly within the product hierarchy." },
+        { "name": "RecursionLevel", "description": "Depth of recursion from the starting component (0 = direct parent assembly)." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "execute" } ] } ]
+    },
+    "GetManagerEmployees": {
+      "description": "Org chart DOWN: returns all employees who report (directly or indirectly) to the given manager. Parameter: BusinessEntityID (the manager's id).",
+      "source": {
+        "object": "dbo.uspGetManagerEmployees",
+        "type": "stored-procedure",
+        "parameters": [
+          { "name": "BusinessEntityID", "description": "BusinessEntityID of the MANAGER (HumanResources.Employee). Returns everyone who reports to this person, directly or indirectly.", "required": true, "default": "2" }
+        ]
+      },
+      "fields": [
+        { "name": "RecursionLevel", "description": "Depth in the org chart below the manager (0 = the manager's direct reports level)." },
+        { "name": "OrganizationNode", "description": "Hierarchyid path of the employee within the organization, as a string." },
+        { "name": "ManagerFirstName", "description": "First name of the employee's immediate manager." },
+        { "name": "ManagerLastName", "description": "Last name of the employee's immediate manager." },
+        { "name": "BusinessEntityID", "description": "BusinessEntityID of the reporting employee." },
+        { "name": "FirstName", "description": "First name of the reporting employee." },
+        { "name": "LastName", "description": "Last name of the reporting employee." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "execute" } ] } ]
+    },
+    "GetEmployeeManagers": {
+      "description": "Org chart UP: returns the management chain above an employee, from the employee up to the top. Parameter: BusinessEntityID (the employee's id).",
+      "source": {
+        "object": "dbo.uspGetEmployeeManagers",
+        "type": "stored-procedure",
+        "parameters": [
+          { "name": "BusinessEntityID", "description": "BusinessEntityID of the EMPLOYEE (HumanResources.Employee). Returns the management chain above this person, up to the top of the org.", "required": true, "default": "9" }
+        ]
+      },
+      "fields": [
+        { "name": "RecursionLevel", "description": "Depth up the management chain from the starting employee (0 = the employee)." },
+        { "name": "BusinessEntityID", "description": "BusinessEntityID of the person at this level of the chain." },
+        { "name": "FirstName", "description": "First name of the person at this level of the chain." },
+        { "name": "LastName", "description": "Last name of the person at this level of the chain." },
+        { "name": "OrganizationNode", "description": "Hierarchyid path of the person within the organization, as a string." },
+        { "name": "ManagerFirstName", "description": "First name of this person's manager (next level up)." },
+        { "name": "ManagerLastName", "description": "Last name of this person's manager (next level up)." }
+      ],
+      "permissions": [ { "role": "anonymous", "actions": [ { "action": "execute" } ] } ]
+    }
+  }
+}
