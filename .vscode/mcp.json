@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "Adventure Works (SQL MCP)": {
+      "type": "http",
+      "url": "http://localhost:5001/mcp"
+    }
+  }
+}

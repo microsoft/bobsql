@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#6B7C99"/>
+    </marker>
+    <marker id="arrowP" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2E5E96"/>
+    </marker>
+  </defs>
+
+  <!-- Light panel background -->
+  <rect x="0" y="0" width="1280" height="720" rx="20" fill="#F4F6FA"/>
+  <rect x="0" y="0" width="1280" height="720" rx="20" fill="none" stroke="#DCE3ED" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="40" y="46" font-size="28" font-weight="700" fill="#1A2B45">From prompt to SQL — the SQL MCP Server request flow</text>
+  <text x="40" y="74" font-size="15" fill="#5A6B85">The MCP client takes the prompt and the tool catalog to the model; the model picks a tool; the client calls it over the protocol — only the last step runs T-SQL.</text>
+
+  <!-- ===================== PROMPT ===================== -->
+  <rect x="20" y="344" width="150" height="104" rx="12" fill="#FFFFFF" stroke="#3E6DA6" stroke-width="2"/>
+  <rect x="20" y="344" width="150" height="30" rx="12" fill="#E3EEF9"/>
+  <text x="95" y="364" font-size="15" font-weight="700" fill="#1E4C77" text-anchor="middle">Prompt</text>
+  <text x="30" y="390" font-size="11" fill="#5A6B85">Plain English:</text>
+  <text x="30" y="410" font-size="11" font-style="italic" fill="#33415C">"What parts make up</text>
+  <text x="30" y="428" font-size="11" font-style="italic" fill="#33415C">the Touring-1000?"</text>
+
+  <!-- arrow prompt -> client -->
+  <line x1="170" y1="396" x2="198" y2="396" stroke="#6B7C99" stroke-width="2.2" marker-end="url(#arrow)"/>
+
+  <!-- ===================== HOST (client + model) ===================== -->
+  <rect x="186" y="150" width="250" height="330" rx="12" fill="#ECEFF5" stroke="#A9B7CC" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="190" y="143" font-size="12" font-weight="700" fill="#5A6B85">MCP host — VS Code · GitHub Copilot · agent app</text>
+
+  <!-- AI MODEL (top) -->
+  <rect x="200" y="172" width="222" height="126" rx="12" fill="#FFFFFF" stroke="#7E57C2" stroke-width="2"/>
+  <rect x="200" y="172" width="222" height="32" rx="12" fill="#EDE7F6"/>
+  <text x="311" y="193" font-size="15" font-weight="700" fill="#4A148C" text-anchor="middle">AI Model</text>
+  <text x="214" y="222" font-size="11.5" font-weight="700" fill="#6A1B9A">① selects a tool</text>
+  <text x="214" y="242" font-size="11" fill="#33415C">· reads server description</text>
+  <text x="214" y="260" font-size="11" fill="#7E6A99">· + tools/list catalog</text>
+  <text x="214" y="278" font-size="11" fill="#33415C">· picks by description match</text>
+
+  <!-- vertical arrows model <-> client -->
+  <line x1="286" y1="300" x2="286" y2="324" stroke="#6B7C99" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="274" y="316" font-size="9.5" fill="#5A6B85" text-anchor="end">tool call</text>
+  <line x1="350" y1="324" x2="350" y2="300" stroke="#6B7C99" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="362" y="316" font-size="9.5" fill="#5A6B85" text-anchor="start">prompt + tools</text>
+
+  <!-- MCP CLIENT (bottom) -->
+  <rect x="200" y="326" width="222" height="140" rx="12" fill="#FFFFFF" stroke="#3E6DA6" stroke-width="2"/>
+  <rect x="200" y="326" width="222" height="30" rx="12" fill="#E3EEF9"/>
+  <text x="311" y="346" font-size="14" font-weight="700" fill="#1E4C77" text-anchor="middle">MCP client</text>
+  <text x="214" y="374" font-size="11" fill="#33415C">receives the prompt, runs the</text>
+  <text x="214" y="391" font-size="11" fill="#33415C">tool call over the MCP protocol</text>
+  <text x="214" y="414" font-size="11" fill="#0D47A1" font-family="Consolas, monospace">tools/list · tools/call</text>
+  <rect x="214" y="424" width="118" height="20" rx="6" fill="#E3F2FD" stroke="#90B4D8" stroke-width="1"/>
+  <text x="273" y="438" font-size="10.5" font-weight="700" fill="#0D47A1" text-anchor="middle">JSON-RPC 2.0</text>
+  <text x="340" y="438" font-size="10.5" fill="#5A6B85">stdio / HTTP</text>
+
+  <!-- ===================== PROTOCOL boundary ===================== -->
+  <rect x="439" y="300" width="130" height="34" rx="9" fill="#FFFFFF" stroke="#3E6DA6" stroke-width="1.5"/>
+  <text x="504" y="316" font-size="12" font-weight="700" fill="#2E5E96" text-anchor="middle">MCP protocol</text>
+  <text x="504" y="330" font-size="9" fill="#5A6B85" text-anchor="middle">JSON-RPC · stdio / HTTP</text>
+  <!-- forward: client -> server -->
+  <line x1="422" y1="360" x2="584" y2="360" stroke="#2E5E96" stroke-width="2.6" marker-end="url(#arrowP)"/>
+  <text x="503" y="353" font-size="9.5" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">tools/call</text>
+  <!-- return: server -> client -->
+  <line x1="584" y1="398" x2="422" y2="398" stroke="#2E5E96" stroke-width="2.6" marker-end="url(#arrowP)"/>
+  <text x="503" y="412" font-size="9.5" fill="#5A6B85" text-anchor="middle">response (JSON)</text>
+
+  <!-- ===================== SQL MCP SERVER — DAB ===================== -->
+  <text x="586" y="143" font-size="12" font-weight="700" fill="#5A6B85">SQL MCP Server · Data API builder</text>
+  <rect x="586" y="150" width="372" height="330" rx="14" fill="#EAF0F7" stroke="#A9B7CC" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="600" y="176" font-size="13" font-weight="700" fill="#1A2B45">② Tool-calling sequence — agentic loop</text>
+
+  <!-- C1: describe_entities -->
+  <rect x="610" y="198" width="328" height="112" rx="11" fill="#FFFFFF" stroke="#00838F" stroke-width="2"/>
+  <rect x="610" y="198" width="328" height="30" rx="11" fill="#E0F7FA"/>
+  <text x="774" y="218" font-size="14" font-weight="700" fill="#006064" text-anchor="middle" font-family="Consolas, monospace">describe_entities</text>
+  <text x="626" y="248" font-size="11.5" fill="#33415C">reads in-memory config (not SQL) · RBAC-filtered</text>
+  <text x="626" y="268" font-size="11.5" fill="#33415C">→ the right entity + fields</text>
+  <rect x="626" y="282" width="88" height="20" rx="6" fill="#E8F5E9"/>
+  <text x="670" y="296" font-size="11" font-weight="700" fill="#1B5E20" text-anchor="middle">no SQL</text>
+
+  <!-- call-order badges — each is a separate model-driven call (server never chains tools) -->
+  <circle cx="598" cy="254" r="10" fill="#00838F"/>
+  <text x="598" y="258" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+  <circle cx="598" cy="408" r="10" fill="#1565C0"/>
+  <text x="598" y="412" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text>
+
+  <!-- C2: read_records / custom tool -->
+  <rect x="610" y="350" width="328" height="116" rx="11" fill="#FFFFFF" stroke="#1565C0" stroke-width="2"/>
+  <rect x="610" y="350" width="328" height="30" rx="11" fill="#E3F2FD"/>
+  <text x="774" y="370" font-size="12.5" font-weight="700" fill="#0D47A1" text-anchor="middle" font-family="Consolas, monospace">read_records  /  custom tool</text>
+  <text x="626" y="400" font-size="11.5" fill="#33415C">builds parameterized T-SQL using the</text>
+  <text x="626" y="418" font-size="11.5" fill="#33415C">schema DAB cached at startup</text>
+  <rect x="626" y="432" width="190" height="22" rx="6" fill="#FFF8E1"/>
+  <text x="636" y="448" font-size="10.5" font-weight="700" fill="#6B5300">parameters bound · NL2DAB</text>
+
+  <!-- agentic loop note (loop is via the model, not tool-to-tool) -->
+  <text x="774" y="193" font-size="10" font-style="italic" fill="#5A6B85" text-anchor="middle">each is a separate model-driven call — the server never chains tools</text>
+
+  <!-- arrows server <-> SQL -->
+  <line x1="940" y1="398" x2="1048" y2="346" stroke="#6B7C99" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="996" y="394" font-size="10" fill="#5A6B85" text-anchor="middle">execute</text>
+  <line x1="1048" y1="380" x2="942" y2="432" stroke="#6B7C99" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="1000" y="426" font-size="10" fill="#5A6B85" text-anchor="middle">rows</text>
+
+  <!-- ===================== SQL ===================== -->
+  <path d="M1050,300 v100 a86,18 0 0 0 172,0 v-100" fill="#E3EEF9" stroke="#3E6DA6" stroke-width="2"/>
+  <ellipse cx="1136" cy="300" rx="86" ry="18" fill="#D2E2F2" stroke="#3E6DA6" stroke-width="2"/>
+  <text x="1136" y="345" font-size="15" font-weight="700" fill="#1E4C77" text-anchor="middle">SQL Server</text>
+  <text x="1136" y="367" font-size="12" fill="#5A6B85" text-anchor="middle">AdventureWorks</text>
+  <text x="1136" y="387" font-size="11" fill="#8595AB" text-anchor="middle">③ the only SQL</text>
+  <text x="1136" y="430" font-size="10.5" fill="#8595AB" text-anchor="middle">executes the query</text>
+
+  <!-- DAB shapes result note -->
+  <text x="774" y="500" font-size="11" font-style="italic" fill="#5A6B85" text-anchor="middle">DAB shapes rows → JSON, returns over MCP</text>
+  <!-- answer note -->
+  <text x="311" y="500" font-size="11.5" font-style="italic" fill="#5A6B85" text-anchor="middle">→ model composes the plain-English answer</text>
+
+  <!-- ===================== THREE-LAYER SUMMARY ===================== -->
+  <!-- layer 1 (purple) -->
+  <rect x="30" y="596" width="390" height="86" rx="12" fill="#F3EDFB" stroke="#7E57C2" stroke-width="1.8"/>
+  <circle cx="62" cy="626" r="14" fill="#7E57C2"/>
+  <text x="62" y="631" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text>
+  <text x="88" y="624" font-size="13" font-weight="700" fill="#4A148C">Server description (config)</text>
+  <text x="88" y="644" font-size="12" fill="#5B4B7A">routes to the right server</text>
+  <rect x="320" y="654" width="90" height="20" rx="6" fill="#E8F5E9"/>
+  <text x="365" y="669" font-size="10.5" font-weight="700" fill="#1B5E20" text-anchor="middle">no SQL</text>
+
+  <!-- layer 2 (teal) -->
+  <rect x="430" y="596" width="390" height="86" rx="12" fill="#E3F7FA" stroke="#00838F" stroke-width="1.8"/>
+  <circle cx="462" cy="626" r="14" fill="#00838F"/>
+  <text x="462" y="631" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text>
+  <text x="488" y="624" font-size="13" font-weight="700" fill="#006064" font-family="Consolas, monospace">describe_entities</text>
+  <text x="488" y="644" font-size="12" fill="#33415C">in-memory · RBAC-filtered → right entity/fields</text>
+  <rect x="720" y="654" width="90" height="20" rx="6" fill="#E8F5E9"/>
+  <text x="765" y="669" font-size="10.5" font-weight="700" fill="#1B5E20" text-anchor="middle">no SQL</text>
+
+  <!-- layer 3 (blue) -->
+  <rect x="830" y="596" width="400" height="86" rx="12" fill="#E8F1FB" stroke="#1565C0" stroke-width="1.8"/>
+  <circle cx="862" cy="626" r="14" fill="#1565C0"/>
+  <text x="862" y="631" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">3</text>
+  <text x="888" y="624" font-size="13" font-weight="700" fill="#0D47A1" font-family="Consolas, monospace">read_records / custom tool</text>
+  <text x="888" y="644" font-size="12" fill="#33415C">the only step that runs parameterized T-SQL</text>
+  <rect x="1120" y="654" width="100" height="20" rx="6" fill="#FFF8E1"/>
+  <text x="1170" y="669" font-size="10.5" font-weight="700" fill="#6B5300" text-anchor="middle">runs T-SQL</text>
+</svg>

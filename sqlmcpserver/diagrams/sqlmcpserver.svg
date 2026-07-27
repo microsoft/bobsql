@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#A9BCD3"/>
+    </marker>
+    <marker id="arrowSm" markerWidth="8" markerHeight="8" refX="6" refY="2.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,2.5 L0,5 Z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <!-- Dark panel background -->
+  <rect x="0" y="0" width="1280" height="720" rx="20" fill="#0C2340"/>
+
+  <!-- Title -->
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#FFFFFF">How the SQL MCP Server (Data API builder) works</text>
+  <text x="40" y="84" font-size="17" fill="#AFC2DA">One tool call, end to end — the model sends typed arguments, never SQL. DAB generates it.</text>
+
+  <!-- Key callout pill -->
+  <rect x="300" y="150" width="690" height="40" rx="9" fill="#FFF8E1" stroke="#E0B400" stroke-width="1.5"/>
+  <text x="645" y="175" font-size="14.5" font-weight="600" fill="#6B5300" text-anchor="middle">NL2DAB, not NL2SQL — deterministic, parameterized T-SQL. The model never emits SQL.</text>
+
+  <!-- ===================== AI Agent ===================== -->
+  <rect x="20" y="250" width="170" height="170" rx="14" fill="#163A5E" stroke="#5AA0E0" stroke-width="2"/>
+  <text x="105" y="284" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">AI Agent</text>
+  <text x="30" y="308" font-size="11" fill="#9FB8D4">any MCP host / client:</text>
+  <text x="30" y="329" font-size="11.5" fill="#D5E3F2">· GitHub Copilot</text>
+  <text x="30" y="348" font-size="11.5" fill="#D5E3F2">· Agent Framework app</text>
+  <text x="30" y="367" font-size="11.5" fill="#D5E3F2">· Foundry Agent</text>
+  <text x="30" y="386" font-size="11.5" fill="#D5E3F2">· Copilot Studio</text>
+
+  <!-- Arrow agent -> DAB -->
+  <line x1="192" y1="320" x2="296" y2="320" stroke="#A9BCD3" stroke-width="2.2" marker-end="url(#arrow)"/>
+  <text x="244" y="306" font-size="12" font-weight="600" fill="#D5E3F2" text-anchor="middle">tools/call</text>
+  <text x="244" y="342" font-size="11.5" fill="#9FB8D4" text-anchor="middle" font-family="Consolas, monospace">{entity, filter}</text>
+
+  <!-- ===================== DAB container ===================== -->
+  <rect x="300" y="200" width="690" height="275" rx="16" fill="#12345A" stroke="#3C5A7C" stroke-width="2"/>
+  <text x="315" y="227" font-size="16" font-weight="700" fill="#FFFFFF">Data API builder — SQL MCP Server</text>
+  <text x="975" y="227" font-size="11.5" fill="#9FB8D4" text-anchor="end" font-family="Consolas, monospace">MCP: /mcp (HTTP) or stdio</text>
+
+  <!-- Stage 1 Authorize -->
+  <rect x="315" y="250" width="150" height="205" rx="10" fill="#FFFFFF" stroke="#2E7D32" stroke-width="2"/>
+  <rect x="315" y="250" width="150" height="30" rx="10" fill="#E8F5E9"/>
+  <text x="390" y="270" font-size="13.5" font-weight="700" fill="#1B5E20" text-anchor="middle">① Authorize</text>
+  <text x="390" y="305" font-size="11.5" fill="#33415C" text-anchor="middle">RBAC role→action</text>
+  <text x="390" y="322" font-size="11.5" fill="#33415C" text-anchor="middle">→ field</text>
+  <text x="390" y="345" font-size="11.5" fill="#33415C" text-anchor="middle">policies + RLS</text>
+  <text x="390" y="368" font-size="11.5" font-weight="600" fill="#B71C1C" text-anchor="middle">denied before SQL</text>
+  <text x="390" y="440" font-size="10" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">src/Auth</text>
+
+  <!-- Stage 2 Metadata -->
+  <rect x="485" y="250" width="150" height="205" rx="10" fill="#FFFFFF" stroke="#00838F" stroke-width="2"/>
+  <rect x="485" y="250" width="150" height="30" rx="10" fill="#E0F7FA"/>
+  <text x="560" y="270" font-size="13.5" font-weight="700" fill="#006064" text-anchor="middle">② Resolve</text>
+  <text x="560" y="305" font-size="11.5" fill="#33415C" text-anchor="middle">entities · views</text>
+  <text x="560" y="322" font-size="11.5" fill="#33415C" text-anchor="middle">· procs</text>
+  <text x="560" y="345" font-size="11.5" fill="#33415C" text-anchor="middle">types + params</text>
+  <text x="560" y="368" font-size="11.5" font-weight="600" fill="#006064" text-anchor="middle">→ describe_entities</text>
+  <text x="560" y="402" font-size="10" font-style="italic" fill="#00838F" text-anchor="middle">read once at startup</text>
+  <text x="560" y="440" font-size="10" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">ISqlMetadataProvider</text>
+
+  <!-- Stage 3 Build -->
+  <rect x="655" y="250" width="150" height="205" rx="10" fill="#FFFFFF" stroke="#1565C0" stroke-width="2"/>
+  <rect x="655" y="250" width="150" height="30" rx="10" fill="#E3F2FD"/>
+  <text x="730" y="270" font-size="13.5" font-weight="700" fill="#0D47A1" text-anchor="middle">③ Build T-SQL</text>
+  <text x="730" y="305" font-size="11.5" fill="#33415C" text-anchor="middle">deterministic</text>
+  <text x="730" y="322" font-size="11.5" fill="#33415C" text-anchor="middle">from structured</text>
+  <text x="730" y="339" font-size="11.5" fill="#33415C" text-anchor="middle">arguments</text>
+  <text x="730" y="368" font-size="11.5" font-weight="600" fill="#0D47A1" text-anchor="middle">params bound</text>
+  <text x="730" y="440" font-size="10" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">Core.Resolvers</text>
+
+  <!-- Stage 4 Execute -->
+  <rect x="825" y="250" width="150" height="205" rx="10" fill="#FFFFFF" stroke="#5E35B1" stroke-width="2"/>
+  <rect x="825" y="250" width="150" height="30" rx="10" fill="#EDE7F6"/>
+  <text x="900" y="270" font-size="13.5" font-weight="700" fill="#4527A0" text-anchor="middle">④ Execute</text>
+  <text x="900" y="305" font-size="11.5" fill="#33415C" text-anchor="middle">parameterized</text>
+  <text x="900" y="322" font-size="11.5" fill="#33415C" text-anchor="middle">command</text>
+  <text x="900" y="345" font-size="11.5" fill="#33415C" text-anchor="middle">returns rows</text>
+  <text x="900" y="440" font-size="10" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">IQueryExecutor</text>
+
+  <!-- inner flow arrows -->
+  <line x1="467" y1="352" x2="483" y2="352" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowSm)"/>
+  <line x1="637" y1="352" x2="653" y2="352" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowSm)"/>
+  <line x1="807" y1="352" x2="823" y2="352" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowSm)"/>
+
+  <!-- Arrow DAB <-> SQL -->
+  <line x1="994" y1="320" x2="1046" y2="320" stroke="#A9BCD3" stroke-width="2.2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="1020" y="305" font-size="10" fill="#9FB8D4" text-anchor="middle" font-family="Consolas, monospace">T-SQL</text>
+  <text x="1020" y="343" font-size="10" fill="#9FB8D4" text-anchor="middle" font-family="Consolas, monospace">rows</text>
+
+  <!-- ===================== SQL engine (cylinder) ===================== -->
+  <g>
+    <path d="M1050,272 a67,15 0 0,1 134,0 v96 a67,15 0 0,1 -134,0 z" fill="#EAF3FB" stroke="#0A2342" stroke-width="2"/>
+    <ellipse cx="1117" cy="272" rx="67" ry="15" fill="#DCEAF7" stroke="#0A2342" stroke-width="2"/>
+    <text x="1117" y="330" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">SQL Server 2025</text>
+    <text x="1117" y="350" font-size="11.5" fill="#33415C" text-anchor="middle">Azure SQL · Fabric</text>
+  </g>
+
+  <!-- DAB -> SQL: connection + auth -->
+  <rect x="998" y="392" width="250" height="104" rx="10" fill="#10315A" stroke="#3C6088" stroke-width="1.5"/>
+  <text x="1013" y="413" font-size="12" font-weight="700" fill="#FFFFFF">DAB → SQL: connect + auth</text>
+  <text x="1013" y="433" font-size="10.5" fill="#CBDAEC">Microsoft.Data.SqlClient → T-SQL</text>
+  <text x="1013" y="450" font-size="10.5" fill="#CBDAEC">SQL login · Windows · Entra MI</text>
+  <text x="1013" y="467" font-size="10.5" fill="#CBDAEC">connects as DAB's own identity</text>
+  <text x="1013" y="484" font-size="10.5" fill="#CBDAEC">claims → SESSION_CONTEXT (RLS)</text>
+
+  <!-- ===================== Response: DAB -> agent ===================== -->
+  <path d="M645,475 v40 H105 v-95" fill="none" stroke="#A9BCD3" stroke-width="2.2" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+  <rect x="250" y="498" width="250" height="34" rx="8" fill="#123A5E" stroke="#3C6088" stroke-width="1.5"/>
+  <text x="375" y="520" font-size="12.5" font-weight="600" fill="#D5E3F2" text-anchor="middle">results shaped as JSON by DAB</text>
+
+  <!-- Bottom callout: connection (transport + auth) -->
+  <rect x="40" y="548" width="590" height="118" rx="12" fill="#10315A" stroke="#3C6088" stroke-width="1.5"/>
+  <text x="58" y="573" font-size="14" font-weight="700" fill="#FFFFFF">AI Agent ↔ SQL MCP Server</text>
+  <text x="58" y="597" font-size="11.5" fill="#CBDAEC">Transport — MCP: JSON-RPC 2.0 over Streamable HTTP or stdio.</text>
+  <text x="58" y="619" font-size="11.5" fill="#CBDAEC">Authentication (identity → role): Entra JWT · EasyAuth · custom OIDC · Simulator (dev).</text>
+  <text x="58" y="641" font-size="11.5" fill="#CBDAEC">MCP carries identity; AUTHORIZATION is DAB RBAC — the ① Authorize step.</text>
+
+  <!-- Bottom callout: the model never writes SQL -->
+  <rect x="650" y="548" width="595" height="118" rx="12" fill="#10315A" stroke="#3C6088" stroke-width="1.5"/>
+  <text x="668" y="573" font-size="14" font-weight="700" fill="#FFFFFF">The model never writes SQL</text>
+  <text x="668" y="597" font-size="11.5" fill="#CBDAEC">Its only inputs are typed tool arguments — an OData filter or stored-proc parameters.</text>
+  <text x="668" y="619" font-size="11.5" fill="#CBDAEC">SQL is generated by DAB — bound, never concatenated (NL2DAB).</text>
+  <text x="668" y="641" font-size="11.5" fill="#8FA8C6">MCP built into DAB (the SQL MCP Server) · MIT · <tspan font-family="Consolas, monospace">github.com/Azure/data-api-builder</tspan></text>
+</svg>

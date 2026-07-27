@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Title -->
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#0A2342">AI + tools — before a common standard</text>
+  <text x="40" y="84" font-size="16.5" fill="#4A5568">The model works from a context the app assembles — <tspan font-weight="700">system</tspan> + <tspan font-weight="700">user</tspan> + <tspan font-weight="700">tools</tspan> prompts. Only the tools prompt has no standard.</text>
+
+  <!-- ===================== three-prompt legend ===================== -->
+  <rect x="300" y="96" width="712" height="54" rx="10" fill="#FFFFFF" stroke="#B7C2D0" stroke-width="1.5"/>
+  <text x="316" y="120" font-size="13" font-weight="700" fill="#0A2342">The model's context = three prompts the app assembles:</text>
+  <text x="316" y="140" font-size="12.5" fill="#33415C"><tspan fill="#1864AB" font-weight="700">System</tspan> (rules) · <tspan fill="#2E7D32" font-weight="700">User</tspan> (the question) · <tspan fill="#BF360C" font-weight="700">Tools</tspan> (each tool's name + description + JSON schema — hand-built, no standard)</text>
+
+  <!-- ===================== bespoke connectors (M x N) — from each host's TOOLS prompt ===================== -->
+  <g stroke-width="1.5" stroke-dasharray="6 4" opacity="0.55" fill="none">
+    <line x1="282" y1="259" x2="1010" y2="215" stroke="#D08770"/>
+    <line x1="282" y1="259" x2="1010" y2="343" stroke="#5E81AC"/>
+    <line x1="282" y1="259" x2="1010" y2="471" stroke="#B48EAD"/>
+    <line x1="282" y1="389" x2="1010" y2="215" stroke="#5E81AC"/>
+    <line x1="282" y1="389" x2="1010" y2="343" stroke="#D08770"/>
+    <line x1="282" y1="389" x2="1010" y2="471" stroke="#A3BE8C"/>
+    <line x1="282" y1="519" x2="1010" y2="215" stroke="#B48EAD"/>
+    <line x1="282" y1="519" x2="1010" y2="343" stroke="#A3BE8C"/>
+    <line x1="282" y1="519" x2="1010" y2="471" stroke="#D08770"/>
+  </g>
+
+  <!-- central pain pill -->
+  <rect x="515" y="362" width="300" height="52" rx="10" fill="#FFFFFF" stroke="#B71C1C" stroke-width="2"/>
+  <text x="665" y="384" font-size="15" font-weight="700" fill="#B71C1C" text-anchor="middle">M × N custom integrations</text>
+  <text x="665" y="403" font-size="11" fill="#8A1C1C" text-anchor="middle">the app hand-builds the tools prompt, per tool</text>
+
+  <!-- ===================== Hosts (left) — model + its three-prompt context ===================== -->
+  <text x="165" y="150" font-size="13" font-weight="700" fill="#5A6B85" text-anchor="middle">HOSTS (client apps)</text>
+
+  <!-- Host 1 -->
+  <rect x="40" y="162" width="250" height="120" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="165" y="186" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">GitHub Copilot</text>
+  <rect x="56" y="196" width="92" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="102" y="214" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="156" y="214" font-size="9.5" fill="#5A6B85">selects a tool + args</text>
+  <rect x="54" y="244" width="72" height="30" rx="6" fill="#E8F0FE" stroke="#1864AB" stroke-width="1.4"/>
+  <text x="90" y="263" font-size="10.5" font-weight="600" fill="#0D3B66" text-anchor="middle">System</text>
+  <rect x="130" y="244" width="54" height="30" rx="6" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.4"/>
+  <text x="157" y="263" font-size="10.5" font-weight="600" fill="#1B5E20" text-anchor="middle">User</text>
+  <rect x="188" y="244" width="94" height="30" rx="6" fill="#FFF3E0" stroke="#E65100" stroke-width="2"/>
+  <text x="235" y="263" font-size="10.5" font-weight="700" fill="#BF360C" text-anchor="middle">Tools ⚠</text>
+
+  <!-- Host 2 -->
+  <rect x="40" y="292" width="250" height="120" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="165" y="316" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">Custom app</text>
+  <rect x="56" y="326" width="92" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="102" y="344" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="156" y="344" font-size="9.5" fill="#5A6B85">selects a tool + args</text>
+  <rect x="54" y="374" width="72" height="30" rx="6" fill="#E8F0FE" stroke="#1864AB" stroke-width="1.4"/>
+  <text x="90" y="393" font-size="10.5" font-weight="600" fill="#0D3B66" text-anchor="middle">System</text>
+  <rect x="130" y="374" width="54" height="30" rx="6" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.4"/>
+  <text x="157" y="393" font-size="10.5" font-weight="600" fill="#1B5E20" text-anchor="middle">User</text>
+  <rect x="188" y="374" width="94" height="30" rx="6" fill="#FFF3E0" stroke="#E65100" stroke-width="2"/>
+  <text x="235" y="393" font-size="10.5" font-weight="700" fill="#BF360C" text-anchor="middle">Tools ⚠</text>
+
+  <!-- Host 3 -->
+  <rect x="40" y="422" width="250" height="120" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="165" y="446" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">Another AI agent</text>
+  <rect x="56" y="456" width="92" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="102" y="474" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="156" y="474" font-size="9.5" fill="#5A6B85">selects a tool + args</text>
+  <rect x="54" y="504" width="72" height="30" rx="6" fill="#E8F0FE" stroke="#1864AB" stroke-width="1.4"/>
+  <text x="90" y="523" font-size="10.5" font-weight="600" fill="#0D3B66" text-anchor="middle">System</text>
+  <rect x="130" y="504" width="54" height="30" rx="6" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.4"/>
+  <text x="157" y="523" font-size="10.5" font-weight="600" fill="#1B5E20" text-anchor="middle">User</text>
+  <rect x="188" y="504" width="94" height="30" rx="6" fill="#FFF3E0" stroke="#E65100" stroke-width="2"/>
+  <text x="235" y="523" font-size="10.5" font-weight="700" fill="#BF360C" text-anchor="middle">Tools ⚠</text>
+
+  <!-- ===================== Tools (right) ===================== -->
+  <text x="1120" y="150" font-size="13" font-weight="700" fill="#5A6B85" text-anchor="middle">TOOLS</text>
+
+  <!-- SQL raw (NL2SQL) -->
+  <rect x="1010" y="172" width="220" height="86" rx="12" fill="#FDECEA" stroke="#C62828" stroke-width="2.5"/>
+  <text x="1120" y="200" font-size="15" font-weight="700" fill="#B71C1C" text-anchor="middle">SQL database</text>
+  <text x="1120" y="221" font-size="11.5" fill="#33415C" text-anchor="middle">a &quot;run SQL&quot; tool</text>
+  <text x="1120" y="241" font-size="11" font-weight="600" fill="#B71C1C" text-anchor="middle">model writes the SQL — NL2SQL</text>
+
+  <!-- DAB over SQL (no NL2SQL) -->
+  <rect x="1010" y="300" width="220" height="86" rx="12" fill="#FFF3E0" stroke="#E65100" stroke-width="2.5"/>
+  <text x="1120" y="328" font-size="15" font-weight="700" fill="#BF360C" text-anchor="middle">DAB over SQL</text>
+  <text x="1120" y="349" font-size="11.5" fill="#33415C" text-anchor="middle">typed tools (REST/GraphQL)</text>
+  <text x="1120" y="369" font-size="11" font-weight="600" fill="#BF360C" text-anchor="middle">no model-written SQL</text>
+
+  <!-- generic -->
+  <rect x="1010" y="428" width="220" height="86" rx="12" fill="#EEF2F7" stroke="#869397" stroke-width="2"/>
+  <text x="1120" y="462" font-size="15" font-weight="700" fill="#0A2342" text-anchor="middle">REST API / files</text>
+  <text x="1120" y="485" font-size="12" fill="#33415C" text-anchor="middle">custom client</text>
+
+  <!-- ===================== bottom callout ===================== -->
+  <rect x="40" y="556" width="1200" height="120" rx="12" fill="#FDF3F3" stroke="#E4A0A0" stroke-width="1.5"/>
+  <text x="60" y="584" font-size="15" font-weight="700" fill="#8A1C1C">How it works: the app assembles the model's context — System + User + Tools prompts — then the model picks a tool + args, the app calls it, and the tool runs it.</text>
+  <text x="60" y="609" font-size="13.5" fill="#5A3030">Only the Tools prompt has no shared format: for every tool the app hand-writes the name, description, JSON schema, call code, and auth.</text>
+  <text x="60" y="631" font-size="13.5" fill="#5A3030">Repeat that for every app × every tool → M × N bespoke integrations. No standard way to discover a tool or publish its schema.</text>
+  <text x="60" y="653" font-size="13.5" fill="#5A3030">A raw &quot;run SQL&quot; tool even lets the model write SQL (NL2SQL) — risky. DAB gives typed tools (no model SQL) — but you still hand-wire each into every app.</text>
+</svg>
