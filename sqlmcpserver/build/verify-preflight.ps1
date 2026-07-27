@@ -107,7 +107,7 @@ else {
 if (-not $NoManual) {
     Write-Host ''
     Write-Host 'If using the stdio MCP server, VS Code owns the start (do it every time):' -ForegroundColor Yellow
-    Write-Host '  1. MCP: List Servers  ->  STOP  "wardgeneral-dab"' -ForegroundColor Yellow
+    Write-Host '  1. MCP: List Servers  ->  STOP any OTHER SQL MCP server (only one can run at a time)' -ForegroundColor Yellow
     Write-Host '  2. MCP: List Servers  ->  START "Adventure Works (SQL MCP)"  (wait for Running, ~2-4s)' -ForegroundColor Yellow
     Write-Host '  3. Agent chat warm-up:  "List the AdventureWorks entities."  (retry ONCE if it errors)' -ForegroundColor Yellow
     Write-Host ''

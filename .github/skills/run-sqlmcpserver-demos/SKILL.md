@@ -13,8 +13,8 @@ description: >-
   AdventureWorks SQL MCP
   Server demos (pre-flight checks, starting the right MCP server, the Touring-1000
   cold open, the REST/GraphQL three-surfaces beat). Scope is RUN/REHEARSE the SQL
-  MCP Server demos ONLY. Do NOT use to build the database/kit (that's the build scripts), to
-  run the Ward General / hyperscale demos (separate talk), or to author slides.
+  MCP Server demos ONLY. Do NOT use to build the database/kit (that's the build scripts)
+  or to author slides.
 ---
 
 # Run the SQL MCP Server demos
@@ -45,7 +45,7 @@ All paths are workspace-relative to the **bobsql** root. Kit:
    - **Checks only** (or for the stdio alternate): `build/verify-preflight.ps1` — asserts DB reachable,
      504 products, view returns 14 for Touring-1000, `dab --version` ≥ 2.0.9, `dab validate`, and that
      **≤ 1** DAB process is up.
-   - **Only if using the stdio surface:** stop `wardgeneral-dab`, then **Start**
+   - **Only if using the stdio surface:** stop any OTHER SQL MCP server, then **Start**
      `Adventure Works (SQL MCP)` in *MCP: List Servers* (enabling ≠ starting), and warm up the first
      call (cold-start race — retry once). The HTTP path above avoids all of this.
 3. **Drive one beat at a time.** State which demo you're on, show/run its steps,
@@ -53,7 +53,7 @@ All paths are workspace-relative to the **bobsql** root. Kit:
 4. **Verify with tools when useful.** You can call the AdventureWorks MCP tools
    directly (`describe_entities`, `read_records`) to prove a beat works before the
    presenter runs it in agent-mode chat. Load them with tool_search if deferred.
-5. **If the agent misroutes** (returns clinical/patient data): the Ward General
+5. **If the agent misroutes** (returns tools/data you don't recognize): another MCP
    server is still connected — stop it and retry. This is the #1 gotcha.
 
 ## The beats (see the runbook for exact steps)
@@ -130,10 +130,10 @@ useful (not one word); they're what the model reads via `describe_entities`.
 - **DB:** local SQL Server 2025, `localhost`, **Windows integrated auth** (no
   container, no sa). AdventureWorks restored as `[AdventureWorks]`.
 - **MCP registration:** `.vscode/mcp.json` (workspace root) — `Adventure Works (SQL
-  MCP)` is now **HTTP** on **:5001** (started by `start-mcp-http.ps1`); `wardgeneral-dab`
-  is **HTTP** on :5000 (the other talk). REST `/api`, GraphQL `/graphql`, and MCP `/mcp`
-  all come from the one :5001 process. A **stdio** setup still works as an *alternate*
-  (runbook collapsible section); if you use it, the flag is `--LogLevel` (capital).
+  MCP)` is now **HTTP** on **:5001** (started by `start-mcp-http.ps1`). REST `/api`,
+  GraphQL `/graphql`, and MCP `/mcp` all come from the one :5001 process. A **stdio**
+  setup still works as an *alternate* (runbook collapsible section); if you use it, the
+  flag is `--LogLevel` (capital).
 - **Opener is a VIEW + `read_records`** (built-in DML tool), deliberately — one
   question → one set-based query. It is NOT a custom-tool/stored-proc opener.
 - **After any config edit, use `start-mcp-http.ps1 -Restart`** — the plain command
@@ -148,4 +148,3 @@ useful (not one word); they're what the model reads via `describe_entities`.
 - Build/restore the database or edit `dab-config.json` schema here — that's the
   build kit's job (`download-`/`restore-adventureworks.ps1`, `build.ps1`,
   `sql/01-mcp-views.sql`).
-- Touch the Ward General / hyperscale demo assets.

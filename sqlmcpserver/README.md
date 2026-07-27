@@ -127,27 +127,8 @@ Ground truth for rehearsal — pulled from `aka.ms/sql/mcp` →
 
 - `outline.md` — the full session outline (this is the working document)
 - `README.md` — this file
-- `build/` — *(to scaffold next)* the local-container demo kit (SQL Server 2025 `docker-compose`, a
-  restore of the stock **`AdventureWorks2022`** sample DB, a DAB config for the AdventureWorks entities
-  pointed at `localhost`, and the RLS `SECURITY POLICY` — script patterns adapted from
-  `presentations/hyperscale-developer/build/`)
-
-## Source assets this talk reuses (patterns — config + SQL are new)
-
-The *script scaffolding* is grounded in the working kit at `presentations/hyperscale-developer/build/`;
-the DAB config and SQL are **new** because the database is stock AdventureWorks, not the clinical schema:
-
-- `dab/run-dab.ps1`, `dab/setup-dab.ps1` — start/setup DAB (adapt: local SQL auth + Simulator provider)
-- `dab/probe-*.ps1` — probe the MCP endpoint (server info, tool descriptions, tool call)
-- `dab/dab-config.json` — **authored fresh** for AdventureWorks entities (BOM/manager/where-used procs,
-  order + sales-rep views), MCP `custom-tool` + `dml-tools` toggles, and role permissions
-- `sql/10-row-level-security.sql` — **authored fresh:** `SECURITY POLICY` on `Sales.SalesOrderHeader`
-  scoped by `SalesPersonID` (the only DDL we add)
-- *(optional, buffer)* embeddings over `Production.ProductDescription` for `SearchSimilarProducts`
-  — needs a local embedding model (Foundry Local)
-- **Excluded (Azure-only):** APIM/AI-gateway, `deploy/provision-*.ps1`, private-link/TDE-CMK
-
----
+- `build/` — the local demo kit (a restore of the stock **`AdventureWorks2022`** sample DB, a DAB
+  config for the AdventureWorks entities pointed at `localhost`, and the `mcp` schema + view)
 
 ## Status
 

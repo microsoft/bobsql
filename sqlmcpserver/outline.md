@@ -102,7 +102,7 @@ The talk is a **five-part teaching arc**, each part earning the next:
 ### Wrap + close (1:00–1:02)
 - **Recap the arc** over one diagram: agent → **MCP** → **DAB (SQL MCP Server)** → **stored procs + RLS** → engine. Five questions, answered live.
 - **Close line:** *"Everyone wants AI to talk to your data. You're the one who can let it — safely. The SQL MCP Server is how. Go build the bridge."*
-- Resources slide: DAB docs + SQL MCP, `github.com/microsoft/mcp`, the `hyperscale-developer` kit, QR code.
+- Resources slide: DAB docs + SQL MCP, `github.com/microsoft/mcp`, QR code.
 
 ### Q&A (1:02–1:15, 13 min)
 - Take questions. **If they run dry, pull from Buffer Material** (below) with the close slide up.
@@ -125,7 +125,7 @@ Pull in this order:
 | # | Demo | Source | Cloud egress? | Risk | Notes |
 |---|------|--------|---------------|------|-------|
 | 1 | Cold open: agent → `GetBillOfMaterials` custom tool | `build/` (local) + `dab-config.json` | **No** | Low | Anchor; stock proc; must be rock-solid offline |
-| 2 | DAB three surfaces on `localhost:5000` | `dab/run-dab.ps1` (AdventureWorks) | **No** | Low | Container must be up first |
+| 2 | DAB three surfaces on `localhost:5001` | `dab-config.json` (AdventureWorks) | **No** | Low | DAB must be up first |
 | 3 | Entity walkthrough + custom-tool | `dab/dab-config.json` | **No** | Low | Static — safest beat |
 | 4 | RBAC role flip (Simulator, `SalesReader`) | DAB dev host + `X-MS-API-ROLE` | **No** | Med | Rehearse the role-switch mechanics |
 | 5 | Row-Level Security by `SalesPersonID` | `sql/10-row-level-security.sql` | **No** | Low | Deploy the SECURITY POLICY ahead of time |
@@ -162,7 +162,7 @@ Pull in this order:
 
 ## Decisions (locked 2026-07-24)
 
-1. **Scenario:** **full AdventureWorks (`AdventureWorks2022`, OLTP)** — replaces Ward General (used in the co-located hyperscale talk). Restored **stock** into the container.
+1. **Scenario:** **full AdventureWorks (`AdventureWorks2022`, OLTP)**. Restored **stock** into the local instance.
 2. **Database stays stock — zero authored stored procedures.** Every custom tool points at a proc that already ships with AdventureWorks (`uspGetBillOfMaterials`, `uspGetManagerEmployees`, `uspGetWhereUsedProductID`). The only DDL we add is the **RLS `SECURITY POLICY`** — and that *is* the RLS demo.
 3. **Cold open:** custom tool **`GetBillOfMaterials`** → *"What parts make up the Touring-1000 bike?"* (stock proc → airtight "no SQL, not even a filter" claim).
 4. **RBAC demo:** DAB **Simulator** provider, role **`SalesReader`** flipped live via `X-MS-API-ROLE`.
@@ -172,4 +172,4 @@ Pull in this order:
 
 ## Still open
 
-- **Build kit shape:** dedicated local `build/` here vs. a container override on an existing kit. (Leaning: a fresh, small `build/` — the AdventureWorks DAB config is new, not a re-point of the clinical one.)
+- **Build kit shape:** dedicated local `build/` here vs. a container override on an existing kit. (Leaning: a fresh, small `build/` — the AdventureWorks DAB config is new.)

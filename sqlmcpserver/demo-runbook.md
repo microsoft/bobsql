@@ -75,9 +75,9 @@ If you deliberately want the stdio surface (VS Code launches DAB, no port), swit
 `Adventure Works (SQL MCP)` entry in `.vscode/mcp.json` back to `type: stdio` and:
 
 1. Run checks only: `./build/verify-preflight.ps1`.
-2. **Only ONE SQL MCP server running.** Both talks register a "SQL MCP Server" and DAB hard-codes that
-   display name, so run one at a time:
-   - **MCP: List Servers** → **stop** `wardgeneral-dab`.
+2. **Only ONE SQL MCP server running.** DAB hard-codes the "SQL MCP Server" display name, so if more
+   than one is registered, run one at a time:
+   - **MCP: List Servers** → **stop** any OTHER SQL MCP server.
    - **Start** `Adventure Works (SQL MCP)` — *enabling ≠ starting; click **Start**, wait for **Running***.
    - In the chat **tools** picker, make sure only *Adventure Works* is checked.
 3. **Warm up the first call** (VS Code cold-start race): ask *"List the AdventureWorks entities."* →
@@ -105,7 +105,7 @@ If you deliberately want the stdio surface (VS Code launches DAB, no port), swit
 HL Headset, HL Touring Frame, HL Touring Handlebars, HL Touring Seat Assembly, Rear Brakes,
 Rear Derailleur, Touring Front Wheel, Touring Pedal, Touring Rear Wheel.
 
-**If it misroutes** (returns clinical data / patient_chart tools): the Ward General server is still
+**If it misroutes** (returns tools/data you don't recognize): another MCP server is still
 connected — stop it (pre-flight step 3) and retry.
 
 **Talking point — "how does it know it's AdventureWorks?"** The tools are database-agnostic verbs; the
