@@ -79,6 +79,8 @@ Test-Step "DAB CLI >= $MinDab" {
 # --- 5. dab validate on the config -------------------------------------------
 Test-Step 'dab validate config' {
     $env:DAB_CONNECTION_STRING = "Server=$Server;Database=$Database;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;"
+    # Persist at User scope so a live `dab validate` in a fresh terminal resolves @env() too.
+    [Environment]::SetEnvironmentVariable('DAB_CONNECTION_STRING', $env:DAB_CONNECTION_STRING, 'User')
     $out = dab validate -c $Config 2>&1
     @{ Ok = ($LASTEXITCODE -eq 0); Detail = (($out | Select-String 'Config is valid' | Select-Object -First 1) ?? 'see output') }
 } 'Config is valid'
@@ -107,11 +109,11 @@ else {
 if (-not $NoManual) {
     Write-Host ''
     Write-Host 'If using the stdio MCP server, VS Code owns the start (do it every time):' -ForegroundColor Yellow
-    Write-Host '  1. MCP: List Servers  ->  STOP any OTHER SQL MCP server (only one can run at a time)' -ForegroundColor Yellow
+    Write-Host '  1. MCP: List Servers  ->  STOP  "wardgeneral-dab"' -ForegroundColor Yellow
     Write-Host '  2. MCP: List Servers  ->  START "Adventure Works (SQL MCP)"  (wait for Running, ~2-4s)' -ForegroundColor Yellow
     Write-Host '  3. Agent chat warm-up:  "List the AdventureWorks entities."  (retry ONCE if it errors)' -ForegroundColor Yellow
     Write-Host ''
-    Write-Host 'Prefer zero clicks? Use the HTTP path instead:  ./sqlmcpserver/build/start-mcp-http.ps1' -ForegroundColor Cyan
+    Write-Host 'Prefer zero clicks? Use the HTTP path instead:  ./build/start-mcp-http.ps1' -ForegroundColor Cyan
     Write-Host ''
 }
 

@@ -3,10 +3,10 @@
     SQL MCP Server talk — build & run the DAB self-hosted process LOCALLY with MCP.
 
     Stands up the SQL MCP Server (Data API Builder) as a local process against the
-    AdventureWorks database on the local SQL Server 2025 instance, exposing:
-      REST     http://localhost:5001/api
-      GraphQL  http://localhost:5001/graphql
-      MCP      http://localhost:5001/mcp    <- wire this in .vscode/mcp.json
+    AdventureWorks database in the SQL Server 2025 container, exposing:
+      REST     http://localhost:5000/api
+      GraphQL  http://localhost:5000/graphql
+      MCP      http://localhost:5000/mcp    <- wire this in .vscode/mcp.json
 
     Everything local, Windows integrated auth (your current login). This is the
     same config you'll ship to another laptop — only the connection string and
@@ -48,7 +48,7 @@ else {
 $env:DAB_CONNECTION_STRING =
     "Server=$Server;Database=$Database;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;"
 
-# Bind DAB to $Port (default 5001, matching .vscode/mcp.json).
+# Bind DAB to $Port (default 5001, so it can coexist with a Ward General DAB on 5000).
 $env:ASPNETCORE_URLS = "http://localhost:$Port"
 
 # --- 3. Validate config ------------------------------------------------------

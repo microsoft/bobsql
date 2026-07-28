@@ -17,7 +17,7 @@
       ./start-mcp-http.ps1 -Restart  # stop then start
 
     Notes:
-      - Port 5001 (default; override with -Port).
+      - Port 5001 (not 5000) so it never collides with the Ward General DAB.
       - Logs: build/artifacts/dab-http.log
 #>
 [CmdletBinding()]
@@ -81,6 +81,9 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- 2. Start DAB HTTP in the background --------------------------------------
 $env:DAB_CONNECTION_STRING = "Server=$Server;Database=$Database;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;"
+# Persist at User scope so `dab validate` works in ANY terminal opened during the talk,
+# not only this process (non-secret integrated-auth string; new terminals pick it up).
+[Environment]::SetEnvironmentVariable('DAB_CONNECTION_STRING', $env:DAB_CONNECTION_STRING, 'User')
 $env:ASPNETCORE_URLS       = $BaseUrl
 
 Write-Host "`nStarting DAB HTTP on $BaseUrl (background) ..." -ForegroundColor Yellow
