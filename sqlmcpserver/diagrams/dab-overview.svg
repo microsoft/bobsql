@@ -82,7 +82,7 @@
   <rect x="40" y="566" width="386" height="104" rx="12" fill="#F1F5FB" stroke="#B7C2D0" stroke-width="1.5"/>
   <text x="58" y="589" font-size="13.5" font-weight="700" fill="#0A2342">Listens on</text>
   <text x="58" y="610" font-size="11.5" fill="#33415C">Cross-platform .NET (Kestrel) · Windows · Linux · macOS</text>
-  <text x="58" y="627" font-size="11.5" fill="#33415C">HTTP · port :5000 · set via ASPNETCORE_URLS</text>
+  <text x="58" y="627" font-size="11.5" fill="#33415C">HTTP · port :5001 · set via ASPNETCORE_URLS</text>
   <text x="58" y="644" font-size="11.5" fill="#33415C">/api · /graphql</text>
   <text x="58" y="661" font-size="11.5" fill="#33415C">HTTPS via Kestrel or the host</text>
 

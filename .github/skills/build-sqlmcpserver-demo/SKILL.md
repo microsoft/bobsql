@@ -10,8 +10,7 @@ description: >-
   needs AdventureWorks + the view + a validated DAB config in place. Scope is
   DOWNLOAD + RESTORE + SCHEMA/VIEW + VALIDATE CONFIG + VERIFY + check MCP
   registration ONLY. Do NOT use to run/rehearse the demos (that's
-  run-sqlmcpserver-demos), to build the database/kit for the Ward General /
-  hyperscale talk (separate), or to author slides.
+  run-sqlmcpserver-demos) or to author slides.
 ---
 
 # Build the SQL MCP Server demo environment
@@ -74,7 +73,6 @@ Going live is the **run** skill's job, not this one; for reference the go-live c
 ```powershell
 & sqlmcpserver/build/start-mcp-http.ps1   # starts DAB HTTP :5001, proves the MCP handshake → GREEN
 ```
-`wardgeneral-dab` (:5000) is the other talk's server — harmless, leave it.
 
 ## Optional (only if the demo has been built)
 
@@ -87,7 +85,7 @@ Going live is the **run** skill's job, not this one; for reference the go-live c
 - Install SQL Server, .NET, or sqlcmd — `setup.ps1` checks and reports; it does not provision the host.
 - **Go live** (`start-mcp-http.ps1`) or drive the demos here — that's `run-sqlmcpserver-demos`. This skill
   leaves a *validated, verified* environment.
-- Touch the Ward General / hyperscale kit or author slides.
+- Author slides.
 
 ## Done =
 

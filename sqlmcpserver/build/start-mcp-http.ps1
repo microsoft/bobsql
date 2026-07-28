@@ -17,7 +17,7 @@
       ./start-mcp-http.ps1 -Restart  # stop then start
 
     Notes:
-      - Port 5001 (not 5000) so it never collides with the Ward General DAB.
+      - Port 5001 (default; override with -Port).
       - Logs: build/artifacts/dab-http.log
 #>
 [CmdletBinding()]

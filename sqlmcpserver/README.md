@@ -36,7 +36,6 @@ This talk is deliberately self-contained so it runs on a laptop at the venue wit
 | **Database** | **SQL Server 2025** — local **Windows** instance on `localhost`, **Windows (Integrated) auth**, stock **AdventureWorks2022** | Azure SQL / Fabric SQL DB, Entra passwordless |
 | **Governed bridge** | **DAB / SQL MCP Server** via the `dab` CLI on `http://localhost:5001` (`/api`, `/graphql`, `/mcp`) | Same DAB — would run in Azure Container Apps w/ managed identity |
 | **AI agent** | **GitHub Copilot agent mode** in VS Code, MCP server wired in `.vscode/mcp.json` | Same |
-| **(Optional) in-engine AI** | **Foundry Local** (phi-4 + qwen3-embedding) for the `SearchSimilarProducts` vector-search tool | Azure OpenAI / APIM gateway |
 
 **Only the connection string and auth provider change** between this local run and the cloud version —
 the DAB config, the entities, the MCP tools, the security model, and the T-SQL are identical. That *is*
@@ -54,13 +53,14 @@ analyst** uses a Copilot agent to ask about **products, bills of materials, orde
 through a governed SQL MCP Server surface. The point is deliberate: **zero schema to learn** means 100%
 of the room's attention stays on MCP, DAB, and governance — not on decoding a domain.
 
-**The database stays stock — we add no stored procedures.** Every *custom tool* fronts a procedure that
-**already ships with AdventureWorks** (`dbo.uspGetBillOfMaterials`, `dbo.uspGetManagerEmployees`,
-`dbo.uspGetWhereUsedProductID`); the *search* beats use the **built-in DML tools** over stock tables and
-views (`Sales.vSalesPerson`, `Production.vProductAndDescription`, …). The **only** DDL we add is the
-**RLS `SECURITY POLICY`** on `Sales.SalesOrderHeader` — and that *is* the Row-Level Security demo. DAB
-fronts these **same objects** as REST + GraphQL + **MCP tools** with **no middle-tier rewrite** — same
-procs, three surfaces.
+**Mostly stock, with minimal additions.** The demo exposes stock AdventureWorks tables plus a small `mcp`
+**view** (`mcp.vProductComponents`) for the cold open, and reaches three stock stored procedures
+(`dbo.uspGetWhereUsedProductID`, `dbo.uspGetManagerEmployees`, `dbo.uspGetEmployeeManagers`) through the
+generic `execute_entity` tool. The one **custom tool** we build — `get_product_bom` — fronts a
+purpose-authored proc (`dbo.uspGetProductBOM`) for the recursive bill of materials. DAB fronts these
+**same objects** as REST + GraphQL + **MCP tools** with **no middle-tier rewrite** — same objects, three
+surfaces. Governance (RBAC, Row-Level Security, not exposing sensitive objects) is covered as part of the
+security story.
 
 **Two tool families** (the key mental model — verified against the SQL MCP Server docs, `aka.ms/sql/mcp`):
 
@@ -69,10 +69,12 @@ procs, three surfaces.
   CRUD surface over every MCP-enabled entity, all RBAC-gated. **No NL2SQL** — DAB builds deterministic
   T-SQL from structured arguments ("NL2DAB"). *Honest nuance:* a DML tool still has the model emit a
   typed **OData filter** (never SQL), which DAB compiles to **parameterized** T-SQL.
-- **Custom tools** — stock stored-procedure entities marked `mcp.custom-tool: true` become *named,
-  described* tools the agent picks by name: **`GetBillOfMaterials`** (the cold open),
-  `GetManagerEmployees`, `GetWhereUsedProductID` (+ optional `SearchSimilarProducts` vector search).
-  A custom tool has the model emit **nothing but proc parameters** — the airtight "no SQL" claim.
+- **Custom tools** — a stored-procedure entity marked `mcp.custom-tool: true` becomes a *named,
+  described* tool the agent picks by name. In this talk that's **`get_product_bom`** (over an authored
+  proc) for the recursive bill of materials the flat view can't express. A custom tool has the model
+  emit **nothing but proc parameters** — the airtight "no SQL" claim. Custom tools are also **how you
+  expose capabilities the SQL MCP Server has no built-in tool for** — e.g. a **vector / semantic search**
+  over embeddings: wrap it in a stored procedure and publish it as a custom tool.
 
 **Controlling the surface is the governance story:** `custom-tool: false` only means "no *named* tool" —
 the proc is still invokable via the generic `execute_entity` DML tool **if** the role has `execute`. To
@@ -127,34 +129,14 @@ Ground truth for rehearsal — pulled from `aka.ms/sql/mcp` →
 
 - `outline.md` — the full session outline (this is the working document)
 - `README.md` — this file
-- `build/` — *(to scaffold next)* the local-container demo kit (SQL Server 2025 `docker-compose`, a
-  restore of the stock **`AdventureWorks2022`** sample DB, a DAB config for the AdventureWorks entities
-  pointed at `localhost`, and the RLS `SECURITY POLICY` — script patterns adapted from
-  `presentations/hyperscale-developer/build/`)
-
-## Source assets this talk reuses (patterns — config + SQL are new)
-
-The *script scaffolding* is grounded in the working kit at `presentations/hyperscale-developer/build/`;
-the DAB config and SQL are **new** because the database is stock AdventureWorks, not the clinical schema:
-
-- `dab/run-dab.ps1`, `dab/setup-dab.ps1` — start/setup DAB (adapt: local SQL auth + Simulator provider)
-- `dab/probe-*.ps1` — probe the MCP endpoint (server info, tool descriptions, tool call)
-- `dab/dab-config.json` — **authored fresh** for AdventureWorks entities (BOM/manager/where-used procs,
-  order + sales-rep views), MCP `custom-tool` + `dml-tools` toggles, and role permissions
-- `sql/10-row-level-security.sql` — **authored fresh:** `SECURITY POLICY` on `Sales.SalesOrderHeader`
-  scoped by `SalesPersonID` (the only DDL we add)
-- *(optional, buffer)* embeddings over `Production.ProductDescription` for `SearchSimilarProducts`
-  — needs a local embedding model (Foundry Local)
-- **Excluded (Azure-only):** APIM/AI-gateway, `deploy/provision-*.ps1`, private-link/TDE-CMK
-
----
+- `build/` — the local demo kit (a restore of the stock **`AdventureWorks2022`** sample DB, a DAB
+  config for the AdventureWorks entities pointed at `localhost`, and the `mcp` schema + view)
 
 ## Status
 
-- [x] Talk folder + README + outline scaffolded
-- [x] Scenario locked: **full AdventureWorks (`AdventureWorks2022`)**, stock DB, RLS the only DDL
-- [x] Cold open locked: `GetBillOfMaterials` → *"What parts make up the Touring-1000 bike?"*
-- [ ] Local build kit (`build/`) — SQL Server 2025 container compose + AdventureWorks restore + DAB config + RLS
-- [ ] Rehearse the cold-open (agent → custom tool, no raw SQL) end-to-end offline
-- [ ] Rehearse the RBAC beat (DAB Simulator `SalesReader` flip → agent loses access)
-- [x] Vector-search (Foundry Local `SearchSimilarProducts`) decided: **buffer** material
+- [x] Local build kit (`build/`) — download + restore stock AdventureWorks, deploy the `mcp` view, validate the DAB config.
+- [x] Demo 1 — cold open: agent → `read_records` over `mcp.vProductComponents` (Touring-1000 → 14 parts), no SQL.
+- [x] Demo 2 — one config: show / `dab validate` / GraphQL query; per-entity surface control.
+- [x] Demo 3 — under the hood: XE capture proves `describe_entities` (no SQL) then a parameterized `read_records`.
+- [x] Demo 4 — add a tool live: `get_product_bom` custom tool over `dbo.uspGetProductBOM` (87-row recursive BOM).
+- [ ] Back pocket (narrate only): RBAC role-flip (Simulator / `SalesReader`), Row-Level Security by `SalesPersonID`, not exposing `EmployeePayHistory`, vector search via a custom tool.
