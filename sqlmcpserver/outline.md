@@ -69,7 +69,7 @@ The talk is a **five-part teaching arc**, each part earning the next:
 - **It's on by default (~2 min):** in DAB 1.7+/2.0, if you already have a working DAB config, **MCP is enabled automatically** — entities participate unless you restrict them. The **`runtime.mcp`** block (`enabled`, `path: "/mcp"`, `description`) is where you *narrow* it, not switch it on. Restart DAB → **`/mcp` serves alongside `/api` and `/graphql`.**
 - **Two families of tools (~4 min) — the thing to understand:**
   - **Seven built-in DML tools**, auto-generated across every MCP-enabled entity: `describe_entities`, `read_records`, `create_record`, `update_record`, `delete_record`, `execute_entity`, `aggregate_records`. A **typed CRUD surface** — the agent discovers entities, then reads/writes through structured parameters (OData-style filters), **not SQL**. Design principle: **no NL2SQL — "NL2DAB"**, DAB builds deterministic T-SQL. (Strong safety line.)
-  - **Custom tools** — layered on top: mark a stored-procedure entity `mcp: { "custom-tool": true }` to register it as a **named, described** tool (e.g. `GetBillOfMaterials` over stock `dbo.uspGetBillOfMaterials`) the agent picks by name. Walk the entity: `source` (the proc) + typed params (`@StartProductID`, `@CheckDate`) → the tool's **argument schema**; `description` → the *when-to-call* contract.
+  - **Custom tools** — layered on top: mark a stored-procedure entity `mcp: { "custom-tool": true }` to register it as a **named, described** tool (e.g. `get_product_bom` over an authored `dbo.uspGetProductBOM`) the agent picks by name. Walk the entity: `source` (the proc) + typed params → the tool's **argument schema**; `description` → the *when-to-call* contract. Custom tools are also how you expose capabilities the SQL MCP Server has **no built-in tool** for — e.g. a **vector / semantic search** over embeddings: wrap it in a proc and publish it as a custom tool.
   - **Honest nuance to say out loud:** the cold open used a **built-in DML tool** (`read_records`), so the model emitted a typed, validated **OData filter** (`ProductModel eq 'Touring-1000'`) — never SQL — which DAB compiled to **one parameterized query against a view**. A **custom tool** (a named stored proc) is the other family: the model emits *nothing but proc parameters*. Neither lets the model author SQL. (We deliberately chose the DML-tool + view opener so it's **one question → one set-based query** — the "beauty of SQL" honored, not a chatty multi-call orchestration.)
 - **Narrow the surface (~4 min) — this is the governance story:** since DML tools are on by default, *enabling* isn't the interesting part — *constraining* is. Show the levers:
   - global per-tool toggles (`runtime.mcp.dml-tools.delete-record: false` kills deletes everywhere),
@@ -87,7 +87,7 @@ The talk is a **five-part teaching arc**, each part earning the next:
 - **RBAC, live (~5 min):** switch DAB's dev host to the **Simulator** auth provider (dev-only) so roles set via the `X-MS-API-ROLE` header can be demoed offline.
   - Tool call as `SalesReader` → works. Remove `SalesReader`'s `execute` (or change the sent role) → re-ask → **rejected at DAB, before SQL.** "Authorization lives in the bridge, per entity, per action — GRANT/REVOKE you already know, one layer up."
 - **Constrain the surface, live (~3 min):** by default the built-in DML tools give the agent a typed CRUD surface over MCP-enabled entities. Lock it down: set the sensitive entities to `mcp: { "dml-tools": false }` and/or disable `create/update/delete-record` globally, leaving only `read_records` + your blessed **custom-tool** procedures. Re-list tools → the surface shrinks to exactly what you allow. "Governed by config + RBAC — reachable only through what I published."
-- **Row-Level Security in the engine (~3 min):** `sql/10-row-level-security.sql` — a `SECURITY POLICY` on `Sales.SalesOrderHeader` scoped by **`SalesPersonID`** (the one bit of DDL we add — and it *is* the feature). Tools pass the acting **`SalesPersonID`**; RLS in the **engine** filters orders to that rep. List orders as rep A (their book) vs a rep whose orders aren't theirs (empty). "Defense in depth — the bridge *and* the engine."
+- **Row-Level Security in the engine (~3 min, narrate):** a `SECURITY POLICY` on `Sales.SalesOrderHeader` scoped by **`SalesPersonID`** would filter orders to the acting rep — RLS runs in the **engine**, so it applies no matter which tool calls. "Defense in depth — the bridge *and* the engine." (Described, not a built live beat.)
 - **The sensitive thing you don't expose (~1 min):** `HumanResources.EmployeePayHistory` / `Rate` is simply **not** published as an entity — and even if `execute_entity` reached that far, no role the agent holds can touch it. "Least privilege isn't a switch you flip; it's the surface you chose to publish."
 - **Least privilege + audit (~1 min):** DAB's own login is least-privileged (read/execute on the published objects only); every call is an auditable parameterized execution (XEvents/Audit). "Your security, applied to a new consumer."
 - **Land it:** *"RBAC, stored procedures, RLS, least privilege — the agent is just another caller, subject to all of it."*
@@ -95,7 +95,7 @@ The talk is a **five-part teaching arc**, each part earning the next:
 ### 5 — Using it in practice for AI agents (0:50–1:00)
 *Answers "what does this look like day to day — and in production?"*
 
-- **The agent flow (~3 min):** back in Copilot agent mode, a realistic multi-step ask (*"which components of the Touring-1000 are used in other products too?"*) — the agent **chains stock tools** (`GetBillOfMaterials` → `GetWhereUsedProductID`) and reasons over structured results. "It's composing your tools, not improvising SQL."
+- **The agent flow (~3 min):** back in Copilot agent mode, a realistic multi-step ask (*"which components of the Touring-1000 are used in other products too?"*) — the agent **chains tools** (`get_product_bom` → `GetWhereUsedProductID`) and reasons over structured results. "It's composing your tools, not improvising SQL."
 - **Add a tool live (~4 min):** take an existing stock proc not yet exposed (e.g. `dbo.uspGetManagerEmployees` or `dbo.uspGetWhereUsedProductID`) → add a small entity with a good `description` + `custom-tool: true` + read permission → restart DAB → **the agent discovers and uses the new tool.** "Publishing an AI capability was: write a description, set a permission. A reviewable config change — and I never touched the database."
 - **Run it anywhere (~3 min):** going to production changes **two things** — the **connection string** (container → **Azure SQL** or **Fabric SQL Database**) and the **auth provider** (`Simulator` → **Entra / managed identity**); DAB moves to **Azure Container Apps**. **Entities, tools, descriptions, permissions, T-SQL: byte-for-byte the same.** "Learn it on your laptop; ship the same config to the cloud."
 
@@ -112,11 +112,11 @@ The talk is a **five-part teaching arc**, each part earning the next:
 ## Buffer material (only if time / low Q&A) — all local, all reuse
 
 Pull in this order:
-1. **Vector-search tool (RAG, fully local):** embed `Production.ProductDescription` and expose a `SearchSimilarProducts` tool with **Foundry Local** (phi-4 + qwen3-embedding). Agent: *"find products similar to a lightweight aluminum road frame."* Grounded retrieval over the product catalog — still zero cloud. (~4 min)
+1. **Vector search via a custom tool (fully local):** vector / semantic search is **not** a built-in SQL MCP Server tool — you expose it the same way you'd expose any capability: wrap an embeddings query in a stored proc and publish it as a **custom tool**. Embed `Production.ProductDescription` with **Foundry Local** (phi-4 + qwen3-embedding); agent: *"find products similar to a lightweight aluminum road frame."* Still zero cloud. (~4 min)
 2. **REST/GraphQL parity:** hit the **same** entity over `/api` and `/graphql` to prove "same proc, three surfaces." (~2 min)
 3. **Probe internals:** `probe-serverinfo.ps1` / `probe-toolcall.ps1` — the raw MCP handshake + a hand-issued tool call. (~2 min)
 4. **Write path with role gate:** call a write DML tool (`create_record` / `update_record` on an orders entity) as a role that holds it, then show the agent's role deliberately *lacks* it — the write is rejected at DAB. (~3 min)
-5. **Diff to cloud:** open the Azure `run-dab.ps1`/`setup-dab.ps1` and show the *only* deltas are connection string + auth provider. (~2 min)
+5. **Diff to cloud:** show that going to Azure changes only the connection string + auth provider — entities, tools, and T-SQL in `dab-config.json` are identical. (~2 min)
 
 ---
 
@@ -124,13 +124,11 @@ Pull in this order:
 
 | # | Demo | Source | Cloud egress? | Risk | Notes |
 |---|------|--------|---------------|------|-------|
-| 1 | Cold open: agent → `GetBillOfMaterials` custom tool | `build/` (local) + `dab-config.json` | **No** | Low | Anchor; stock proc; must be rock-solid offline |
-| 2 | DAB three surfaces on `localhost:5001` | `dab-config.json` (AdventureWorks) | **No** | Low | DAB must be up first |
-| 3 | Entity walkthrough + custom-tool | `dab/dab-config.json` | **No** | Low | Static — safest beat |
-| 4 | RBAC role flip (Simulator, `SalesReader`) | DAB dev host + `X-MS-API-ROLE` | **No** | Med | Rehearse the role-switch mechanics |
-| 5 | Row-Level Security by `SalesPersonID` | `sql/10-row-level-security.sql` | **No** | Low | Deploy the SECURITY POLICY ahead of time |
-| 6 | Add-a-tool live (stock proc) | `dab-config.json` edit + restart | **No** | Med | Pre-stage the entity JSON to paste |
-| 7 | *(buffer)* Vector search RAG (products) | `Production.ProductDescription` + Foundry Local | **No** | Med | Needs local model running; buffer only |
+| 1 | Cold open: agent → `read_records` over `mcp.vProductComponents` (Touring-1000 → 14) | `build/` + `dab-config.json` | **No** | Low | Anchor; view + DML tool; rock-solid offline |
+| 2 | One config: show / `dab validate` / GraphQL on `localhost:5001` | `dab-config.json` | **No** | Low | DAB must be up first |
+| 3 | Under the hood: XE — `describe_entities` (no SQL) then parameterized `read_records` | `demos/demo3-xe-capture.sql` | **No** | Low | Start the XE session before the prompt |
+| 4 | Add a tool live: `get_product_bom` over `dbo.uspGetProductBOM` | `reset-dab-config.ps1 -ApplyTool` | **No** | Med | 87-row recursive BOM; config switch |
+| — | Back pocket (narrate only): RBAC role-flip, RLS by `SalesPersonID`, not exposing `EmployeePayHistory`, vector search via a custom tool | — | **No** | — | Not a built live beat |
 
 ---
 
@@ -160,16 +158,11 @@ Pull in this order:
 
 ---
 
-## Decisions (locked 2026-07-24)
+## Decisions (as built)
 
-1. **Scenario:** **full AdventureWorks (`AdventureWorks2022`, OLTP)**. Restored **stock** into the local instance.
-2. **Database stays stock — zero authored stored procedures.** Every custom tool points at a proc that already ships with AdventureWorks (`uspGetBillOfMaterials`, `uspGetManagerEmployees`, `uspGetWhereUsedProductID`). The only DDL we add is the **RLS `SECURITY POLICY`** — and that *is* the RLS demo.
-3. **Cold open:** custom tool **`GetBillOfMaterials`** → *"What parts make up the Touring-1000 bike?"* (stock proc → airtight "no SQL, not even a filter" claim).
-4. **RBAC demo:** DAB **Simulator** provider, role **`SalesReader`** flipped live via `X-MS-API-ROLE`.
-5. **RLS:** in the main flow, scoped by **`SalesPersonID`** on `Sales.SalesOrderHeader`.
-6. **Vector-RAG:** **buffer** material — `SearchSimilarProducts` over `Production.ProductDescription` (keeps the Foundry Local dependency off the critical path).
-7. **Local auth:** container uses `sa`/SQL auth, called out as **dev-only** (production = managed identity).
-
-## Still open
-
-- **Build kit shape:** dedicated local `build/` here vs. a container override on an existing kit. (Leaning: a fresh, small `build/` — the AdventureWorks DAB config is new.)
+1. **Scenario:** stock **AdventureWorks (`AdventureWorks2022`, OLTP)**, restored unmodified.
+2. **Read-only config, 13 entities:** 9 tables + the `mcp.vProductComponents` view + 3 stock procs via `execute_entity`. Added DB objects: the `mcp` view and one authored proc `dbo.uspGetProductBOM` for the add-a-tool demo.
+3. **Cold open:** `read_records` over the `mcp.vProductComponents` view → *"What parts make up the Touring-1000 bike?"* → 14 parts, no SQL.
+4. **Add a tool live:** `get_product_bom` custom tool over `dbo.uspGetProductBOM` (87-row recursive BOM).
+5. **Back pocket (narrate only):** RBAC role-flip (Simulator / `SalesReader`), Row-Level Security by `SalesPersonID`, not exposing `EmployeePayHistory`, and **vector search via a custom tool** (not a built-in SQL MCP Server tool).
+6. **Local auth:** `localhost`, Windows integrated auth (production = managed identity).

@@ -105,4 +105,6 @@
 
   <rect x="62" y="648" width="560" height="24" rx="6" fill="#FFF8E1"/>
   <text x="342" y="664" font-size="12.5" font-weight="700" fill="#6B5300" text-anchor="middle">NL2DAB throughout — the model never writes SQL.</text>
+  <rect x="640" y="648" width="565" height="24" rx="6" fill="#FFF8E1"/>
+  <text x="922" y="664" font-size="12" font-weight="700" fill="#6B5300" text-anchor="middle">Vector / semantic search isn't built-in — wrap it in a proc, publish as a custom tool.</text>
 </svg>
