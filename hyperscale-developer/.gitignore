@@ -1,0 +1,6 @@
+# Local presentation binary; use Git LFS instead if you intend to version the deck.
+/Azure SQL Hyperscale The Cloud Database for the era of AI.pptx
+
+# Generated sqlsim outputs.
+/utilities/sqlsim/read-surge/read-surge-*.html
+/utilities/sqlsim/read-surge/read-surge-*.json

@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WardGeneral.Data/WardGeneral.Data.csproj" />
+    <Project Path="src/WardGeneral.Agent/WardGeneral.Agent.csproj" />
+    <Project Path="src/WardGeneral.Web/WardGeneral.Web.csproj" />
+  </Folder>
+</Solution>

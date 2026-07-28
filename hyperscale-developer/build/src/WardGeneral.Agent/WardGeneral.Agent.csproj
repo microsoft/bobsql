@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    Microsoft Agent Framework (MAF) + the MCP C# SDK.
+    MAF is PREVIEW as of 2026-07 — floating to latest prerelease. Pin these
+    versions before a real release. See README "Data API Builder + SQL MCP".
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="*-*" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="*-*" />
+    <PackageReference Include="Azure.Identity" Version="*" />
+    <PackageReference Include="ModelContextProtocol" Version="*-*" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="*" />
+  </ItemGroup>
+
+</Project>

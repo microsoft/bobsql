@@ -8,7 +8,7 @@ builder (DAB)** as the SQL MCP Server. No cloud egress.
 > product/BOM/order data through a governed SQL MCP Server. Nothing to redact — AdventureWorks is a
 > public sample DB.
 
-Paths are workspace-relative to the **bobsql** root. Kit: `sqlmcpserver/build/`.
+Paths are workspace-relative to the **bwsql** root. Kit: `presentations/sqlmcpserver/build/`.
 
 ---
 
@@ -75,9 +75,9 @@ If you deliberately want the stdio surface (VS Code launches DAB, no port), swit
 `Adventure Works (SQL MCP)` entry in `.vscode/mcp.json` back to `type: stdio` and:
 
 1. Run checks only: `./build/verify-preflight.ps1`.
-2. **Only ONE SQL MCP server running.** DAB hard-codes the "SQL MCP Server" display name, so if more
-   than one is registered, run one at a time:
-   - **MCP: List Servers** → **stop** any OTHER SQL MCP server.
+2. **Only ONE SQL MCP server running.** Both talks register a "SQL MCP Server" and DAB hard-codes that
+   display name, so run one at a time:
+   - **MCP: List Servers** → **stop** `wardgeneral-dab`.
    - **Start** `Adventure Works (SQL MCP)` — *enabling ≠ starting; click **Start**, wait for **Running***.
    - In the chat **tools** picker, make sure only *Adventure Works* is checked.
 3. **Warm up the first call** (VS Code cold-start race): ask *"List the AdventureWorks entities."* →
@@ -105,7 +105,7 @@ If you deliberately want the stdio surface (VS Code launches DAB, no port), swit
 HL Headset, HL Touring Frame, HL Touring Handlebars, HL Touring Seat Assembly, Rear Brakes,
 Rear Derailleur, Touring Front Wheel, Touring Pedal, Touring Rear Wheel.
 
-**If it misroutes** (returns tools/data you don't recognize): another MCP server is still
+**If it misroutes** (returns clinical data / patient_chart tools): the Ward General server is still
 connected — stop it (pre-flight step 3) and retry.
 
 **Talking point — "how does it know it's AdventureWorks?"** The tools are database-agnostic verbs; the
@@ -142,7 +142,7 @@ Walk the three sections:
 ```powershell
 dab --version     # 2.0.9 — the DAB global .NET tool
 dab --help        # the verbs: init · add · update · configure · validate · start · export
-dab validate -c sqlmcpserver/build/dab/dab-config.json
+dab validate -c presentations/sqlmcpserver/build/dab/dab-config.json
 ```
 `validate` prints **"Config is valid."** — but also **12 warnings**: *"Entity 'Products' is missing 'fields'
 definition while MCP is enabled … recommended … for optimal performance with MCP."*
@@ -152,7 +152,7 @@ only shows the **model** what's in `fields`. These tables have none, so the agen
 DAB is telling me to describe them."*
 
 **Live fix (the payoff) — fast, pre-built, deterministic:** run
-`./sqlmcpserver/build/reset-dab-config.ps1 -ApplyFields`. It drops in the pre-authored
+`./presentations/sqlmcpserver/build/reset-dab-config.ps1 -ApplyFields`. It drops in the pre-authored
 `dab-config.fields.json` (all **9 tables + 3 stored procs** described), validates to **0 warnings**, and
 restarts DAB in one move — then call `describe_entities` to show the model now sees every column. Say to the
 agent — *"add all the fields dab validate is warning about"* — and this is the move behind it. There is **no
@@ -165,7 +165,7 @@ hot-reload config, and this keeps the beat identical on every machine.
 > block listing the proc's **result-set columns** (not its `parameters`) — that's why the pre-built config
 > reaches a clean **0**, not 3.
 
-> **Reset after rehearsal:** `./sqlmcpserver/build/reset-dab-config.ps1` restores the
+> **Reset after rehearsal:** `./presentations/sqlmcpserver/build/reset-dab-config.ps1` restores the
 > 12-warnings baseline so the warnings return for the next run-through.
 
 > Prefer **hand-editing** the config over `dab add`/`dab update` during the talk. Those commands edit the file
@@ -248,7 +248,7 @@ governed, parameterized T-SQL, and where the model's decisions actually come fro
 **Before the beat — start the capture and attach SSMS:**
 1. Pre-flight the XE session:
    ```powershell
-   ./sqlmcpserver/build/start-xe-capture.ps1   # -> XE CAPTURE: GREEN
+   ./presentations/sqlmcpserver/build/start-xe-capture.ps1   # -> XE CAPTURE: GREEN
    ```
    (creates + starts `dab_mcp_capture`, a ring-buffer session filtered to `%ProductComponents%`; idempotent.)
 2. In **SSMS**: Management → Extended Events → Sessions → right-click **`dab_mcp_capture`** → **Watch Live
@@ -265,8 +265,17 @@ governed, parameterized T-SQL, and where the model's decisions actually come fro
    = @param0) …` with **`@param0 = 'Touring-1000'` bound** (not concatenated).
 6. **Land it:** plain English → `describe_entities` (config, **no SQL**) → `read_records` (one **parameterized**
    query, bound param) → JSON. *Descriptions did the routing; DAB did the SQL. NL2DAB, not NL2SQL.*
+7. **Show the code behind it (don't run — Wi-Fi/model is cloud):** open
+   [`src/Program.cs`](src/Program.cs) — the same loop, ~30 lines. Point at the three moves:
+   - `McpClient.CreateAsync(new HttpClientTransport(... :5001/mcp ...))` → connect to **this** server,
+   - `await mcp.ListToolsAsync()` → the **governed tool catalog** the model gets (the routing metadata),
+   - `.AsAIAgent(model, instructions, tools: [.. mcpTools.Cast<AITool>()])` + `agent.RunAsync("What parts make up the Touring-1000 bike?")`
+     → **Microsoft Agent Framework + Foundry** runs the *decide → call → feed-back → repeat* loop you just watched.
+   *"What Copilot did in the Chat Debug view + XE, in code I own — same server, same governed tools, the model
+   just chooses which to call. The plumbing is three lines; the governance stays in SQL."* (Just show it — the
+   model is cloud, so it isn't part of the offline path.)
 
-**Teardown:** `./sqlmcpserver/build/start-xe-capture.ps1 -Stop` (drops `dab_mcp_capture`).
+**Teardown:** `./presentations/sqlmcpserver/build/start-xe-capture.ps1 -Stop` (drops `dab_mcp_capture`).
 
 **Verified notes (2026-07-26):**
 - Two `rpc_completed` rows may appear (the agent reads twice) — both identical + parameterized.
@@ -359,7 +368,13 @@ The payoff is that you **don't change the question** — you changed the server'
 1. Before (Demos 1–2 config): only the view exists. Cold open *"What parts make up the Touring-1000 bike?"*
    → `read_records` on the view → **14 top-level parts**.
 2. Switch configs: `./build/reset-dab-config.ps1 -ApplyTool` (validates + restarts DAB; proc already in the DB
-   from build). Reconnect (Reload Window once if VS Code shows Stopped).
+   from build). This **kills the old DAB process and starts a new one on :5001**, so VS Code's existing
+   connection goes **Stopped** — that's expected and you MUST reconnect before the tool shows up.
+   - **RECONNECT (mandatory — the tool will NOT appear until you do this):** in VS Code run
+     **Developer: Reload Window** once. If the `Adventure Works (SQL MCP)` server still shows **Stopped**
+     afterward, open **MCP: List Servers** and click **Start** on it. Confirm it reads **Running** before moving on.
+     *(This is the #1 gotcha: `-ApplyTool` restarts the server, but VS Code does not auto-reconnect to the new
+     process — a stale/Stopped client shows the OLD toolset without `get_product_bom`.)*
    - **Show it in the chat's Configure Tools flyout:** open the tools picker (the 🛠️ / "Configure Tools"
      control under the chat box) and point out that **`get_product_bom` now appears** in the SQL MCP server's
      tool list — it wasn't there before the switch. The config change literally added a new tool to the agent's

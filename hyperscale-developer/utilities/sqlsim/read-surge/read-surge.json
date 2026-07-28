@@ -1,0 +1,8 @@
+{
+    "duration_seconds": 60,
+    "workloads": [
+        { "file": "read-census-board.sql",  "threads": 20 },
+        { "file": "read-patient-chart.sql",  "threads": 12 },
+        { "file": "read-worklist.sql",       "threads": 6 }
+    ]
+}

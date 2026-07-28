@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ward General logo">
+  <defs>
+    <linearGradient id="wgBadge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14b8b8"/>
+      <stop offset="1" stop-color="#1e5bb8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#wgBadge)"/>
+  <!-- WG monogram -->
+  <text x="31" y="43" text-anchor="middle"
+        font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="28" font-weight="700" letter-spacing="-2" fill="#ffffff">WG</text>
+  <!-- small medical cross accent (top-right) -->
+  <path d="M46 10h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#ffffff" opacity="0.85"/>
+</svg>
+

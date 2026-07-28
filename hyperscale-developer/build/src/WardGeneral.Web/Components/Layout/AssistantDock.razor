@@ -1,0 +1,170 @@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Web
+@using WardGeneral.Agent
+@using WardGeneral.Web.Services
+@inject WardGeneralAgent Agent
+@inject PageContext Page
+@inject WardGeneral.Data.AccessContext Access
+@implements IDisposable
+
+@if (!_open)
+{
+    <button class="assistant-fab" @onclick="Toggle" title="Ward General assistant" aria-label="Assistant">
+        <span class="bi-chat">💬</span>
+    </button>
+}
+
+@if (_open)
+{
+    <aside class="assistant-dock">
+        <header class="assistant-head">
+            <span class="fw-semibold">Ward General assistant</span>
+            <button class="assistant-x" @onclick="Toggle" aria-label="Close">🗙</button>
+        </header>
+
+        <div class="assistant-banner">
+            Advisory — a clinician confirms. Answers come from Ward General tools (charts, encounters, notes).
+            <div class="assistant-scope">
+                Acting as: <strong>@(Access.ProviderName ?? "Admin — all patients")</strong>
+                @if (Access.ProviderId is not null)
+                {
+                    <span class="scope-badge">RLS scoped</span>
+                }
+            </div>
+        </div>
+
+        <div class="assistant-messages">
+            @if (_messages.Count == 0)
+            {
+                <p class="text-muted small mb-0">Ask about patients, encounters, or similar cases.</p>
+            }
+            @foreach (var m in _messages)
+            {
+                <div class="msg @(m.User ? "msg-user" : "msg-bot") @(m.Error ? "msg-error" : "")">
+                    @if (!m.User && m.Tools.Count > 0)
+                    {
+                        <div class="tool-chips">
+                            @foreach (var t in m.Tools)
+                            {
+                                <span class="tool-chip" title="MCP tool call">🔧 @t</span>
+                            }
+                        </div>
+                    }
+                    <div class="msg-text">@m.Text.ToString()</div>
+                </div>
+            }
+            @if (_busy && (_messages.Count == 0 || _messages[^1].User))
+            {
+                <div class="msg msg-bot"><div class="msg-text text-muted">…thinking</div></div>
+            }
+        </div>
+
+        <div class="assistant-suggestions">
+            @foreach (var s in Suggestions())
+            {
+                <button class="suggestion" @onclick="() => UseSuggestion(s)" disabled="@_busy">@s</button>
+            }
+        </div>
+
+        <div class="assistant-input">
+            <textarea class="form-control" rows="2" placeholder="Ask Ward General…"
+                      @bind="_input" @bind:event="oninput" @onkeydown="OnKey"></textarea>
+            <button class="btn btn-primary btn-sm" @onclick="Send"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_input))">Send</button>
+        </div>
+    </aside>
+}
+
+@code {
+    private bool _open;
+    private string _input = "";
+    private bool _busy;
+    private readonly List<Msg> _messages = new();
+    private AssistantConversation? _convo;
+    private CancellationTokenSource? _cts;
+
+    private void Toggle() => _open = !_open;
+
+    private IEnumerable<string> Suggestions()
+    {
+        yield return "How many active patients are in ICU A?";
+        yield return "Find similar cases: elderly chest pain with elevated troponin";
+        if (Page.EncounterId is int e)
+            yield return $"Summarize encounter {e} and suggest a triage level";
+        else
+            yield return "Which of my patients should I prioritize right now?";
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey) await Send();
+    }
+
+    private Task UseSuggestion(string s)
+    {
+        _input = s;
+        return Send();
+    }
+
+    private async Task Send()
+    {
+        var text = _input.Trim();
+        if (string.IsNullOrEmpty(text) || _busy) return;
+
+        _input = "";
+        _messages.Add(new Msg { User = true, Text = new(text) });
+        _busy = true;
+        StateHasChanged();
+        // Yield so Blazor paints the user's message + "…thinking" BEFORE the
+        // (possibly slow) first agent call (MCP connect + tool list on first use).
+        await Task.Yield();
+
+        Msg? reply = null;
+        _convo ??= Agent.NewConversation();
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await foreach (var u in Agent.AskAsync(text, _convo, Page.Describe(), Access.ProviderId ?? 0, _cts.Token))
+            {
+                reply ??= AddReply();
+                if (u.Kind == AssistantUpdateKind.Token)
+                    reply.Text.Append(u.Text);
+                else if (u.Kind == AssistantUpdateKind.ToolCall)
+                    reply.Tools.Add(string.IsNullOrEmpty(u.ToolArgs) ? u.ToolName! : $"{u.ToolName}({u.ToolArgs})");
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            reply ??= AddReply();
+            reply.Error = true;
+            reply.Text.Append("Assistant unavailable — ").Append(ex.Message);
+        }
+
+        _busy = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Msg AddReply()
+    {
+        var m = new Msg { User = false };
+        _messages.Add(m);
+        return m;
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
+    private sealed class Msg
+    {
+        public bool User;
+        public bool Error;
+        public System.Text.StringBuilder Text = new();
+        public List<string> Tools = new();
+    }
+}

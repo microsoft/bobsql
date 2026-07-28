@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Title -->
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#0A2342">AI + tools — before a common standard</text>
+  <text x="40" y="84" font-size="16.5" fill="#4A5568">The model <tspan font-weight="700">selects</tspan> a tool and gives arguments; the client app <tspan font-weight="700">runs</tspan> it. Without a standard, the app hand-builds every tool.</text>
+
+  <!-- ===================== bespoke connectors (M x N) ===================== -->
+  <g stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6" fill="none">
+    <line x1="272" y1="214" x2="1008" y2="214" stroke="#D08770"/>
+    <line x1="272" y1="214" x2="1008" y2="348" stroke="#5E81AC"/>
+    <line x1="272" y1="214" x2="1008" y2="482" stroke="#B48EAD"/>
+    <line x1="272" y1="352" x2="1008" y2="214" stroke="#5E81AC"/>
+    <line x1="272" y1="352" x2="1008" y2="348" stroke="#D08770"/>
+    <line x1="272" y1="352" x2="1008" y2="482" stroke="#A3BE8C"/>
+    <line x1="272" y1="490" x2="1008" y2="214" stroke="#B48EAD"/>
+    <line x1="272" y1="490" x2="1008" y2="348" stroke="#A3BE8C"/>
+    <line x1="272" y1="490" x2="1008" y2="482" stroke="#D08770"/>
+  </g>
+
+  <!-- central pain pill -->
+  <rect x="512" y="328" width="256" height="48" rx="10" fill="#FFFFFF" stroke="#B71C1C" stroke-width="2"/>
+  <text x="640" y="358" font-size="15" font-weight="700" fill="#B71C1C" text-anchor="middle">N × M custom integrations</text>
+
+  <!-- ===================== Hosts (left) with AI model ===================== -->
+  <text x="155" y="146" font-size="13" font-weight="700" fill="#5A6B85" text-anchor="middle">HOSTS (client apps)</text>
+
+  <!-- Host 1 -->
+  <rect x="40" y="162" width="230" height="104" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="155" y="187" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">GitHub Copilot</text>
+  <rect x="56" y="199" width="96" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="104" y="217" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="160" y="217" font-size="10" fill="#5A6B85">selects a tool</text>
+  <text x="155" y="252" font-size="10.5" fill="#33415C" text-anchor="middle">client runs it — custom code per tool</text>
+
+  <!-- Host 2 -->
+  <rect x="40" y="300" width="230" height="104" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="155" y="325" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">Custom app</text>
+  <rect x="56" y="337" width="96" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="104" y="355" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="160" y="355" font-size="10" fill="#5A6B85">selects a tool</text>
+  <text x="155" y="390" font-size="10.5" fill="#33415C" text-anchor="middle">client runs it — custom code per tool</text>
+
+  <!-- Host 3 -->
+  <rect x="40" y="438" width="230" height="104" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="155" y="463" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">Another AI agent</text>
+  <rect x="56" y="475" width="96" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="104" y="493" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="160" y="493" font-size="10" fill="#5A6B85">selects a tool</text>
+  <text x="155" y="528" font-size="10.5" fill="#33415C" text-anchor="middle">client runs it — custom code per tool</text>
+
+  <!-- ===================== Tools (right) ===================== -->
+  <text x="1120" y="146" font-size="13" font-weight="700" fill="#5A6B85" text-anchor="middle">TOOLS</text>
+
+  <!-- SQL raw (NL2SQL) -->
+  <rect x="1010" y="170" width="220" height="88" rx="12" fill="#FDECEA" stroke="#C62828" stroke-width="2.5"/>
+  <text x="1120" y="199" font-size="15" font-weight="700" fill="#B71C1C" text-anchor="middle">SQL database</text>
+  <text x="1120" y="220" font-size="11.5" fill="#33415C" text-anchor="middle">a &quot;run SQL&quot; tool</text>
+  <text x="1120" y="239" font-size="11" font-weight="600" fill="#B71C1C" text-anchor="middle">model writes the SQL — NL2SQL</text>
+
+  <!-- DAB over SQL (no NL2SQL) -->
+  <rect x="1010" y="304" width="220" height="88" rx="12" fill="#FFF3E0" stroke="#E65100" stroke-width="2.5"/>
+  <text x="1120" y="333" font-size="15" font-weight="700" fill="#BF360C" text-anchor="middle">DAB over SQL</text>
+  <text x="1120" y="354" font-size="11.5" fill="#33415C" text-anchor="middle">typed tools (REST/GraphQL)</text>
+  <text x="1120" y="373" font-size="11" font-weight="600" fill="#BF360C" text-anchor="middle">no model-written SQL</text>
+
+  <!-- generic -->
+  <rect x="1010" y="438" width="220" height="88" rx="12" fill="#EEF2F7" stroke="#869397" stroke-width="2"/>
+  <text x="1120" y="473" font-size="15" font-weight="700" fill="#0A2342" text-anchor="middle">REST API / files</text>
+  <text x="1120" y="496" font-size="12" fill="#33415C" text-anchor="middle">custom client</text>
+
+  <!-- ===================== bottom callout ===================== -->
+  <rect x="40" y="560" width="1200" height="112" rx="12" fill="#FDF3F3" stroke="#E4A0A0" stroke-width="1.5"/>
+  <text x="60" y="588" font-size="15" font-weight="700" fill="#8A1C1C">How it works: ① the app shows its model the tools it hand-described → ② the model picks one + args → ③ the app runs it.</text>
+  <text x="60" y="613" font-size="13.5" fill="#5A3030">The app owns both ends: it hand-writes each tool's description (so the model can choose) and the code to execute it.</text>
+  <text x="60" y="635" font-size="13.5" fill="#5A3030">M apps × N tools = M × N bespoke integrations — custom schema and auth per pair. No shared way to discover a tool.</text>
+  <text x="60" y="657" font-size="13.5" fill="#5A3030">A raw “run SQL” tool lets the model write SQL (NL2SQL) — risky. DAB gives typed tools (no model SQL) — but you still hand-wire each into every app.</text>
+</svg>

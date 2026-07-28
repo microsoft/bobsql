@@ -1,0 +1,9 @@
+{
+  "//": "Ward General — SQL MCP Server (Data API Builder). Auto-discovered when this 'build' folder is opened directly in VS Code. For a MULTI-ROOT workspace (.code-workspace), put the same 'servers' block under a top-level 'mcp' key in the .code-workspace file instead — VS Code does not read a folder's .vscode/mcp.json in multi-root mode. Start DAB first with dab/run-dab.ps1 (listens on :5000).",
+  "servers": {
+    "wardgeneral-dab": {
+      "type": "http",
+      "url": "http://localhost:5000/mcp"
+    }
+  }
+}

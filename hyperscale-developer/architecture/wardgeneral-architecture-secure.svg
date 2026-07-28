@@ -1,0 +1,248 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1960 880" width="1960" height="880" preserveAspectRatio="xMidYMid meet" style="max-width:100%;height:auto;display:block" font-family="Segoe UI, system-ui, -apple-system, sans-serif">
+  <!--
+    SECURE-IT focus view of wardgeneral-architecture.svg.
+    Pattern (repeatable for Scale / HA / Modernize):
+      1. The FULL master diagram is rendered once inside <g class="dim"> (faded to context).
+      2. An OVERLAY group re-draws only this category's controls at full opacity,
+         wrapped in a colored focus ring, each with a status badge.
+    To make a Scale/HA/Modernize variant: keep the dim base, swap the overlay.
+  -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#5B6B7B"/>
+    </marker>
+    <marker id="arrowDash" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#E8710A"/>
+    </marker>
+    <style>
+      .ink   { fill:#1A2733; }
+      .muted { fill:#5B6B7B; }
+      .title { fill:#1A2733; font-weight:700; }
+      .h     { fill:#0F6CBD; font-weight:700; }
+      .box   { fill:#EAF2FB; stroke:#0F6CBD; stroke-width:1.5; }
+      .hsbox { fill:#F5F9FF; stroke:#0F6CBD; stroke-width:2; }
+      .sub   { fill:#FFFFFF; stroke:#B7CBE4; stroke-width:1.2; }
+      .client{ fill:#FFF8EC; stroke:#C9A227; stroke-width:1.5; }
+      .cn    { stroke:#5B6B7B; stroke-width:2; fill:none; }
+      .cnd   { stroke:#E8710A; stroke-width:2; stroke-dasharray:6 5; fill:none; }
+      .cnlbl { fill:#5B6B7B; font-size:12px; }
+      .secure    { fill:#2E7D32; }
+      .scale     { fill:#E8710A; }
+      .ha        { fill:#7B2CBF; }
+      .modernize { fill:#C2185B; }
+      .p-secure    { fill:#2E7D32; fill-opacity:0.13; stroke:#2E7D32; }
+      .p-scale     { fill:#E8710A; fill-opacity:0.13; stroke:#E8710A; }
+      .p-ha        { fill:#7B2CBF; fill-opacity:0.13; stroke:#7B2CBF; }
+      .p-modernize { fill:#C2185B; fill-opacity:0.13; stroke:#C2185B; }
+      .pill-t { font-size:11.5px; font-weight:700; }
+      /* focus-view helpers */
+      .dim    { opacity:0.20; }
+      .ring   { fill:#2E7D32; fill-opacity:0.04; stroke:#2E7D32; stroke-width:2.5; }
+    </style>
+  </defs>
+
+  <!-- ===== Header (not dimmed) ===== -->
+  <text x="40" y="46" class="title" font-size="26">Ward General — 🔒 Secure it</text>
+  <text x="40" y="74" class="muted" font-size="15">The security controls from the architecture, highlighted.</text>
+
+  <!-- ============================================================= -->
+  <!-- ===== DIMMED BASE: the full master diagram for context ======= -->
+  <!-- ============================================================= -->
+  <g class="dim">
+    <!-- Clients -->
+    <g>
+      <rect x="40" y="250" width="250" height="104" rx="10" class="client"/>
+      <text x="60" y="288" class="title" font-size="16">Clinicians</text>
+      <text x="60" y="312" class="muted" font-size="13">Browser · patient chart</text>
+      <text x="60" y="332" class="muted" font-size="13">unit / bed census board</text>
+      <rect x="40" y="520" width="250" height="104" rx="10" class="client"/>
+      <text x="60" y="558" class="title" font-size="16">AI agent</text>
+      <text x="60" y="582" class="muted" font-size="13">VS Code · GitHub Copilot</text>
+      <text x="60" y="602" class="muted" font-size="13">calls DB tools via MCP</text>
+    </g>
+
+    <!-- App tier -->
+    <g>
+      <rect x="350" y="196" width="300" height="306" rx="12" class="box"/>
+      <text x="370" y="224" class="h" font-size="16">Azure App Service</text>
+      <text x="370" y="246" class="ink" font-size="14" font-weight="600">WardGeneral.Web · Blazor</text>
+      <rect x="370" y="258" width="260" height="84" rx="8" class="sub"/>
+      <text x="384" y="278" class="ink" font-size="13" font-weight="600">WardGeneral.Data (DAL)</text>
+      <text x="384" y="296" class="muted" font-size="12" font-weight="700">ChartRepository</text>
+      <text x="384" y="314" class="muted" font-size="12" font-weight="700">WardGeneralConnectionFactory</text>
+      <text x="384" y="332" class="muted" font-size="12"><tspan font-weight="700">RetryPolicy</tspan> · Microsoft.Data.SqlClient</text>
+      <rect x="370" y="350" width="260" height="62" rx="8" fill="#C2185B" fill-opacity="0.06" stroke="#C2185B" stroke-opacity="0.5"/>
+      <text x="384" y="370" class="modernize" font-size="13" font-weight="600">WardGeneral.Agent</text>
+      <text x="384" y="388" class="muted" font-size="12">Microsoft Agent Framework + MCP client</text>
+      <text x="384" y="406" class="muted" font-size="12">in-app assistant · chat dock</text>
+      <g><rect x="370" y="420" width="250" height="24" rx="12" class="p-secure"/><text x="380" y="437" class="secure pill-t">SECURE · Managed identity, no secrets</text></g>
+      <g><rect x="370" y="450" width="150" height="24" rx="12" class="p-ha"/><text x="380" y="467" class="ha pill-t">HA · Connection retry</text></g>
+    </g>
+
+    <!-- Foundry (reasoning) -->
+    <g>
+      <rect x="440" y="540" width="210" height="72" rx="10" fill="#FBE9F1" stroke="#C2185B" stroke-width="1.5"/>
+      <text x="456" y="566" font-size="14" font-weight="700" fill="#C2185B">Microsoft Foundry — gpt-5</text>
+      <text x="456" y="586" class="muted" font-size="12">reasoning · direct (managed identity)</text>
+      <text x="456" y="604" class="muted" font-size="12">powers the in-app assistant</text>
+    </g>
+
+    <!-- DAB -->
+    <g>
+      <rect x="350" y="624" width="300" height="170" rx="12" class="box"/>
+      <text x="370" y="654" class="h" font-size="16">Data API Builder</text>
+      <text x="370" y="676" class="ink" font-size="14" font-weight="600">Container App · same 11 procs</text>
+      <text x="370" y="700" class="muted" font-size="12.5">REST /api · GraphQL /graphql · MCP /mcp</text>
+      <g><rect x="370" y="714" width="176" height="24" rx="12" class="p-modernize"/><text x="380" y="731" class="modernize pill-t">MODERNIZE · No API code</text></g>
+      <g><rect x="370" y="746" width="196" height="24" rx="12" class="p-secure"/><text x="380" y="763" class="secure pill-t">SECURE · Own managed identity</text></g>
+    </g>
+
+    <!-- Hyperscale container -->
+    <rect x="710" y="180" width="930" height="640" rx="14" class="hsbox"/>
+    <text x="732" y="212" class="h" font-size="18">Azure SQL Hyperscale — wardgeneral</text>
+    <text x="732" y="234" class="muted" font-size="13">Same SQL Server engine · same T-SQL · no app rewrite to adopt</text>
+
+    <!-- Compute row -->
+    <g>
+      <rect x="732" y="250" width="278" height="118" rx="10" class="sub"/>
+      <text x="748" y="278" class="ink" font-size="14.5" font-weight="700">Primary compute</text>
+      <text x="748" y="300" class="muted" font-size="12.5">read/write replica</text>
+      <g><rect x="748" y="316" width="246" height="24" rx="12" class="p-scale"/><text x="758" y="333" class="scale pill-t">SCALE · 2 → 192 vCores · online rescale</text></g>
+      <text x="748" y="358" class="muted" font-size="12">HTAP: OLTP by day · ETL at night</text>
+      <rect x="1024" y="250" width="270" height="118" rx="10" class="sub"/>
+      <text x="1040" y="278" class="ink" font-size="14.5" font-weight="700">HA replica</text>
+      <text x="1040" y="300" class="muted" font-size="12.5">zone-redundant</text>
+      <g><rect x="1040" y="316" width="180" height="24" rx="12" class="p-ha"/><text x="1050" y="333" class="ha pill-t">HA · 99.995% SLA</text></g>
+      <text x="1040" y="358" class="muted" font-size="12">built in — no WSFC / AG to build</text>
+      <rect x="1308" y="250" width="314" height="118" rx="10" class="sub"/>
+      <text x="1324" y="278" class="ink" font-size="14.5" font-weight="700">Named replicas</text>
+      <text x="1324" y="300" class="muted" font-size="12.5">read scale-out (up to 30+)</text>
+      <g><rect x="1324" y="316" width="284" height="24" rx="12" class="p-scale"/><text x="1334" y="333" class="scale pill-t">SCALE · dedicated read endpoint</text></g>
+      <text x="1324" y="358" class="muted" font-size="12">serverless · autoscales 1→8 vCores, own SLO</text>
+    </g>
+
+    <!-- Storage tier -->
+    <g>
+      <rect x="732" y="386" width="890" height="96" rx="10" class="sub"/>
+      <text x="748" y="412" class="ink" font-size="14" font-weight="700">Distributed storage tier</text>
+      <g><rect x="1470" y="396" width="140" height="24" rx="12" class="p-scale"/><text x="1480" y="413" class="scale pill-t">SCALE · 128 TB</text></g>
+      <line x1="748" y1="424" x2="1606" y2="424" stroke="#DCE7F4" stroke-width="1"/>
+      <text x="760"  y="452" class="muted" font-size="13">Log service (XLOG)</text>
+      <text x="985"  y="452" class="muted" font-size="13">Page servers</text>
+      <text x="1180" y="452" class="muted" font-size="13">RBPEX cache</text>
+      <text x="1380" y="452" class="muted" font-size="13">Azure Storage</text>
+      <text x="760"  y="472" class="muted" font-size="11.5" fill-opacity="0.85">durable log</text>
+      <text x="985"  y="472" class="muted" font-size="11.5" fill-opacity="0.85">data pages, scaled out</text>
+      <text x="1180" y="472" class="muted" font-size="11.5" fill-opacity="0.85">local SSD cache</text>
+      <text x="1380" y="472" class="muted" font-size="11.5" fill-opacity="0.85">snapshot backups</text>
+    </g>
+
+    <!-- Schema & programmability -->
+    <g>
+      <rect x="732" y="500" width="890" height="190" rx="10" class="sub"/>
+      <text x="748" y="528" class="ink" font-size="14.5" font-weight="700">Schema &amp; programmability — clinical + ops · 11 stored procedures</text>
+      <text x="748" y="550" class="muted" font-size="12"><tspan font-weight="700">GetPatientChart</tspan> · <tspan font-weight="700">SearchEncounters</tspan> · <tspan font-weight="700">AdmitPatient</tspan> · <tspan font-weight="700">RecordVitals</tspan> · <tspan font-weight="700">AddClinicalNote</tspan> · …</text>
+      <g><rect x="748" y="564" width="470" height="26" rx="13" class="p-modernize"/><text x="760" y="582" class="modernize pill-t">MODERNIZE · Native json — InsuranceJson · IntakeJson · ResultJson</text></g>
+      <g><rect x="748" y="598" width="470" height="26" rx="13" class="p-modernize"/><text x="760" y="616" class="modernize pill-t">MODERNIZE · REGEXP_* on ClinicalNote — BP · HR · pain · follow-up</text></g>
+      <g><rect x="748" y="632" width="470" height="26" rx="13" class="p-secure"/><text x="760" y="650" class="secure pill-t">SECURE · Row-Level Security · SESSION_CONTEXT on clinical.Encounter</text></g>
+      <g><rect x="1240" y="564" width="366" height="116" rx="10" fill="#C2185B" fill-opacity="0.06" stroke="#C2185B" stroke-opacity="0.5"/></g>
+      <text x="1258" y="588" class="modernize" font-size="13.5" font-weight="700">AI in the engine</text>
+      <text x="1258" y="610" class="muted" font-size="12"><tspan font-weight="700">clinical.GenerateClinicalAssistance</tspan> — RAG</text>
+      <text x="1258" y="628" class="muted" font-size="12"><tspan font-weight="700">sp_invoke_external_rest_endpoint</tspan> → <tspan font-weight="700">gpt-5</tspan></text>
+      <text x="1258" y="646" class="muted" font-size="12"><tspan font-weight="700">AI_GENERATE_EMBEDDINGS</tspan> · native <tspan font-weight="700">VECTOR</tspan> · <tspan font-weight="700">DiskANN</tspan></text>
+      <text x="1258" y="666" class="muted" font-size="12"><tspan font-weight="700">SELECT TOP(N) WITH APPROXIMATE</tspan> — vector search</text>
+    </g>
+
+    <!-- Data protection + HA footer -->
+    <g>
+      <rect x="732" y="708" width="435" height="104" rx="10" class="sub"/>
+      <g><rect x="748" y="718" width="90" height="24" rx="12" class="p-secure"/><text x="758" y="735" class="secure pill-t">SECURE</text></g>
+      <text x="748" y="760" class="muted" font-size="12.5">TDE — versionless customer-managed key (BYOK) · Entra-only auth</text>
+      <text x="748" y="778" class="muted" font-size="12.5">Private endpoint in a VNet · public path still open (deny for private-only)</text>
+      <text x="748" y="796" class="muted" font-size="12.5">Append-only ledger — AIAssistanceLog audit is tamper-evident</text>
+      <rect x="1187" y="708" width="435" height="104" rx="10" class="sub"/>
+      <g><rect x="1203" y="718" width="86" height="24" rx="12" class="p-ha"/><text x="1213" y="735" class="ha pill-t">HADR</text></g>
+      <text x="1203" y="760" class="muted" font-size="12.5">Zone-redundant HA replicas · automatic failover</text>
+      <text x="1203" y="778" class="muted" font-size="12.5">Failover group / geo-replication · endpoint stays put</text>
+      <text x="1203" y="796" class="muted" font-size="12.5">Fast point-in-time restore · snapshot backups</text>
+    </g>
+
+    <!-- Connectors -->
+    <path class="cn" d="M290,302 L344,302" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="298" y="294" class="cnlbl">HTTPS</text>
+    <path class="cn" d="M290,600 L344,690" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="292" y="668" text-anchor="end" class="cnlbl">MCP</text>
+    <path class="cn" d="M545,502 L545,540" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="552" y="525" class="cnlbl">reasoning</text>
+    <path class="cn" d="M395,502 L395,624" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="360" y="566" class="cnlbl">MCP</text>
+    <path class="cn" d="M652,308 L706,294" marker-end="url(#arrow)"/>
+    <text x="679" y="286" text-anchor="middle" class="cnlbl">writes</text>
+    <path class="cnd" d="M652,364 L706,356" marker-start="url(#arrowDash)" marker-end="url(#arrowDash)"/>
+    <text x="679" y="346" text-anchor="middle" class="cnlbl" fill="#E8710A">reads</text>
+    <path class="cn" d="M652,700 L706,665" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="679" y="676" text-anchor="middle" class="cnlbl">exec</text>
+
+    <!-- Researchers -->
+    <g>
+      <rect x="1708" y="250" width="234" height="118" rx="10" class="client"/>
+      <text x="1728" y="286" class="title" font-size="16">Researchers / students</text>
+      <text x="1728" y="310" class="muted" font-size="13">read-only research logins</text>
+      <text x="1728" y="330" class="muted" font-size="13">vector search over notes</text>
+      <g><rect x="1728" y="340" width="198" height="22" rx="11" class="p-scale"/><text x="1738" y="356" class="scale pill-t">SCALE · isolated from OLTP</text></g>
+    </g>
+    <path class="cnd" d="M1706,309 L1626,309" marker-start="url(#arrowDash)" marker-end="url(#arrowDash)"/>
+    <text x="1674" y="294" text-anchor="middle" class="cnlbl" fill="#E8710A">reads</text>
+
+    <!-- Foundry (right) + APIM -->
+    <g>
+      <rect x="1708" y="546" width="234" height="142" rx="10" fill="#FBE9F1" stroke="#C2185B" stroke-width="1.5"/>
+      <text x="1728" y="576" font-size="16" font-weight="700" fill="#C2185B">Microsoft Foundry</text>
+      <text x="1728" y="598" class="muted" font-size="12.5">collierhealth-ai (Azure OpenAI)</text>
+      <text x="1728" y="620" class="ink" font-size="12">text-embedding-3-large · embeddings</text>
+      <text x="1728" y="638" class="ink" font-size="12"><tspan font-weight="700">gpt-5</tspan> · chat (assistance)</text>
+      <g><rect x="1728" y="652" width="200" height="24" rx="12" class="p-secure"/><text x="1738" y="669" class="secure pill-t">SECURE · Managed identity, no key</text></g>
+    </g>
+    <g>
+      <rect x="1708" y="398" width="234" height="96" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.5"/>
+      <text x="1728" y="428" font-size="15" font-weight="700" fill="#2E7D32">APIM AI Gateway</text>
+      <text x="1728" y="450" class="muted" font-size="12">content safety (in + out)</text>
+      <text x="1728" y="470" class="muted" font-size="12">token limit · metrics · MI</text>
+    </g>
+    <path class="cn" d="M1606,632 L1706,632" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="1674" y="624" text-anchor="middle" class="cnlbl" font-size="11">embeddings</text>
+    <path class="cn" d="M1606,590 L1706,448" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <text x="1825" y="390" text-anchor="middle" class="cnlbl">assistance</text>
+  </g>
+
+  <!-- ============================================================= -->
+  <!-- ===== OVERLAY: the SECURE pieces from the master, lit up ===== -->
+  <!-- ============================================================= -->
+
+  <!-- Passwordless managed identity (App DAL) -->
+  <g>
+    <rect x="362" y="252" width="278" height="198" rx="10" class="ring"/>
+    <rect x="370" y="258" width="260" height="84" rx="8" class="sub"/>
+    <text x="384" y="278" class="ink" font-size="13" font-weight="600">WardGeneral.Data (DAL)</text>
+    <text x="384" y="296" class="muted" font-size="12" font-weight="700">ChartRepository</text>
+    <text x="384" y="314" class="muted" font-size="12" font-weight="700">WardGeneralConnectionFactory</text>
+    <text x="384" y="332" class="muted" font-size="12"><tspan font-weight="700">RetryPolicy</tspan> · Microsoft.Data.SqlClient</text>
+    <g><rect x="370" y="420" width="250" height="24" rx="12" class="p-secure"/><text x="380" y="437" class="secure pill-t">SECURE · Managed identity, no secrets</text></g>
+  </g>
+
+  <!-- Row-Level Security (schema) -->
+  <g>
+    <rect x="742" y="626" width="484" height="40" rx="10" class="ring"/>
+    <g><rect x="748" y="632" width="470" height="26" rx="13" class="p-secure"/><text x="760" y="650" class="secure pill-t">SECURE · Row-Level Security · SESSION_CONTEXT on clinical.Encounter</text></g>
+  </g>
+
+  <!-- Data protection box (exactly as in the master) -->
+  <g>
+    <rect x="726" y="702" width="447" height="116" rx="12" class="ring"/>
+    <rect x="732" y="708" width="435" height="104" rx="10" class="sub"/>
+    <g><rect x="748" y="718" width="90" height="24" rx="12" class="p-secure"/><text x="758" y="735" class="secure pill-t">SECURE</text></g>
+    <text x="748" y="760" class="muted" font-size="12.5">TDE — versionless customer-managed key (BYOK) · Entra-only auth</text>
+    <text x="748" y="778" class="muted" font-size="12.5">Private endpoint in a VNet · public path still open (deny for private-only)</text>
+    <text x="748" y="796" class="muted" font-size="12.5">Append-only ledger — AIAssistanceLog audit is tamper-evident</text>
+  </g>
+</svg>

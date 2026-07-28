@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#3C6088"/>
+    </marker>
+  </defs>
+
+  <!-- gray panel background -->
+  <rect x="0" y="0" width="1280" height="720" rx="20" fill="#E9ECF1"/>
+
+  <!-- Title -->
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#0A2342">MCP — a common protocol for tools</text>
+  <text x="40" y="84" font-size="16.5" fill="#4A5568">The model still just <tspan font-weight="700">selects</tspan> a tool; the client discovers and <tspan font-weight="700">runs</tspan> it — now over one standard protocol.</text>
+
+  <!-- ===================== Hosts (left) ===================== -->
+  <text x="155" y="150" font-size="13" font-weight="700" fill="#5A6B85" text-anchor="middle">HOSTS (client apps)</text>
+
+  <!-- Host 1 -->
+  <rect x="40" y="172" width="230" height="104" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="155" y="197" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">GitHub Copilot</text>
+  <rect x="56" y="209" width="96" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="104" y="227" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="160" y="227" font-size="10" fill="#5A6B85">selects a tool</text>
+  <text x="155" y="262" font-size="10.5" fill="#33415C" text-anchor="middle">MCP client — runs it via the protocol</text>
+
+  <!-- Host 2 -->
+  <rect x="40" y="300" width="230" height="104" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="155" y="325" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">Custom app</text>
+  <rect x="56" y="337" width="96" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="104" y="355" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="160" y="355" font-size="10" fill="#5A6B85">selects a tool</text>
+  <text x="155" y="390" font-size="10.5" fill="#33415C" text-anchor="middle">MCP client — runs it via the protocol</text>
+
+  <!-- Host 3 -->
+  <rect x="40" y="428" width="230" height="104" rx="12" fill="#E8F0FE" stroke="#1864AB" stroke-width="2"/>
+  <text x="155" y="453" font-size="14" font-weight="700" fill="#0A2342" text-anchor="middle">Another AI agent</text>
+  <rect x="56" y="465" width="96" height="26" rx="6" fill="#EDE7F6" stroke="#5E35B1" stroke-width="1.5"/>
+  <text x="104" y="483" font-size="11" font-weight="700" fill="#4527A0" text-anchor="middle">AI model</text>
+  <text x="160" y="483" font-size="10" fill="#5A6B85">selects a tool</text>
+  <text x="155" y="518" font-size="10.5" fill="#33415C" text-anchor="middle">MCP client — runs it via the protocol</text>
+
+  <!-- Tool catalog (client-side) -->
+  <rect x="286" y="106" width="250" height="72" rx="10" fill="#FFFFFF" stroke="#1565C0" stroke-width="1.5"/>
+  <text x="300" y="127" font-size="12" font-weight="700" fill="#0D47A1">Tool catalog — built by the client</text>
+  <text x="300" y="146" font-size="10.5" fill="#33415C">tools/list merged from every server</text>
+  <text x="300" y="163" font-size="10.5" fill="#33415C">the model selects a tool from here</text>
+
+  <!-- ===================== MCP bus (center) ===================== -->
+  <rect x="540" y="165" width="200" height="352" rx="16" fill="#EAF3FB" stroke="#0A2342" stroke-width="2.5"/>
+  <text x="640" y="205" font-size="30" font-weight="700" fill="#0A2342" text-anchor="middle">MCP</text>
+  <text x="640" y="228" font-size="12.5" fill="#33415C" text-anchor="middle">Model Context Protocol</text>
+
+  <rect x="562" y="250" width="156" height="52" rx="9" fill="#FFFFFF" stroke="#1565C0" stroke-width="2"/>
+  <text x="640" y="272" font-size="13.5" font-weight="700" fill="#0D47A1" text-anchor="middle">discover</text>
+  <text x="640" y="290" font-size="11.5" fill="#33415C" text-anchor="middle" font-family="Consolas, monospace">tools/list</text>
+
+  <rect x="562" y="316" width="156" height="52" rx="9" fill="#FFFFFF" stroke="#2E7D32" stroke-width="2"/>
+  <text x="640" y="338" font-size="13.5" font-weight="700" fill="#1B5E20" text-anchor="middle">execute</text>
+  <text x="640" y="356" font-size="11.5" fill="#33415C" text-anchor="middle" font-family="Consolas, monospace">tools/call</text>
+
+  <text x="640" y="400" font-size="11.5" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">JSON-RPC 2.0</text>
+  <text x="640" y="420" font-size="11.5" fill="#5A6B85" text-anchor="middle" font-family="Consolas, monospace">HTTP or stdio</text>
+  <text x="640" y="495" font-size="11.5" fill="#33415C" text-anchor="middle">one client · one server</text>
+
+  <!-- host -> bus connectors (clean, M) -->
+  <g stroke="#3C6088" stroke-width="2" fill="none">
+    <line x1="272" y1="224" x2="538" y2="240" marker-end="url(#a2)"/>
+    <line x1="272" y1="352" x2="538" y2="341" marker-end="url(#a2)"/>
+    <line x1="272" y1="480" x2="538" y2="452" marker-end="url(#a2)"/>
+  </g>
+
+  <!-- bus -> tool connectors (clean, N) -->
+  <g stroke="#3C6088" stroke-width="2" fill="none">
+    <line x1="742" y1="230" x2="1018" y2="216" marker-end="url(#a2)"/>
+    <line x1="742" y1="341" x2="1018" y2="341" marker-end="url(#a2)"/>
+    <line x1="742" y1="452" x2="1018" y2="466" marker-end="url(#a2)"/>
+  </g>
+
+  <!-- ===================== Tools (right) ===================== -->
+  <text x="1130" y="150" font-size="13" font-weight="700" fill="#5A6B85" text-anchor="middle">TOOLS (MCP servers)</text>
+  <g>
+    <rect x="1020" y="175" width="220" height="82" rx="12" fill="#FFF3E0" stroke="#E65100" stroke-width="2.5"/>
+    <text x="1130" y="205" font-size="15" font-weight="700" fill="#BF360C" text-anchor="middle">SQL database</text>
+    <text x="1130" y="226" font-size="11.5" fill="#33415C" text-anchor="middle">via DAB · SQL MCP Server</text>
+    <text x="1130" y="245" font-size="11" fill="#8A5A2B" text-anchor="middle">no model-written SQL (NL2DAB)</text>
+
+    <rect x="1020" y="300" width="220" height="82" rx="12" fill="#EEF2F7" stroke="#869397" stroke-width="2"/>
+    <text x="1130" y="333" font-size="15" font-weight="700" fill="#0A2342" text-anchor="middle">REST / web API</text>
+    <text x="1130" y="355" font-size="11.5" fill="#33415C" text-anchor="middle">MCP server</text>
+
+    <rect x="1020" y="425" width="220" height="82" rx="12" fill="#EEF2F7" stroke="#869397" stroke-width="2"/>
+    <text x="1130" y="458" font-size="15" font-weight="700" fill="#0A2342" text-anchor="middle">Files / storage</text>
+    <text x="1130" y="480" font-size="11.5" fill="#33415C" text-anchor="middle">MCP server</text>
+  </g>
+
+  <!-- ===================== bottom callout ===================== -->
+  <rect x="40" y="558" width="1200" height="112" rx="12" fill="#EEF7EE" stroke="#9CC79C" stroke-width="1.5"/>
+  <text x="60" y="586" font-size="15" font-weight="700" fill="#1B5E20">On connect, every MCP client (Copilot, Claude, ChatGPT, Cursor…) calls tools/list on each server → builds ONE merged tool catalog.</text>
+  <text x="60" y="611" font-size="13.5" fill="#2C4A2C">Per prompt: ① the model picks a tool from that catalog by its description → ② the client runs it (tools/call) → result to the model.</text>
+  <text x="60" y="633" font-size="13.5" fill="#2C4A2C">M + N connections, not M × N. The model selects; the client runs — discovery + execution are one standard protocol.</text>
+  <text x="60" y="655" font-size="13.5" fill="#2C4A2C">Expose your database as an MCP server with DAB — every MCP host can discover and use it, no custom glue.</text>
+</svg>

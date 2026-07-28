@@ -1,0 +1,29 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="">
+            <img src="ward-general-logo.svg" alt="Ward General" width="34" height="34" />
+            <span class="d-flex flex-column lh-1">
+                <span class="fw-semibold">Ward General</span>
+                <small class="text-white-50" style="font-size:.68rem;">Part of the Collier Health System</small>
+            </span>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Patient worklist
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="research">
+                <span class="bi bi-search-nav-menu" aria-hidden="true"></span> Research
+            </NavLink>
+        </div>
+    </nav>
+</div>
+

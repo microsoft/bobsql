@@ -102,7 +102,7 @@ The talk is a **five-part teaching arc**, each part earning the next:
 ### Wrap + close (1:00–1:02)
 - **Recap the arc** over one diagram: agent → **MCP** → **DAB (SQL MCP Server)** → **stored procs + RLS** → engine. Five questions, answered live.
 - **Close line:** *"Everyone wants AI to talk to your data. You're the one who can let it — safely. The SQL MCP Server is how. Go build the bridge."*
-- Resources slide: DAB docs + SQL MCP, `github.com/microsoft/mcp`, QR code.
+- Resources slide: DAB docs + SQL MCP, `github.com/microsoft/mcp`, the `hyperscale-developer` kit, QR code.
 
 ### Q&A (1:02–1:15, 13 min)
 - Take questions. **If they run dry, pull from Buffer Material** (below) with the close slide up.

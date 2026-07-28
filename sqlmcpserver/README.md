@@ -125,11 +125,11 @@ Ground truth for rehearsal — pulled from `aka.ms/sql/mcp` →
 
 ## Files in this folder
 
-`sqlmcpserver/`
+`presentations/sqlmcpserver/`
 
 - `outline.md` — the full session outline (this is the working document)
 - `README.md` — this file
-- `build/` — the local demo kit (a restore of the stock **`AdventureWorks2022`** sample DB, a DAB
+- `build/` — the local demo kit (download + restore of the stock **`AdventureWorks2022`** sample DB, a DAB
   config for the AdventureWorks entities pointed at `localhost`, and the `mcp` schema + view)
 
 ## Status

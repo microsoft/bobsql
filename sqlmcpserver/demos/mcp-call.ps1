@@ -3,7 +3,7 @@
     Rehearsal helper — call one MCP tool on the Adventure Works SQL MCP Server (HTTP :5001)
     and print the JSON result. Used to PROVE a demo beat works before running it in
     agent-mode chat. Drives the SAME server VS Code is registered against, so there is no
-    "agent misrouted to another server" ambiguity.
+    "agent misrouted to Ward General" ambiguity.
 
     Usage:
       ./mcp-call.ps1 describe_entities

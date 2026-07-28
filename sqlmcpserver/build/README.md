@@ -44,6 +44,8 @@ Everything here is **location-independent** — no absolute paths. Scripts resol
 - Put **`.vscode/mcp.json`** at the **destination repo's workspace root** (`.vscode/mcp.json`).
   In a **multi-root** `.code-workspace`, VS Code ignores a folder's `.vscode/mcp.json` — put the same
   `servers` block under a top-level `mcp` key in the `.code-workspace` file instead.
+- The `wardgeneral-dab` entry in `mcp.json` is for a different talk; it's harmless on a machine
+  without it (shows Stopped) — delete it for a clean single-talk repo.
 
 ## Files
 

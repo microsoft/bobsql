@@ -1,0 +1,259 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
+
+  "//": "Ward General (wardgeneral) — Data API Builder config. Exposes the same 11 clinical.* stored procedures the Blazor app calls (ADO.NET) as REST + GraphQL, and — because DAB 1.7+/2.0 turns each stored-proc entity marked custom-tool into a named SQL MCP tool — as agent tools. Same procs, three surfaces, no rewrite. DRAFT 2026-07-19 (talk: hyperscale-developer). Verify against DAB 2.0 before deploy.",
+
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('DAB_CONNECTION_STRING')",
+    "options": {
+      "set-session-context": false
+    }
+  },
+
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": true,
+      "path": "/graphql",
+      "allow-introspection": true
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "description": "Ward General (SQL MCP) — clinical stored procedures on Azure SQL Hyperscale, exposed as agent tools."
+    },
+    "host": {
+      "mode": "development",
+      "cors": {
+        "origins": [],
+        "allow-credentials": false
+      },
+      "authentication": {
+        "provider": "Unauthenticated"
+      }
+    }
+  },
+
+  "entities": {
+
+    "PatientChart": {
+      "description": "Retrieve the COMPLETE clinical chart for one hospital encounter by EncounterId: patient demographics, diagnoses, active medications, allergies, latest vital signs, recent lab results, symptoms, care team, imaging, recent clinical notes, and regex-extracted note signals. Read-only. Row-Level Security applies: pass ActingProviderId (the acting clinician's id from the security context) so the engine only returns the chart if it's their patient. Use when asked to 'show/open/pull up the chart' or details for a specific encounter.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GetPatientChartApi",
+        "parameters": { "EncounterId": 0, "ActingProviderId": 0 }
+      },
+      "rest": { "methods": ["get"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "PatientChartByBed": {
+      "description": "Retrieve the complete clinical chart for the patient CURRENTLY OCCUPYING a given bed (by BedId), for their active encounter. Same rich chart as patient_chart but keyed by bed instead of encounter. Read-only. Row-Level Security applies: pass ActingProviderId (the acting clinician). Use when asked 'who is in bed X' or for the chart of a bed's current patient.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GetPatientChartByBedApi",
+        "parameters": { "BedId": 0, "ActingProviderId": 0 }
+      },
+      "rest": { "methods": ["get"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "SearchEncounters": {
+      "description": "List/count hospital encounters (admissions) with OPTIONAL filters: Status ('Active' or 'Discharged'), UnitName (e.g. 'ICU A'), DepartmentName (e.g. 'Cardiology'), and ProviderName (attending, partial match). Returns readable encounter summaries (patient name, department, unit, bed, attending, admit/discharge, status), capped by Top (default 200). Read-only. Row-Level Security applies: pass ActingProviderId (the acting clinician) so results are scoped to their patients. Use for questions like 'how many active encounters in ICU A' or 'encounters for Dr. Ward'.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.SearchEncountersApi",
+        "parameters": {
+          "Status": "",
+          "UnitName": "",
+          "DepartmentName": "",
+          "ProviderName": "",
+          "Top": 200,
+          "ActingProviderId": 0
+        }
+      },
+      "rest": { "methods": ["get"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "AdmitPatient": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.AdmitPatientApi",
+        "parameters": {
+          "PatientId": 0,
+          "DepartmentId": 0,
+          "AttendingProviderId": 0,
+          "BedId": 0,
+          "EncounterType": "Inpatient",
+          "IntakeJson": null
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "DischargePatient": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.DischargePatient",
+        "parameters": { "EncounterId": 0 }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "RecordVitals": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.RecordVitals",
+        "parameters": {
+          "EncounterId": 0,
+          "ObservationType": "",
+          "ValueNumeric": 0,
+          "Unit": null,
+          "RecordedAt": null
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "PlaceMedicationOrder": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.PlaceMedicationOrder",
+        "parameters": {
+          "EncounterId": 0,
+          "MedicationName": "",
+          "OrderedById": 0,
+          "Dose": null,
+          "Route": null
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "FileLabResult": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.FileLabResultApi",
+        "parameters": {
+          "EncounterId": 0,
+          "OrderedById": 0,
+          "TestName": "",
+          "ResultJson": null,
+          "CollectedAt": null
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "AddClinicalNote": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.AddClinicalNote",
+        "parameters": {
+          "EncounterId": 0,
+          "AuthorProviderId": 0,
+          "NoteType": "",
+          "NoteText": ""
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "AddDiagnosis": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.AddDiagnosis",
+        "parameters": {
+          "EncounterId": 0,
+          "IcdCode": "",
+          "DiagnosedById": 0,
+          "Description": null
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "RecordAllergy": {
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.RecordAllergy",
+        "parameters": {
+          "PatientId": 0,
+          "Substance": "",
+          "Severity": "",
+          "Reaction": null
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": false },
+      "permissions": [ { "role": "authenticated", "actions": ["execute"] } ]
+    },
+
+    "ClinicalAssistance": {
+      "description": "Generate ADVISORY AI clinical assistance for one encounter (by EncounterId): a SUGGESTED triage/acuity flag plus a grounded natural-language summary, produced by retrieval-augmented generation (vector search over similar prior notes) and a reasoning model. Advisory only — a human clinician confirms or overrides; not a diagnosis. Slower (calls gpt-5, ~10-15s) and writes an audited record. Use when asked for an AI assessment, triage suggestion, or summary of a patient's case.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GenerateClinicalAssistance",
+        "parameters": {
+          "EncounterId": 0,
+          "ModelDeployment": "gpt-5",
+          "TopK": 5
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "SearchSimilarNotes": {
+      "description": "Semantic (vector) search over ~60,000 historical clinical notes. Given free-text QueryText describing a case, symptom, or condition, returns the TopK most similar notes ranked by similarity score, with note type, encounter id, and note text. Retrieval-only — returns real historical notes, no AI-generated text. Use for 'find similar cases/notes', 'notes about <symptom/condition>', or clinical research lookups.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.SearchSimilarNotes",
+        "parameters": {
+          "QueryText": "",
+          "TopK": 10
+        }
+      },
+      "rest": { "methods": ["get", "post"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    }
+
+  }
+}
