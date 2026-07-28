@@ -1,0 +1,181 @@
+@page "/"
+@rendermode InteractiveServer
+@inject ChartRepository Repo
+@inject AccessContext Access
+@inject NavigationManager Nav
+
+<PageTitle>Ward General — Unit board</PageTitle>
+
+<div class="d-flex flex-nowrap align-items-center gap-3 mb-3">
+    <h1 class="h3 mb-0">Unit board</h1>
+
+    @if (_units is not null && _units.Count > 0)
+    {
+        <select class="form-select form-select-sm" style="width:auto" @bind="SelectedUnit">
+            <option value="">All units</option>
+            @foreach (var u in _units)
+            {
+                <option value="@u">@u</option>
+            }
+        </select>
+    }
+
+    @* Row-Level Security: "Viewing as" restamps SESSION_CONTEXT; the engine filters. *@
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <label class="form-label small mb-0 text-muted" for="viewas">Viewing as</label>
+        <select id="viewas" class="form-select form-select-sm" style="width:auto" @bind="SelectedProviderId">
+            <option value="">All providers · Admin</option>
+            @if (_providers is not null)
+            {
+                @foreach (var p in _providers)
+                {
+                    <option value="@p.ProviderId">@p.FullName — @p.Role</option>
+                }
+            }
+        </select>
+        <span class="badge bg-primary text-nowrap" title="Row-Level Security is on; the engine filters rows via SESSION_CONTEXT on clinical.Encounter">RLS applied</span>
+    </div>
+
+    <div class="form-check form-switch ms-auto mb-0">
+        <input class="form-check-input" type="checkbox" id="occ" @bind="OccupiedOnly" />
+        <label class="form-check-label" for="occ">Occupied only</label>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_beds is null)
+{
+    <p><em>Loading beds…</em></p>
+}
+else if (_beds.Count == 0)
+{
+    <p class="text-muted">No beds to show for this unit.</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var b in _beds)
+        {
+            <div class="col-sm-6 col-md-4 col-xl-3">
+                @if (b.EncounterId is not null)
+                {
+                    <div class="card bed-card h-100" role="button" @onclick="() => Open(b.EncounterId!.Value)">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="bed-id">@b.BedNumber</span>
+                                <span class="badge bg-success">Occupied</span>
+                            </div>
+                            <div class="patient-name">@b.PatientName</div>
+                            <div class="text-muted small">MRN @b.Mrn</div>
+                            <div class="text-muted small">@b.AttendingProvider</div>
+                            <div class="text-muted small">admitted @(b.AdmitTime?.ToString("yyyy-MM-dd HH:mm"))</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card bed-card bed-empty h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="bed-id text-muted">@b.BedNumber</span>
+                                <span class="badge bg-secondary">@b.BedStatus</span>
+                            </div>
+                            <div class="text-muted mt-3">Available</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<string>? _units;
+    private IReadOnlyList<BedCensusRow>? _beds;
+    private IReadOnlyList<ProviderOption>? _providers;
+    private string? _error;
+
+    private string? _selectedUnit;
+    private bool _occupiedOnly = true;
+    private int? _selectedProviderId;
+
+    private string? SelectedUnit
+    {
+        get => _selectedUnit;
+        set { _selectedUnit = value; _ = Load(); }
+    }
+
+    private bool OccupiedOnly
+    {
+        get => _occupiedOnly;
+        set { _occupiedOnly = value; _ = Load(); }
+    }
+
+    // "Viewing as": writes the acting identity into the per-circuit AccessContext,
+    // which the data layer stamps into SESSION_CONTEXT on the next connection open.
+    private int? SelectedProviderId
+    {
+        get => _selectedProviderId;
+        set
+        {
+            _selectedProviderId = value;
+            ApplyAccess();
+            _ = Load();
+        }
+    }
+
+    // Push this page's selection into the per-circuit AccessContext. The scoped
+    // AccessContext outlives the page (it lives for the whole Blazor circuit), so a
+    // freshly (re)initialized board must re-assert its identity — otherwise the
+    // dropdown resets to "All providers · Admin" while the engine is still filtering
+    // to a provider selected before navigating away (e.g. to Research), and the board
+    // comes back empty. Default (nothing selected) = Admin / all patients.
+    private void ApplyAccess()
+    {
+        if (_selectedProviderId is null)
+        {
+            Access.ProviderId = null;
+            Access.Role = "Admin";
+            Access.ProviderName = null;
+        }
+        else
+        {
+            var p = _providers?.FirstOrDefault(x => x.ProviderId == _selectedProviderId);
+            Access.ProviderId = _selectedProviderId;
+            Access.Role = "Attending";
+            Access.ProviderName = p?.FullName;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ApplyAccess();                                 // re-assert identity for this circuit
+            _providers = await Repo.GetProvidersAsync();   // loaded at Admin scope → full list
+            _units = await Repo.GetUnitsAsync();
+            _selectedUnit = _units.FirstOrDefault();
+            await Load();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            _error = null;
+            _beds = null;
+            StateHasChanged();
+            var unit = string.IsNullOrEmpty(_selectedUnit) ? null : _selectedUnit;
+            _beds = await Repo.GetUnitBoardAsync(unit, _occupiedOnly);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        StateHasChanged();
+    }
+
+    private void Open(int encounterId) => Nav.NavigateTo($"chart/{encounterId}");
+}

@@ -1,0 +1,90 @@
+@page "/research"
+@rendermode InteractiveServer
+@inject ResearchRepository Repo
+
+<PageTitle>Ward General — Research</PageTitle>
+
+<div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+    <h1 class="h3 mb-0">Clinical notes research</h1>
+    <span class="badge bg-info text-dark" title="Runs on the serverless named replica — never the OLTP primary">
+        read scale-out · @Repo.Target
+    </span>
+</div>
+<p class="text-muted" style="max-width:820px">
+    Semantic search over 60,000 historical clinical notes — <strong>retrieval only</strong>
+    (a human reads the results; no AI-generated text). Embedding the query and the
+    DiskANN vector search both run on the <strong>serverless named replica</strong>, so
+    research load never competes with the ward's transactional workload on the primary.
+</p>
+
+<div class="input-group mb-3" style="max-width:820px">
+    <input class="form-control"
+           placeholder="Describe a case, e.g. 'elderly chest pain with elevated troponin'"
+           @bind="Query" @bind:event="oninput" @onkeydown="OnKey" />
+    <button class="btn btn-primary" @onclick="Search"
+            disabled="@(_busy || string.IsNullOrWhiteSpace(Query))">
+        @(_busy ? "Searching…" : "Search")
+    </button>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_results is null)
+{
+    <p class="text-muted"><em>Enter a query to search the note corpus by meaning.</em></p>
+}
+else if (_results.Count == 0)
+{
+    <p class="text-muted">No similar notes found.</p>
+}
+else
+{
+    <p class="text-muted small">Top @_results.Count notes by semantic similarity.</p>
+    <div class="vstack gap-3">
+        @foreach (var n in _results)
+        {
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span class="fw-semibold">@n.NoteType · note #@n.NoteId · encounter @n.EncounterId</span>
+                        <span class="badge bg-success">similarity @n.Similarity.ToString("0.000")</span>
+                    </div>
+                    <div class="text-muted small mb-2">@n.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+                    <div style="white-space:pre-wrap">@n.NoteText</div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private string Query = "";
+    private IReadOnlyList<NoteSearchResult>? _results;
+    private bool _busy;
+    private string? _error;
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Search();
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(Query)) return;
+        _busy = true;
+        _error = null;
+        StateHasChanged();
+        try
+        {
+            _results = await Repo.SearchSimilarNotesAsync(Query.Trim(), topK: 10);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _results = null;
+        }
+        _busy = false;
+    }
+}

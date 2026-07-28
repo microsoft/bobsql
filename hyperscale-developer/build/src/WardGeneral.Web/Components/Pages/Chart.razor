@@ -1,0 +1,364 @@
+@page "/chart/{EncounterId:int}"
+@rendermode InteractiveServer
+@using Microsoft.Extensions.Options
+@using WardGeneral.Web.Options
+@inject ChartRepository Repo
+@inject IOptions<FeatureFlags> FeatureOptions
+@inject WardGeneral.Web.Services.PageContext PageCtx
+@implements IDisposable
+
+<PageTitle>Ward General — @(_chart?.PatientName ?? "Chart")</PageTitle>
+
+<a href="">&larr; Unit board</a>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-2">@_error</div>
+}
+else if (_loading)
+{
+    <p class="mt-2"><em>Loading chart…</em></p>
+}
+else if (_chart is null)
+{
+    <div class="alert alert-warning mt-2">No active chart found for this bed/encounter.</div>
+}
+else
+{
+    var c = _chart;
+    var alerts = BuildAlerts(c).ToList();
+
+    <!-- Bedside header: room/bed + patient identity -->
+    <div class="chart-header mt-2">
+        <div class="room-badge">
+            <div class="room-label">Room / Bed</div>
+            <div class="room-value">@(c.UnitName ?? "—") · @(c.BedNumber ?? "—")</div>
+        </div>
+        <div class="patient-identity">
+            <h1 class="h3 mb-1">@c.PatientName</h1>
+            <div class="text-muted">
+                MRN @c.Mrn · @(c.Sex ?? "?") · age @(c.AgeYears?.ToString() ?? "?")
+                · <span class="badge @(c.EncounterStatus == "Active" ? "bg-success" : "bg-secondary")">@c.EncounterStatus</span>
+            </div>
+            <div class="text-muted small">
+                @c.DepartmentName · admitted @c.AdmitTime.ToString("yyyy-MM-dd HH:mm")
+                · attending @c.AttendingProviderName (@c.AttendingProviderRole)
+            </div>
+        </div>
+    </div>
+
+    <!-- Allergy alert banner -->
+    @if (c.Allergies.Count > 0)
+    {
+        <div class="allergy-banner @(c.Allergies.Any(IsSevere) ? "severe" : "")">
+            <strong>Allergies:</strong>
+            @string.Join(" · ", c.Allergies.Select(a => $"{a.Substance} ({a.Severity})"))
+        </div>
+    }
+
+    <!-- Computed alerts strip -->
+    @if (alerts.Count > 0)
+    {
+        <div class="alerts-strip">
+            @foreach (var a in alerts)
+            {
+                <span class="badge @(a.Severity == "danger" ? "bg-danger" : "bg-warning text-dark")">@a.Text</span>
+            }
+        </div>
+    }
+
+    <!-- AI assistance (advisory, on-demand): vector search + gpt-5, in-engine, audited -->
+    <!-- Feature-gated (Features:AiAssistance) so the book can reveal it in a later chapter -->
+    @if (Flags.AiAssistance)
+    {
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">AI assistance <span class="badge bg-secondary">advisory</span></h5>
+                <button class="btn btn-outline-primary btn-sm" @onclick="RunAssistanceAsync" disabled="@_assistLoading">
+                    @(_assistLoading ? "Consulting…" : (_assist is null ? "Get AI assistance" : "Refresh"))
+                </button>
+            </div>
+
+            @if (_assistError is not null)
+            {
+                <div class="alert alert-warning mt-2 mb-0">@_assistError</div>
+            }
+            else if (_assistLoading)
+            {
+                <p class="text-muted mt-2 mb-0"><em>Consulting the engine — vector search over similar prior notes + gpt-5, all in-database…</em></p>
+            }
+            else if (_assist is not null)
+            {
+                <div class="mt-2">
+                    <span class="badge @TriageClass(_assist.SuggestedTriageFlag)">Suggested: @_assist.SuggestedTriageFlag</span>
+                    <span class="text-muted small ms-1">— the attending confirms or overrides</span>
+                </div>
+                <p class="mt-2 mb-1">@_assist.Summary</p>
+                @if (!string.IsNullOrWhiteSpace(_assist.GroundedOnNoteIds))
+                {
+                    <div class="small text-muted">Grounded on note ids: @_assist.GroundedOnNoteIds</div>
+                }
+                <div class="small text-muted mt-1">
+                    AI-generated assistance — not a diagnosis or order. Verify before acting.
+                    @if (!string.IsNullOrWhiteSpace(_assist.Path)) { <text>· @_assist.Path</text> }
+                    · @_assist.ProcessingTimeMs ms
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mt-2 mb-0">
+                    On demand: vector search over similar prior notes (RAG) + gpt-5, in-engine and audited. The attending decides.
+                </p>
+            }
+        </div>
+    </div>
+    }
+
+    <!-- Vitals grid -->
+    <h5 class="section-title">Latest vitals</h5>
+    @if (c.LatestVitals.Count == 0)
+    {
+        <p class="text-muted">None recorded.</p>
+    }
+    else
+    {
+        <div class="vitals-grid">
+            @foreach (var type in VitalOrder.Where(c.LatestVitals.ContainsKey))
+            {
+                var v = c.LatestVitals[type];
+                var (label, unit) = VitalMeta(type);
+                var abnormal = IsAbnormal(type, v.Value);
+                <div class="vital-tile @(abnormal ? "abnormal" : "")">
+                    <div class="vital-label">@label</div>
+                    <div class="vital-value">@v.Value<span class="vital-unit"> @unit</span></div>
+                    <div class="vital-at">@(v.At?.ToString("HH:mm"))</div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="row mt-2">
+        <!-- Left column -->
+        <div class="col-lg-6">
+            <ChartCard Title="Symptoms" Empty="@(c.Symptoms.Count == 0)">
+                @foreach (var s in c.Symptoms)
+                {
+                    <li class="list-group-item">
+                        @s.Description
+                        @if (!string.IsNullOrEmpty(s.Severity))
+                        {
+                            <span class="badge @(s.Severity == "Severe" ? "bg-danger" : "bg-light text-dark") ms-1">@s.Severity</span>
+                        }
+                    </li>
+                }
+            </ChartCard>
+
+            <ChartCard Title="Diagnoses" Empty="@(c.Diagnoses.Count == 0)">
+                @foreach (var d in c.Diagnoses)
+                {
+                    <li class="list-group-item"><code>@d.Code</code> @d.Description</li>
+                }
+            </ChartCard>
+
+            <ChartCard Title="Care team" Empty="@(c.CareTeam.Count == 0)">
+                @foreach (var m in c.CareTeam.OrderByDescending(m => m.IsPrimary))
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@m.Name</span>
+                        <span>
+                            <span class="text-muted">@m.Role</span>
+                            @if (m.IsPrimary)
+                            {
+                                <span class="badge bg-primary ms-1">Primary</span>
+                            }
+                        </span>
+                    </li>
+                }
+            </ChartCard>
+        </div>
+
+        <!-- Right column -->
+        <div class="col-lg-6">
+            <ChartCard Title="Medications" Empty="@(c.Medications.Count == 0)">
+                @foreach (var m in c.Medications)
+                {
+                    <li class="list-group-item">@m.Name <span class="text-muted">@m.Dose @m.Route</span></li>
+                }
+            </ChartCard>
+
+            <ChartCard Title="Imaging" Empty="@(c.Imaging.Count == 0)">
+                @foreach (var i in c.Imaging)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@i.Modality — @i.BodySite</span>
+                        <span class="badge @StatusClass(i.Status)">@i.Status</span>
+                    </li>
+                }
+            </ChartCard>
+
+            <ChartCard Title="Recent labs" Empty="@(c.RecentLabs.Count == 0)">
+                @foreach (var l in c.RecentLabs)
+                {
+                    <li class="list-group-item">@l.Test <span class="text-muted">resulted @(l.ResultedAt?.ToString("yyyy-MM-dd HH:mm"))</span></li>
+                }
+            </ChartCard>
+        </div>
+    </div>
+
+    <!-- Regex-extracted note signals (Modernize · REGEXP_* on ClinicalNote) -->
+    @if (Flags.NoteSignals && c.NoteSignals is { } sig && HasSignals(sig))
+    {
+        <h5 class="section-title">From the note <span class="text-muted small">· extracted in-engine with <code>REGEXP_*</code></span></h5>
+        <div class="note">
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                @if (sig.BloodPressure is not null) { <span class="badge bg-secondary">BP @sig.BloodPressure</span> }
+                @if (sig.HeartRate is not null) { <span class="badge bg-secondary">HR @sig.HeartRate</span> }
+                @if (sig.Temperature is not null) { <span class="badge bg-secondary">Temp @(sig.Temperature)&deg;C</span> }
+                @if (sig.RespRate is not null) { <span class="badge bg-secondary">RR @sig.RespRate</span> }
+                @if (sig.Spo2 is not null) { <span class="badge bg-secondary">SpO2 @(sig.Spo2)%</span> }
+                @if (sig.PainScore is not null) { <span class="badge bg-warning text-dark">Pain @sig.PainScore/10</span> }
+            </div>
+            @if (sig.FollowUp is not null)
+            {
+                <div class="note-text"><strong>Follow-up:</strong> @sig.FollowUp</div>
+            }
+        </div>
+    }
+
+    <!-- Clinical notes (full width) -->
+    <h5 class="section-title">Recent clinical notes</h5>
+    @if (c.RecentNotes.Count == 0)
+    {
+        <p class="text-muted">None recorded.</p>
+    }
+    else
+    {
+        foreach (var n in c.RecentNotes)
+        {
+            <div class="note">
+                <div class="note-head">
+                    <span class="badge bg-light text-dark">@n.Type</span>
+                    <span class="text-muted small">@(n.At?.ToString("yyyy-MM-dd HH:mm"))</span>
+                </div>
+                <div class="note-text">@n.Text</div>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter] public int EncounterId { get; set; }
+
+    private FeatureFlags Flags => FeatureOptions.Value;
+
+    private static bool HasSignals(NoteSignals s) =>
+        s.BloodPressure is not null || s.HeartRate is not null || s.Temperature is not null
+        || s.RespRate is not null || s.Spo2 is not null || s.PainScore is not null || s.FollowUp is not null;
+
+    private PatientChart? _chart;
+    private bool _loading = true;
+    private string? _error;
+
+    // Advisory AI assistance (on-demand, per encounter).
+    private AssistanceResult? _assist;
+    private bool _assistLoading;
+    private string? _assistError;
+
+    // Preferred vitals display order.
+    private static readonly string[] VitalOrder =
+        { "HeartRate", "SystolicBP", "DiastolicBP", "SpO2", "Temperature", "RespRate" };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+            _assist = null;
+            _assistError = null;
+            PageCtx.EncounterId = EncounterId;   // ground the assistant on this patient
+            _chart = await Repo.GetPatientChartAsync(EncounterId, readOnly: true);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    public void Dispose() => PageCtx.EncounterId = null;
+
+    private static bool IsSevere(Allergy a) =>
+        string.Equals(a.Severity, "Severe", StringComparison.OrdinalIgnoreCase);
+
+    private static (string Label, string Unit) VitalMeta(string type) => type switch
+    {
+        "HeartRate" => ("Heart rate", "bpm"),
+        "SystolicBP" => ("Systolic BP", "mmHg"),
+        "DiastolicBP" => ("Diastolic BP", "mmHg"),
+        "SpO2" => ("SpO₂", "%"),
+        "Temperature" => ("Temp", "°C"),
+        "RespRate" => ("Resp rate", "/min"),
+        _ => (type, "")
+    };
+
+    // Real-world abnormal thresholds — computed, not stored.
+    private static bool IsAbnormal(string type, decimal? value)
+    {
+        if (value is not decimal x) return false;
+        return type switch
+        {
+            "HeartRate" => x > 120 || x < 50,
+            "SpO2" => x < 92,
+            "Temperature" => x > 38.5m || x < 35m,
+            "SystolicBP" => x > 180 || x < 90,
+            "DiastolicBP" => x > 120 || x < 50,
+            "RespRate" => x > 24 || x < 8,
+            _ => false
+        };
+    }
+
+    private static IEnumerable<(string Severity, string Text)> BuildAlerts(PatientChart c)
+    {
+        foreach (var type in VitalOrder.Where(c.LatestVitals.ContainsKey))
+        {
+            var v = c.LatestVitals[type];
+            if (IsAbnormal(type, v.Value))
+            {
+                var (label, unit) = VitalMeta(type);
+                var sev = type == "SpO2" && v.Value < 88m ? "danger" : "warning";
+                yield return (sev, $"{label} {v.Value}{unit}");
+            }
+        }
+        foreach (var a in c.Allergies.Where(IsSevere))
+            yield return ("danger", $"Severe allergy: {a.Substance}");
+    }
+
+    private static string StatusClass(string? status) => status switch
+    {
+        "Completed" => "bg-success",
+        "InProgress" => "bg-info text-dark",
+        "Cancelled" => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+
+    // Advisory AI assistance: call the in-engine proc on demand (vector search + gpt-5).
+    private async Task RunAssistanceAsync()
+    {
+        try
+        {
+            _assistLoading = true;
+            _assistError = null;
+            _assist = await Repo.GetClinicalAssistanceAsync(EncounterId);
+        }
+        catch (Exception ex) { _assistError = ex.Message; }
+        finally { _assistLoading = false; }
+    }
+
+    private static string TriageClass(string? flag) => flag switch
+    {
+        "Critical" => "bg-danger",
+        "High" => "bg-danger",
+        "Medium" => "bg-warning text-dark",
+        "Low" => "bg-success",
+        _ => "bg-secondary"
+    };
+}
