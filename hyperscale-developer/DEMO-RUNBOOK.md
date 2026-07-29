@@ -12,12 +12,18 @@ Status legend: ✅ written · 🚧 to draft · 🎥 recording fallback needed
 | # | Check | How |
 |---|---|---|
 | 1 | `az login` valid | `az account show` (passwordless auth for app + DAB) |
-| 2 | App **and** DAB running | `./build/run.ps1` → starts **both**: DAB on http://localhost:5000 (REST/GraphQL/MCP) *and* the app on https://localhost:7170. Wait for `DAB is up on :5000` then the browser opens. (`shutdown.ps1` stops both; `-NoDab` for app-only.) |
-| 3 | MCP server started in VS Code | open [.vscode/mcp.json](../../.vscode/mcp.json) → **Start** on `wardgeneral-dab` (shows "12 tools") |
-| 4 | Copilot in **Agent** mode | trigger one tool call so the **Allow** dialog is pre-dismissed |
-| 5 | RLS default | app board shows **All providers · Admin** (everyone) |
+| 2 | **This client's IP allowed** on `collierhealth-17` | `./build/preflight-firewall.ps1` — detects your public IP and **prompts** before adding one named firewall rule (never opens `0.0.0.0`). `run.ps1` calls it automatically; `-Yes` = no prompt, `-SkipFirewall` on `run.ps1` bypasses it. **A new venue/hotel IP is the #1 "can't connect on stage" cause.** ⚠️ **Rotating egress (corpnet/NAT):** if the server rejects with **40615** despite a `/32` rule, your outbound IP rotates across a range (the IP `ipify` sees ≠ the IP SQL sees). Authorize the whole range: `./build/preflight-firewall.ps1 -Cidr 131.107.0.0/16 -Yes`. |
+| 3 | App **and** DAB running | `./build/run.ps1` → starts **both**: DAB on http://localhost:5000 (REST/GraphQL/MCP) *and* the app on https://localhost:7170. Wait for `DAB is up on :5000` then the browser opens. (`shutdown.ps1` stops both; `-NoDab` for app-only.) |
+| 4 | MCP server started in VS Code | open [.vscode/mcp.json](../../.vscode/mcp.json) → **Start** on `wardgeneral-dab` (shows "12 tools") |
+| 5 | Copilot in **Agent** mode | trigger one tool call so the **Allow** dialog is pre-dismissed |
+| 6 | RLS default | app board shows **All providers · Admin** (everyone) |
+| 7 | **Schema Designer + Copilot dry-run** (Demo 1 beat) | On the venue network, open the **MSSQL extension → Schema Designer** for `wardgeneral`, click the **Copilot icon**, and confirm it responds; then ask **"what is `ChartRepository`?"** and confirm a good answer. This beat is **live only** — prove the icon + Copilot work here before you walk on. |
 
-Backup: 🎥 recording fallback for every live beat (TODO).
+> ⚠️ **No recording fallbacks exist (as of 2026-07-28).** Every beat below is
+> **LIVE ONLY** — there is no 🎥 backup to cut to if the venue network or a login
+> fails. Pre-flight (esp. #2 firewall + #3 app/DAB) is your only safety net;
+> run it early. If recordings get made later, replace this note and re-flag the
+> per-demo "live only" callouts.
 
 ---
 
@@ -43,12 +49,15 @@ what lets the *same* procedures later serve DAB and an AI agent unchanged.
 |---|---|---|
 | 1 | Open the **census board** — units, beds, active encounters | The worklist is one proc: `SearchEncounters`. |
 | 2 | Click a bed → **patient chart** | The whole chart (demographics, vitals, notes, labs, meds, allergies) is `GetPatientChart` — one call. |
-| 3 | Point at the **connection**: no password anywhere | Entra-only / passwordless via managed identity (sets up "Secure it"). |
-| 4 | (Optional) show `ChartRepository` calling the proc by name | "Procs-for-everything" — no ad-hoc SQL, no ORM leakage. |
-| 5 | **Quick look at the Azure portal** — `wardgeneral` on `collierhealth-17` | Overview shows it's **Hyperscale** (HS_Gen5_8), compute + storage + replicas — "the app you just saw runs on *this*." |
+| 3 | **Show the GitHub repo + structure** — `presentations/hyperscale-developer/build/` (app `src/`, `dab/`, `sql/`) | It's an ordinary repo: a Blazor app + DAL, a DAB config, and a folder of plain `.sql`. Nothing Hyperscale-specific in the code. |
+| 4 | **MSSQL extension → Schema Designer, then the Copilot icon** — connect to `wardgeneral`, open the **Schema Designer** (visualize + design the schema), then click the **Copilot icon** in the designer and let it **describe what it sees** | Copilot reads the live schema and calls out the good stuff on its own — **native `json` columns** (`InsuranceJson`, `IntakeJson`, `ResultJson`, `FindingsJson`), the **`vector`** embedding table, and the **AI-assistance / ledger** tables. "It's an ordinary SQL Server database — and look what the engine already does." Previews the natural-language theme that pays off in 🤖 Modernize. |
+| 5 | **Ask Copilot: "what is `ChartRepository`?"** (and let it tie schema → app code) | The answer is the whole thesis in one shot: the DAL calls **only** `clinical.*` stored procedures (no ORM, no ad-hoc SQL), and those *same* procs become DAB's REST/GraphQL/MCP tools and the AI agent's tools, unchanged. Optionally open **`04-procedures.sql`** to show `GetPatientChart`/`SearchEncounters` behind it. |
+| 6 | **Explore the Azure portal** — `wardgeneral` on `collierhealth-17` → Overview | It's **Hyperscale** (HS_Gen5_8): compute + storage + replicas — "the app you just saw runs on *this*." |
+| 7 | On the portal, **call out Zone Redundancy = On** and **1 HA replica** | **Create-time choices** — both were decided at deploy and are **immutable** (no `az sql db update` for zone redundancy; you'd rebuild the DB to change it). Sets up "Make it HA." |
 
-**🎥 Backups:** Bob records **both** the app tour **and** the portal look as
-fallbacks (in case of venue network / login issues on stage).
+**⚠️ Live only — no recording fallback.** The app tour, the repo/schema walk, and
+the portal look are all live; if the venue network / login is shaky, lean on
+pre-flight rather than a cut-to-video (none exists).
 
 **Close:** *"Same SQL Server engine, same T-SQL, no app rewrite to adopt
 Hyperscale — you point the connection string and go."*
@@ -64,7 +73,7 @@ sees which rows. The app just says *who's asking*; the engine does the filtering
 |---|---|---|
 | 1 | In the app, change **"Viewing as"** from *Admin — all patients* to a **single attending** | The board + chart **instantly narrow** to that provider's patients — **Row-Level Security in the engine**, not a `WHERE` clause in the app. |
 | 2 | Flip back to **Admin** | All patients return — same query, same DAL, different `SESSION_CONTEXT`. |
-| 3 | Show the DAL **connection** — [WardGeneralConnectionFactory.cs](build/src/WardGeneral.Data/WardGeneralConnectionFactory.cs#L48) `Create()` | `Authentication = ActiveDirectoryDefault` · `Encrypt = Mandatory` · **no password, no key** — passwordless via managed identity. |
+| 3 | Show the DAL **connection** — [WardGeneralConnectionFactory.cs](build/src/WardGeneral.Data/WardGeneralConnectionFactory.cs#L48) `Create()` | `Authentication = ActiveDirectoryDefault` · `Encrypt = Mandatory` · **no password, no key**. Say it precisely: *"Passwordless, Entra-only. **Locally it's my `az login`; in Azure it's the app's managed identity** — same code, the only difference is who hands us the token."* `ActiveDirectoryDefault` is a **credential chain**, not a fixed identity: on the laptop there's no MI so it uses your developer Entra login; deployed to App Service / Container Apps it picks up the managed identity. |
 | 4 | Show the DAL **RLS stamp** — [ChartRepository.cs](build/src/WardGeneral.Data/ChartRepository.cs#L261) `OpenWithContextAsync()` | On every open, `sp_set_session_context` writes **ProviderId + Role (read-only)** from the "Viewing as" selector; the RLS predicate on `clinical.Encounter` reads it and filters. Pool reuse re-stamps — no reconnect. |
 | 5 | Show the **RLS T-SQL** — [10-row-level-security.sql](build/sql/10-row-level-security.sql) `security.fn_encounterAccess` + `security.EncounterAccessPolicy` | The **other end of the loop**: the `FILTER PREDICATE` reads `SESSION_CONTEXT('ProviderId'/'Role')` — NULL or `Admin` ⇒ all rows, else only that attending's encounters. The app stamps it, the engine enforces it. |
 
@@ -163,6 +172,13 @@ replicas, cross-region failover, and point-in-time restore, with no cluster to o
 
 **One line:** *"The same relational chart — now with document, text-mining, vector,
 and agent superpowers built into the engine. No new service to run."*
+
+> 🕒 **START THIS FIRST — it runs for several minutes.** Before movement 1, kick off
+> the **AI-assistance chat**: select provider **Claudia Ward**, prompt **"which
+> patients should I prioritize?"**. It fans out gpt-5 over her patients, so it's
+> slow — **launch it, then talk through JSON/RegEx and Vector Search while it cooks**,
+> and circle back to the result when you reach movement 3 (Clinical Assistance).
+> ⚠️ Live only / gpt-5 + Foundry dependent — smoke-test off-stage before the session.
 
 Four movements, climbing from T-SQL to an AI agent — all against one Hyperscale DB.
 

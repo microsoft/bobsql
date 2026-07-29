@@ -23,7 +23,8 @@ param(
     [string]$Database = 'wardgeneral',
     [switch]$NoBrowser,
     [switch]$OpenOnly,
-    [switch]$NoDab
+    [switch]$NoDab,
+    [switch]$SkipFirewall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,6 +55,23 @@ if (Test-Listening $port) {
     Write-Host "App already listening on $HttpsUrl — opening the browser." -ForegroundColor Yellow
     Start-Process $HttpsUrl
     return
+}
+
+# -- Pre-flight: make sure this client's public IP is allowed through the Azure
+# SQL server firewall. The app + DAB connect to $Server with Entra auth; a new
+# venue / hotel / conference IP is the #1 cause of "can't connect on stage".
+# preflight-firewall.ps1 detects the current public IP and PROMPTS before adding
+# a single named rule (never opens 0.0.0.0). -SkipFirewall bypasses it.
+if (-not $SkipFirewall) {
+    $fwScript = Join-Path $root 'preflight-firewall.ps1'
+    $srvShort = ([string]$Server).Split('.')[0]
+    & $fwScript -Server $srvShort
+    if ($LASTEXITCODE -eq 1) {
+        Write-Warning "Firewall pre-flight declined/skipped — app/DAB may fail to connect. Continuing anyway."
+    }
+    elseif ($LASTEXITCODE -gt 1) {
+        Write-Warning "Firewall pre-flight could not run (exit $LASTEXITCODE). Continuing; connections may fail. Use -SkipFirewall to silence."
+    }
 }
 
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
