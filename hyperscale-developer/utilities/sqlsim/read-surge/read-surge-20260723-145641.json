@@ -1,0 +1,135 @@
+{
+  "version": "1.0",
+  "start_time": "2026-07-23T14:56:43.282",
+  "configuration": {
+  "odbc_driver": "ODBC Driver 18 for SQL Server",
+  "server": "collierhealth-17.database.windows.net",
+  "database": "wardgeneral",
+  "authentication": "Access Token",
+  "threads": 38,
+  "workload_file": "C:\\bwsql\\presentations\\hyperscale-developer\\utilities\\sqlsim\\read-surge\\.read-surge.run.json",
+  "duration_seconds": 10,
+  "workload_groups": 3,
+  "workloads": [
+      {
+        "file": "read-census-board.sql",
+        "threads": 20,
+        "duration_seconds": 10,
+        "batch_count": 1,
+        "batches": [
+          "-- Ward General \uffffffe2\uffffff80\uffffff94 READ-ONLY load: unit census board.\n-- Mirrors the app Home page (ops.vBedCensus). No writes.\nSET NOCOUNT ON;\nDECLARE @Unit NVARCHAR(100) = (SELECT TOP 1 UnitName FROM ops.vBedCensus ORDER BY NEWID());\nSELECT UnitName, BedNumber, BedStatus, EncounterId, PatientId, MRN, PatientName, AttendingProvider, AdmitTime\nFROM ops.vBedCensus\nWHERE (@Unit IS NULL OR UnitName = @Unit)\n  AND EncounterId IS NOT NULL\nORDER BY UnitName, BedNumber;"
+        ]
+      },
+      {
+        "file": "read-patient-chart.sql",
+        "threads": 12,
+        "duration_seconds": 10,
+        "batch_count": 1,
+        "batches": [
+          "-- Ward General \uffffffe2\uffffff80\uffffff94 READ-ONLY load: open a patient chart.\n-- Mirrors the app bedside chart (clinical.GetPatientChart) for a random active\n-- encounter. The heaviest read in the app (all chart sections). No writes.\nSET NOCOUNT ON;\nDECLARE @EncounterId INT =\n    (SELECT TOP 1 EncounterId FROM clinical.Encounter WHERE Status = N'Active' ORDER BY NEWID());\nIF @EncounterId IS NOT NULL\n    EXEC clinical.GetPatientChart @EncounterId = @EncounterId;"
+        ]
+      },
+      {
+        "file": "read-worklist.sql",
+        "threads": 6,
+        "duration_seconds": 10,
+        "batch_count": 1,
+        "batches": [
+          "-- Ward General \uffffffe2\uffffff80\uffffff94 READ-ONLY load: the worklist.\n-- Mirrors the app's encounter search (clinical.SearchEncounters), active only.\n-- All filters are optional (OPPO). No writes.\nSET NOCOUNT ON;\nEXEC clinical.SearchEncounters @Status = N'Active';"
+        ]
+      }
+    ],
+  "application_name": "sqlsim",
+  "retry_count": 0,
+  "encryption": "Strict",
+  "output_file": "C:\\bwsql\\presentations\\hyperscale-developer\\utilities\\sqlsim\\read-surge\\read-surge-20260723-145641.json",
+  "quiet_mode": true,
+  "query_stats": true
+  },
+  "query_stats": {
+    "queries": [
+      {
+        "query": "-- Ward General \uffffffe2\uffffff80\uffffff94 READ-ONLY load: open a patient chart.\n-- Mirrors the app bedside chart (clinical.GetPatientChart) for a random active\n-- encounter. The heaviest read in the app (all chart sections). No writes.\nSET NOCOUNT ON;\nDECLARE @EncounterId INT =\n    (SELECT TOP 1 EncounterId FROM clinical.Encounter WHERE Status = N'Active' ORDER BY NEWID());\nIF @EncounterId IS NOT NULL\n    EXEC clinical.GetPatientChart @EncounterId = @EncounterId;",
+        "total_elapsed_ms": {"avg": 158.125, "min": 40.214, "max": 615.845},
+        "server_elapsed_ms": {"avg": 68.722, "min": 7.000, "max": 480.000},
+        "server_cpu_ms": {"avg": 6.615, "min": 0.000, "max": 93.000},
+        "server_elapsed_sum_ms": {"avg": 170.198, "min": 22.000, "max": 851.000},
+        "server_cpu_sum_ms": {"avg": 18.092, "min": 0.000, "max": 109.000},
+        "compile_elapsed_ms": {"avg": 2.958, "min": 0.000, "max": 200.000},
+        "logical_reads": {"avg": 1496.2, "min": 1488, "max": 1510},
+        "physical_reads": {"avg": 0.5, "min": 0, "max": 10},
+        "read_ahead_reads": {"avg": 10.2, "min": 0, "max": 29},
+        "row_count": {"avg": 1.0, "min": 1, "max": 1},
+        "executions": 763,
+        "failures": 0
+      },
+      {
+        "query": "-- Ward General \uffffffe2\uffffff80\uffffff94 READ-ONLY load: the worklist.\n-- Mirrors the app's encounter search (clinical.SearchEncounters), active only.\n-- All filters are optional (OPPO). No writes.\nSET NOCOUNT ON;\nEXEC clinical.SearchEncounters @Status = N'Active';",
+        "total_elapsed_ms": {"avg": 174.007, "min": 45.844, "max": 394.263},
+        "server_elapsed_ms": {"avg": 133.084, "min": 25.000, "max": 311.000},
+        "server_cpu_ms": {"avg": 23.303, "min": 0.000, "max": 94.000},
+        "server_elapsed_sum_ms": {"avg": 265.680, "min": 50.000, "max": 622.000},
+        "server_cpu_sum_ms": {"avg": 46.424, "min": 0.000, "max": 188.000},
+        "compile_elapsed_ms": {"avg": 0.000, "min": 0.000, "max": 0.000},
+        "logical_reads": {"avg": 2392.0, "min": 2392, "max": 2392},
+        "physical_reads": {"avg": 0.0, "min": 0, "max": 0},
+        "read_ahead_reads": {"avg": 0.0, "min": 0, "max": 0},
+        "row_count": {"avg": 340.0, "min": 340, "max": 340},
+        "executions": 347,
+        "failures": 0
+      },
+      {
+        "query": "-- Ward General \uffffffe2\uffffff80\uffffff94 READ-ONLY load: unit census board.\n-- Mirrors the app Home page (ops.vBedCensus). No writes.\nSET NOCOUNT ON;\nDECLARE @Unit NVARCHAR(100) = (SELECT TOP 1 UnitName FROM ops.vBedCensus ORDER BY NEWID());\nSELECT UnitName, BedNumber, BedStatus, EncounterId, PatientId, MRN, PatientName, AttendingProvider, AdmitTime\nFROM ops.vBedCensus\nWHERE (@Unit IS NULL OR UnitName = @Unit)\n  AND EncounterId IS NOT NULL\nORDER BY UnitName, BedNumber;",
+        "total_elapsed_ms": {"avg": 90.090, "min": 23.970, "max": 231.569},
+        "server_elapsed_ms": {"avg": 5.604, "min": 0.000, "max": 76.000},
+        "server_cpu_ms": {"avg": 0.715, "min": 0.000, "max": 16.000},
+        "server_elapsed_sum_ms": {"avg": 45.172, "min": 4.000, "max": 156.000},
+        "server_cpu_sum_ms": {"avg": 7.445, "min": 0.000, "max": 47.000},
+        "compile_elapsed_ms": {"avg": 0.849, "min": 0.000, "max": 131.000},
+        "logical_reads": {"avg": 1581.1, "min": 1581, "max": 1582},
+        "physical_reads": {"avg": 0.0, "min": 0, "max": 0},
+        "read_ahead_reads": {"avg": 0.0, "min": 0, "max": 0},
+        "row_count": {"avg": 17.0, "min": 17, "max": 17},
+        "executions": 2230,
+        "failures": 0
+      }
+    ],
+    "totals": {
+      "total_elapsed_ms": 381929.673,
+      "server_elapsed_ms": 111111.000,
+      "server_cpu_ms": 14728.000,
+      "server_elapsed_sum_ms": 322785.000,
+      "server_cpu_sum_ms": 46516.000,
+      "compile_elapsed_ms": 4151.000,
+      "logical_reads": 5497375,
+      "physical_reads": 404,
+      "read_ahead_reads": 7790,
+      "total_rows": 156653,
+      "executions": 3340,
+      "failures": 0
+    }
+  },
+  "execution_elapsed_seconds": 10.013,
+  "connection_stats": {
+    "avg_ms": 554.947,
+    "min_ms": 481.000,
+    "max_ms": 619.000,
+    "count": 38
+  },
+  "metrics": {
+  "odbc_driver_version": "18.06.0002",
+  "total_runtime_seconds": 10.773,
+  "total_connection_time_seconds": 21.109,
+  "total_query_execution_time_seconds": 381.930,
+  "end_time": "2026-07-23T14:56:54.057",
+    "errors": {
+      "total": 0,
+      "list": []
+    },
+    "warnings": {
+      "total": 0,
+      "list": []
+    }
+  },
+  "success": true
+}

@@ -1,0 +1,10 @@
+# Temporary SQL firewall rules — LOCAL ONLY (gitignored)
+#
+# Per-venue / per-week client-IP rules added to collierhealth-17 so the app + DAB
+# can connect from a network I won't return to. Prune these after the date shown.
+#
+# Cleanup:  az sql server firewall-rule delete -g rg-collierhealth -s collierhealth-17 -n <name>
+#
+# name                                  ip               added        expires (prune after)
+# ------------------------------------  ---------------  -----------  ----------------------
+TEMP-EXPIRES-2026-08-04-wandogwin11     50.226.71.198    2026-07-28   2026-08-04
