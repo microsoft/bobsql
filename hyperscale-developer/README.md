@@ -46,6 +46,17 @@
   Everything else it depends on — the Hyperscale database, managed-identity auth, RLS,
   the private endpoint — already lives in Azure and is unaffected by where the app runs.
 
+- **"Passwordless" ≠ "managed identity on the laptop."** The DAL sets
+  `Authentication = ActiveDirectoryDefault` (`WardGeneral.Data/WardGeneralConnectionFactory.cs`),
+  which resolves a **credential chain**, not a fixed identity. Running on the presenter's
+  laptop there is **no managed identity** — the chain falls through to the developer's
+  **Entra login** (`az login`, or the VS / VS Code sign-in). Deployed to Azure App Service /
+  Container Apps the *same code* picks up the app's **managed identity** at the top of the
+  chain. What's constant either way: **no password, no secret, no key on disk** — only a
+  short-lived Entra token; the only difference is *who* issues it (you locally, the platform
+  in Azure). So on the laptop your `az login` identity must be a SQL user on `wardgeneral`;
+  in Azure you grant the managed identity that same `CREATE USER … FROM EXTERNAL PROVIDER`.
+
 - **First-time setup — trust the local HTTPS cert.** The app runs on Kestrel with the
   ASP.NET Core developer certificate. If the browser shows a **"Not secure"** warning on
   `https://localhost:7170`, trust the dev cert once (then fully close and reopen the browser):
