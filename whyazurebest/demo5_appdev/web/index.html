@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ticket stream &mdash; live from Azure SQL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            padding: 2rem 3rem;
+            background: #0b1220;
+            color: #e6edf7;
+            font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+        }
+
+        header {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+            border-bottom: 1px solid #1e2a3d;
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.9rem;
+            font-weight: 600;
+        }
+
+        #status {
+            font-size: 1rem;
+            padding: .2rem .7rem;
+            border-radius: 999px;
+            background: #3a2020;
+            color: #ff9c9c;
+        }
+
+        #status.up {
+            background: #10331f;
+            color: #6ee7a0;
+        }
+
+        #count {
+            margin-left: auto;
+            font-variant-numeric: tabular-nums;
+            color: #7d8da5;
+        }
+
+        #debugToggle {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            font-size: .85rem;
+            color: #7d8da5;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #empty {
+            margin-top: 4rem;
+            text-align: center;
+            color: #56657f;
+            font-size: 1.3rem;
+        }
+
+        .event {
+            margin-top: 1.25rem;
+            background: #111a2b;
+            border: 1px solid #1e2a3d;
+            border-left: 4px solid #4c9aff;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            animation: pop .35s ease-out;
+        }
+
+        .event .meta {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            color: #7d8da5;
+            font-size: .85rem;
+            margin-bottom: .8rem;
+        }
+
+        .op {
+            font-weight: 600;
+            letter-spacing: .04em;
+            padding: .1rem .5rem;
+            border-radius: 4px;
+            background: #10331f;
+            color: #6ee7a0;
+        }
+
+        .op.UPD {
+            background: #33290f;
+            color: #f2c661;
+        }
+
+        .op.DEL {
+            background: #3a2020;
+            color: #ff9c9c;
+        }
+
+        .event table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .event td {
+            padding: .3rem .6rem .3rem 0;
+            vertical-align: top;
+            border-top: 1px solid #182335;
+        }
+
+        .event tr:first-child td {
+            border-top: none;
+        }
+
+        .col {
+            width: 1%;
+            white-space: nowrap;
+            color: #7d8da5;
+        }
+
+        .col .type {
+            color: #4a5a73;
+            font-size: .78rem;
+            margin-left: .4rem;
+        }
+
+        .val {
+            color: #e6edf7;
+            font: 15px/1.5 "Cascadia Code", Consolas, monospace;
+            word-break: break-word;
+        }
+
+        .val .was {
+            color: #f2c661;
+            text-decoration: line-through;
+            margin-right: .5rem;
+        }
+
+        .event pre {
+            margin: .9rem 0 0;
+            padding-top: .9rem;
+            border-top: 1px solid #1e2a3d;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font: 13px/1.5 "Cascadia Code", Consolas, monospace;
+            color: #7d8da5;
+        }
+
+        body:not(.debug) .event pre {
+            display: none;
+        }
+
+        .action {
+            display: flex;
+            align-items: baseline;
+            gap: .6rem;
+            margin-top: .9rem;
+            padding-top: .9rem;
+            border-top: 1px solid #1e2a3d;
+            animation: pop .35s ease-out;
+        }
+
+        .action .verb {
+            font-weight: 600;
+            font-size: .8rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            padding: .15rem .55rem;
+            border-radius: 4px;
+            background: #24304a;
+            color: #a9bcd9;
+            white-space: nowrap;
+        }
+
+        .action[data-action="escalate"] .verb { background: #3a2020; color: #ff9c9c; }
+        .action[data-action="assign"]   .verb { background: #1b2e4a; color: #8ec4ff; }
+        .action[data-action="resolve"]  .verb { background: #10331f; color: #6ee7a0; }
+        .action[data-action="schedule"] .verb { background: #2b2445; color: #c0aaff; }
+        .action[data-action="info"]     .verb { background: #33290f; color: #f2c661; }
+
+        .action .taken {
+            color: #e6edf7;
+        }
+
+        .action .by {
+            margin-left: auto;
+            white-space: nowrap;
+            color: #56657f;
+            font-size: .8rem;
+        }
+
+        @keyframes pop {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Support Ticket Stream</h1>
+        <span id="status">connecting&hellip;</span>
+        <span id="count">0 events</span>
+        <label id="debugToggle"><input type="checkbox" id="debug" /> debug</label>
+    </header>
+
+    <div id="empty">Nothing yet. Insert a row into <code>dbo.SupportTicket</code>.</div>
+    <div id="feed"></div>
+
+    <script>
+        // Override with ?api=https://... when pointing at a different function app.
+        const API_BASE = new URLSearchParams(location.search).get('api')
+            || 'https://bwappdev-func.azurewebsites.net';
+
+        const statusEl = document.getElementById('status');
+        const countEl = document.getElementById('count');
+        const emptyEl = document.getElementById('empty');
+        const feedEl = document.getElementById('feed');
+        let count = 0;
+
+        function setStatus(text, up) {
+            statusEl.textContent = text;
+            statusEl.classList.toggle('up', !!up);
+        }
+
+        // The CloudEvent nests JSON inside JSON: envelope.data is a string, and
+        // inside it eventrow.current/old are strings again.
+        function unpack(raw) {
+            const env = JSON.parse(raw);
+            const data = JSON.parse(env.data);
+            const src = data.eventsource || {};
+            const parse = s => { try { return JSON.parse(s || '{}'); } catch { return {}; } };
+            return {
+                env,
+                logicalId: env.logicalid,
+                operation: env.operation,
+                table: [src.db, src.schema, src.tbl].filter(Boolean).join('.'),
+                committedAt: src.transaction?.committime,
+                columns: (src.cols || []).slice().sort((a, b) => a.index - b.index),
+                current: parse(data.eventrow?.current),
+                old: parse(data.eventrow?.old)
+            };
+        }
+
+        function rowTable(evt) {
+            const table = document.createElement('table');
+            // DELETE carries the row in "old"; INSERT/UPDATE carry it in "current".
+            const shown = evt.operation === 'DEL' ? evt.old : evt.current;
+            const names = evt.columns.length
+                ? evt.columns.map(c => c.name)
+                : Object.keys(shown);
+
+            for (const name of names) {
+                const type = evt.columns.find(c => c.name === name)?.type;
+                const row = table.insertRow();
+
+                const col = row.insertCell();
+                col.className = 'col';
+                col.textContent = name;
+                if (type) {
+                    const t = document.createElement('span');
+                    t.className = 'type';
+                    t.textContent = type;
+                    col.append(t);
+                }
+
+                const val = row.insertCell();
+                val.className = 'val';
+                const before = evt.old[name];
+                if (evt.operation === 'UPD' && before !== undefined && before !== shown[name]) {
+                    const was = document.createElement('span');
+                    was.className = 'was';
+                    was.textContent = before;
+                    val.append(was);
+                }
+                val.append(document.createTextNode(shown[name] ?? ''));
+            }
+            return table;
+        }
+
+        const seen = new Set();
+        const cards = new Map();
+        const acted = new Set();
+        // The triage function reads its own consumer group, so its verdict can
+        // land before the card it belongs to. Hold it until the card shows up.
+        const orphaned = new Map();
+
+        function applyAction(card, msg) {
+            const v = msg.verdict || {};
+            const strip = document.createElement('div');
+            strip.className = 'action';
+            strip.dataset.action = v.action || '';
+
+            const verb = document.createElement('span');
+            verb.className = 'verb';
+            verb.textContent = `agent ${v.action || ''}`.trim();
+
+            const taken = document.createElement('span');
+            taken.className = 'taken';
+            taken.textContent = v.taken || '';
+
+            const by = document.createElement('span');
+            by.className = 'by';
+            const sev = v.severity ? `sev ${v.severity} \u00b7 ` : '';
+            by.textContent = `${sev}${msg.agent} \u00b7 ${msg.elapsedMs} ms`;
+
+            strip.append(verb, taken, by);
+            card.insertBefore(strip, card.querySelector('pre'));
+        }
+
+        function onAction(raw) {
+            const msg = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            // Triage runs once per delivery and Event Hubs delivers at least
+            // once, so the same verdict arrives several times per ticket.
+            if (acted.has(msg.logicalId)) { return; }
+            acted.add(msg.logicalId);
+
+            const card = cards.get(msg.logicalId);
+            if (card) { applyAction(card, msg); }
+            else { orphaned.set(msg.logicalId, msg); }
+        }
+
+        function render(raw) {
+            let evt;
+            try {
+                evt = unpack(raw);
+            } catch {
+                evt = null;
+            }
+
+            // CES delivers at least once, so the same commit can arrive more than
+            // once. logicalid is streamid:commitlsn:sequencenumber -- stable per row change.
+            if (evt?.logicalId) {
+                if (seen.has(evt.logicalId)) { return; }
+                seen.add(evt.logicalId);
+            }
+
+            emptyEl.remove?.();
+
+            const card = document.createElement('div');
+            card.className = 'event';
+
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            if (evt) {
+                const op = document.createElement('span');
+                op.className = `op ${evt.operation}`;
+                op.textContent = { INS: 'New Ticket', UPD: 'UPDATE', DEL: 'DELETE' }[evt.operation] || evt.operation;
+                meta.append(op, `${evt.table} \u00b7 committed ${new Date(evt.committedAt).toLocaleTimeString()}`);
+            } else {
+                meta.textContent = `unrecognized payload \u00b7 ${new Date().toLocaleTimeString()}`;
+            }
+
+            const pre = document.createElement('pre');
+            pre.textContent = evt
+                ? JSON.stringify({ ...evt.env, data: JSON.parse(evt.env.data) }, null, 2)
+                : raw;
+
+            card.append(meta);
+            if (evt) { card.append(rowTable(evt)); }
+            card.append(pre);
+            feedEl.prepend(card);
+
+            if (evt?.logicalId) {
+                cards.set(evt.logicalId, card);
+                const waiting = orphaned.get(evt.logicalId);
+                if (waiting) { applyAction(card, waiting); orphaned.delete(evt.logicalId); }
+            }
+
+            countEl.textContent = `${++count} event${count === 1 ? '' : 's'}`;
+        }
+
+        const debugEl = document.getElementById('debug');
+        debugEl.checked = new URLSearchParams(location.search).has('debug');
+        const applyDebug = () => document.body.classList.toggle('debug', debugEl.checked);
+        debugEl.addEventListener('change', applyDebug);
+        applyDebug();
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${API_BASE}/api`)
+            .withAutomaticReconnect()
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on('ticketChanged', render);
+        connection.on('ticketAction', onAction);
+        connection.onreconnecting(() => setStatus('reconnecting…', false));
+        connection.onreconnected(() => setStatus('connected', true));
+        connection.onclose(() => setStatus('disconnected', false));
+
+        connection.start()
+            .then(() => setStatus('connected', true))
+            .catch(err => {
+                setStatus('failed', false);
+                console.error(err);
+            });
+    </script>
+</body>
+
+</html>
