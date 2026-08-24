@@ -1,0 +1,7 @@
+# There are no secrets in this demo. The VM password is prompted for and never
+# stored; the database has no SQL login at all.
+# demo3.rdp is generated per-venue by allow-me.ps1 and contains a public IP.
+demo3.rdp
+
+# sqlsim.exe is copied into the VM by hand, never committed here.
+vmkit/sqlsim.exe

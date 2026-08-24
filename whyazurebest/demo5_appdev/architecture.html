@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Demo 5 — Support Ticket Stream architecture</title>
+<style>
+  :root { --ink:#e6edf3; --dim:#8b949e; --blue:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0d1117; color:var(--ink); font-family:"Segoe UI", system-ui, sans-serif; }
+  /* 2020x1136 is 16:9, so the PNG fills a widescreen slide edge to edge. The extra
+     height over the content is padding, keeping all ?step= layers in registration. */
+  .canvas { width: 2020px; height: 1136px; padding: 103px 44px 98px; }
+
+  h1 { margin:0 0 4px; font-size:38px; letter-spacing:-0.5px; }
+  .sub { margin:0 0 26px; font-size:19px; color:var(--dim); }
+
+  .emoji { font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif; line-height:1; }
+
+  /* Row 1 runs left-to-right and ends flush right; row 2 reverses under it. */
+  .stage { display:flex; align-items:stretch; justify-content:flex-end; }
+  .stage.rev { flex-direction:row-reverse; justify-content:flex-start; }
+
+  .box {
+    border-radius:16px; border:3px solid; padding:16px 18px; text-align:center;
+    background:#000; display:flex; flex-direction:column; justify-content:center;
+  }
+  .box .emoji { font-size:56px; display:block; margin-bottom:8px; }
+  .box .title { font-size:22px; font-weight:650; line-height:1.2; }
+  .box .meta  { font-size:15px; color:var(--dim); margin-top:6px; line-height:1.35; }
+  .box .fname { font-size:18px; font-weight:650; color:#2fd4d4; margin-top:6px; font-family:Consolas,monospace; }
+
+  .customer { background:#3a2246; border-color:#c98cff; }
+  .db       { background:#0d2f52; border-color:#4da6ff; }
+  .stream   { background:#4a3000; border-color:#ffb020; }
+  .func     { background:#003536; border-color:#2fd4d4; }
+  .agent    { background:#451c28; border-color:#ff7b9c; }
+  .ui       { background:#163216; border-color:#6ee36e; }
+
+  .harrow { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 10px; }
+  .harrow .glyph { font-size:30px; color:var(--blue); line-height:1; }
+  .harrow .label { font-size:14px; color:var(--dim); text-align:center; margin-top:5px; line-height:1.25; max-width:150px; }
+  .harrow.tight { padding:0 6px; }
+  .harrow.tight .glyph { font-size:24px; }
+  .harrow.left .glyph { display:inline-block; transform:scaleX(-1); }
+
+  .turn { display:flex; flex-direction:column; align-items:flex-end; margin:16px 0 18px; padding-right:118px; }
+  .turn .glyph { font-size:34px; color:#ffb020; line-height:1; }
+  .turn .label { font-size:20px; font-weight:650; color:#ffb020; margin-top:6px; }
+
+  .fork { border:3px dashed #ffb020; border-radius:22px; padding:20px 24px; background:#1a1405; }
+  .lanes { display:grid; grid-template-columns:auto auto auto auto auto auto auto; row-gap:20px; align-items:center; }
+
+  .chip { border-radius:14px; border:2px solid #ffb020; background:#2b1c00; padding:12px 14px; text-align:center; width:150px; }
+  .chip .emoji { font-size:38px; display:block; margin-bottom:6px; }
+  .chip .title { font-size:17px; font-weight:650; }
+
+  .note { border:2px dashed #30363d; border-radius:14px; padding:14px 16px; font-size:15px; color:var(--dim); text-align:center; width:280px; }
+  .note .emoji { font-size:32px; display:block; margin-bottom:6px; }
+
+  .pill { border-radius:999px; border:2px solid; padding:10px 14px; font-size:16px; font-weight:650; text-align:center; width:170px; }
+  .pill.a { border-color:#6ee36e; color:#6ee36e; background:#0f1a0f; }
+  .pill.b { border-color:#ff9c9c; color:#ff9c9c; background:#1a0f0f; }
+
+  .screen { border:3px solid #6ee36e; border-radius:20px; background:#0f1a0f; padding:16px 18px; width:430px; }
+  .screen h2 { margin:0 0 12px; font-size:20px; text-align:center; font-weight:650; }
+  .screen h2 .emoji { font-size:26px; vertical-align:-5px; margin-right:8px; }
+  .pane { border-radius:14px; border:2px solid; background:#000; padding:14px 16px; text-align:center; }
+  .pane + .pane { margin-top:12px; }
+  .pane .emoji { font-size:42px; display:block; margin-bottom:6px; }
+  .pane .title { font-size:19px; font-weight:650; }
+  .pane .meta { font-size:14px; color:var(--dim); margin-top:5px; line-height:1.35; }
+  .pane.first { border-color:#6ee36e; }
+  .pane.second { border-color:#ff9c9c; }
+  .reunite { text-align:center; font-size:14px; color:var(--dim); margin:12px 0 0; }
+  .reunite code { color:#ffb020; }
+
+  .footer {
+    margin-top:26px; border-radius:18px; border:3px solid #e3e36e; background:#33330f;
+    padding:16px 24px; display:flex; align-items:center; justify-content:center; gap:18px;
+  }
+  .footer .emoji { font-size:46px; }
+  .footer .txt { font-size:22px; font-weight:650; }
+  .footer .txt span { display:block; font-size:17px; font-weight:400; color:#b8b880; margin-top:4px; }
+
+  /* ?step=N renders a reveal layer: anything past step N fades back. Omit the param for the full diagram. */
+  .dim { opacity:0.07; }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <h1>Support Ticket Stream</h1>
+  <p class="sub">A row lands in Azure SQL. The database tells everyone. An agent decides what to do about it.</p>
+
+  <div class="stage">
+    <div class="box customer" data-step="1" style="width:250px">
+      <span class="emoji">😤</span>
+      <div class="title">Customer</div>
+      <div class="meta">Checkout is throwing 503s</div>
+    </div>
+    <div class="harrow" data-step="1"><span class="glyph">➜</span><span class="label">files a ticket</span></div>
+    <div class="box customer" data-step="1" style="width:250px">
+      <span class="emoji">📝</span>
+      <div class="title">Support app</div>
+      <div class="meta">no queue, no outbox, no retry loop</div>
+    </div>
+    <div class="harrow" data-step="1"><span class="glyph">➜</span><span class="label">INSERT INTO dbo.SupportTicket<br>one statement, one commit</span></div>
+    <div class="box db" data-step="1" style="width:290px">
+      <span class="emoji">🗄️</span>
+      <div class="title">Azure SQL Hyperscale</div>
+      <div class="meta">bwappdev · dbo.SupportTicket</div>
+    </div>
+    <div class="harrow tight" data-step="2"><span class="glyph">➜</span></div>
+    <div class="box db" data-step="2" style="width:320px">
+      <span class="emoji">📡</span>
+      <div class="title">Change Event Streaming</div>
+      <div class="meta">the database publishes the change itself<br>no trigger · no polling · no CDC job</div>
+    </div>
+    <div class="harrow" data-step="2"><span class="glyph">➜</span><span class="label">CloudEvent<br>over Kafka :9093</span></div>
+    <div class="box stream" data-step="2" style="width:260px">
+      <span class="emoji">🚌</span>
+      <div class="title">Event Hubs</div>
+      <div class="meta">bwappdev-ehns · ticket-events</div>
+    </div>
+  </div>
+
+  <div class="turn" data-step="3">
+    <span class="glyph">▼</span>
+    <div class="label">two consumer groups read the same stream, racing each other</div>
+  </div>
+
+  <!-- row-reverse: source order is downstream-first, so this row renders right-to-left -->
+  <div class="stage rev">
+
+    <div class="fork" data-step="3">
+      <div class="lanes">
+
+        <div class="pill a" data-step="5">ticketChanged</div>
+        <div class="harrow tight left" data-step="5"><span class="glyph">➜</span></div>
+        <div class="note" data-step="4">
+          <span class="emoji">⏱️</span>
+          Nothing to wait for. The card is on screen before the model has finished reading.
+        </div>
+        <div class="harrow tight left" data-step="4"><span class="glyph">➜</span></div>
+        <div class="box func" data-step="4" style="width:260px">
+          <span class="emoji">⚡</span>
+          <div class="title">Azure Function</div>
+          <div class="fname">TicketEvent</div>
+          <div class="meta">broadcast the row, immediately</div>
+        </div>
+        <div class="harrow tight left" data-step="4"><span class="glyph">➜</span></div>
+        <div class="chip" data-step="3"><span class="emoji">📬</span><div class="title">default</div></div>
+
+        <div class="pill b" data-step="5">ticketAction</div>
+        <div class="harrow tight left" data-step="5"><span class="glyph">➜</span></div>
+        <div class="box agent" data-step="4" style="width:280px">
+          <span class="emoji">🤖</span>
+          <div class="title">Foundry agent</div>
+          <div class="meta">ticket-triage · gpt-4.1-mini<br>picks one action, says what it did</div>
+        </div>
+        <div class="harrow tight" data-step="4"><span class="glyph">⇄</span></div>
+        <div class="box func" data-step="4" style="width:260px">
+          <span class="emoji">⚡</span>
+          <div class="title">Azure Function</div>
+          <div class="fname">TicketTriage</div>
+          <div class="meta">ask the agent, then broadcast</div>
+        </div>
+        <div class="harrow tight left" data-step="4"><span class="glyph">➜</span></div>
+        <div class="chip" data-step="3"><span class="emoji">📬</span><div class="title">triage</div></div>
+
+      </div>
+    </div>
+
+    <div class="harrow left" data-step="5"><span class="glyph">➜</span></div>
+
+    <div class="box ui" data-step="5" style="width:240px">
+      <span class="emoji">📢</span>
+      <div class="title">SignalR</div>
+      <div class="meta">tickets hub<br>pushed, not polled</div>
+    </div>
+
+    <div class="harrow left" data-step="5"><span class="glyph">➜</span></div>
+
+    <div class="screen" data-step="5">
+      <h2><span class="emoji">🖥️</span>What the room sees</h2>
+      <div class="pane first">
+        <span class="emoji">🎫</span>
+        <div class="title">Ticket card appears</div>
+        <div class="meta">instantly, on commit</div>
+      </div>
+      <div class="pane second">
+        <span class="emoji">🚨</span>
+        <div class="title">AGENT ESCALATE</div>
+        <div class="meta">"Opened a Sev 1 incident and notified<br>the Payments on-call engineer" — ~1s later</div>
+      </div>
+      <p class="reunite">Two independent messages, stitched onto the same card by <code>logicalId</code></p>
+    </div>
+
+  </div>
+
+  <div class="footer" data-step="5">
+    <span class="emoji">🔐</span>
+    <div class="txt">
+      Managed identity on every single hop
+      <span>no keys · no SAS tokens · no connection strings anywhere in the app settings</span>
+    </div>
+  </div>
+
+</div>
+<script>
+  const step = Number(new URLSearchParams(location.search).get('step'));
+  if (step) {
+    document.querySelectorAll('[data-step]').forEach(el => {
+      if (Number(el.dataset.step) > step) el.classList.add('dim');
+    });
+  }
+</script>
+</body>
+</html>
