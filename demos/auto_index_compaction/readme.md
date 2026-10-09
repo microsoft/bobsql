@@ -2,6 +2,9 @@
 
 Demonstrates **Automatic Index Compaction** in Azure SQL Hyperscale — a background process that reclaims wasted space in indexes without rebuilds, maintenance windows, or downtime.
 
+> [!IMPORTANT]
+> This demo is for demonstration purposes only. Automatic Index Compaction runs as part of version cleanup, so enabling it after running the DML statements may not result in compaction if version cleanup has already occurred. This demo enables Automatic Index Compaction immediately after the DML workload to create the timing needed to observe compaction during version cleanup.
+
 ## What This Demo Shows
 
 1. A clustered index with 1M rows at **99.8% page density** (baseline)
