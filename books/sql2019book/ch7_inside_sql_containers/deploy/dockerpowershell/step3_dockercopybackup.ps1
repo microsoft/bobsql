@@ -1,0 +1,1 @@
+docker cp c:\sql_sample_databases\WideWorldImporters-Full.bak sql2019latest:/var/opt/mssql

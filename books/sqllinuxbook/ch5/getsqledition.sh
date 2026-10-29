@@ -1,0 +1,1 @@
+sqlcmd -Usa -igetsqlversion.sql -PSql2017isfast | grep Edition

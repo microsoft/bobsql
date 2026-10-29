@@ -1,0 +1,1 @@
+sqlcmd -Usa -PSql2019isfast -Slocalhost,1401 -Q"SELECT @@VERSION"
