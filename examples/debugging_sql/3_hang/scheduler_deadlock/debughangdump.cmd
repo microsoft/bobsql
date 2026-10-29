@@ -1,0 +1,1 @@
+windbg -y srv*c:\symbols*http://msdl.microsoft.com/download/symbols -z SQLDmpr.00000000000000E2.GMT-2022-11-12-20-25-04.{4bb53e7e-0b26-4328-95fa-888bbbaa46e9}.dmp
