@@ -1,0 +1,5 @@
+<RML>
+	<LANG WAITAFTER="3600sec">
+		<CMD>select @@VERSION</CMD>
+	</LANG>
+</RML>
