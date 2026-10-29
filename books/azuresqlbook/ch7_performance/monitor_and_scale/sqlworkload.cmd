@@ -1,0 +1,1 @@
+ostress.exe -S<server>.database.windows.net -itopcustomersales.sql -Uthewandog -d<database> -P<password> -n10 -r2 -q

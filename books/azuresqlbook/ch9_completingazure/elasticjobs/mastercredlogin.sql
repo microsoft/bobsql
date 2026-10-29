@@ -1,0 +1,4 @@
+CREATE LOGIN mastercred WITH PASSWORD = '<REDACTED>';
+GO
+CREATE USER mastercred FROM LOGIN mastercred;
+GO
