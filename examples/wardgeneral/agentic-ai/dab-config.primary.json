@@ -1,0 +1,163 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
+
+  "//": "Ward General — the Agentic AI MCP endpoint. One DAB process on port 5000 over the wardgeneral PRIMARY, publishing everything the agent may call: current chart reads, the shift-handoff candidate roster, historical similarity search, and one approval-gated write. A DAB configuration carries exactly one connection string, so one process reaches one database — and the database the agent talks to is the primary. The AI-Ready SQL Research page reaches the wardgeneral-research named replica on its own ADO.NET connection, not through DAB.",
+
+  "//writes-offered": "The agent is offered exactly one write, save_handoff, and it is the narrowest one that can exist: it maps to a single procedure that takes an encounter and derives the patient itself. There is deliberately no generic execute-procedure tool and no SQL passthrough — a write tool that can express any statement is not a boundary. The application wraps save_handoff so the Agent Framework raises an approval request instead of calling it immediately.",
+
+  "//dml-tools": "runtime.mcp sets dml-tools to false. DAB publishes seven generic tools by default — describe_entities, read_records, create_record, update_record, delete_record, aggregate_records and execute_entity — and turning them off is what makes the seven entities below the WHOLE tool inventory. execute_entity is the one that matters most: it could run save_handoff by entity name without passing through the application's approval gate, because that gate wraps tools by name. A bounded write surface that ships alongside a generic executor is not bounded. No table or view entity appears below; every tool is a named stored-procedure contract.",
+
+  "//comments": "Keys beginning with // survive here because unknown properties are ignored at the root object. They are NOT legal inside 'entities' (deserialized as a dictionary of entity objects) or inside 'runtime.mcp' (additionalProperties: false); a // key in either place fails with a deserialization error, and on a running engine the hot reload silently keeps the previous config.",
+
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('DAB_CONNECTION_STRING')"
+  },
+
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": true,
+      "path": "/graphql",
+      "allow-introspection": true
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "description": "Ward General (SQL MCP) — clinical state, shift-handoff signals, and historical note similarity on Azure SQL Hyperscale, plus one approval-gated write.",
+      "dml-tools": false
+    },
+    "host": {
+      "mode": "development",
+      "cors": {
+        "origins": [],
+        "allow-credentials": false
+      },
+      "authentication": {
+        "provider": "Unauthenticated"
+      }
+    }
+  },
+
+  "entities": {
+    "get_patient_chart": {
+      "description": "Retrieve the COMPLETE CURRENT clinical chart for one hospital encounter by EncounterId: patient demographics, diagnoses, active medications, allergies, latest vital signs, recent lab results, symptoms, care team, imaging, recent clinical notes, and regex-extracted note signals. This is the live state of a patient who is here now — read from the primary. Read-only. Use when asked to 'show/open/pull up the chart', or whenever you need present-tense facts about a specific encounter.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GetPatientChart",
+        "parameters": { "EncounterId": 0 }
+      },
+      "rest": { "methods": ["get"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "get_patient_chart_by_bed": {
+      "description": "Retrieve the complete current clinical chart for the patient CURRENTLY OCCUPYING a given bed (by BedId), for their active encounter. Same chart as get_patient_chart but keyed by bed instead of encounter. Read-only. Use when asked 'who is in bed X' or for the chart of a bed's current patient.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GetPatientChartByBed",
+        "parameters": { "BedId": 0 }
+      },
+      "rest": { "methods": ["get"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "search_clinical_context": {
+      "description": "Semantic (vector) search over roughly 60,000 HISTORICAL clinical notes belonging to OTHER, mostly discharged encounters. Given free-text QueryText describing a case, symptom, or condition, returns the TopK most similar notes ranked by similarity, with note id, encounter id, note type, date, similarity score, and note text. Retrieval-only: these are real past notes, not generated text, and they are NOT facts about the patient you are currently reviewing — treat them as precedent and say so when you cite them. Optional NoteType (defaults to 'Discharge'; pass null for every type), SinceUtc, and Keyword narrow the corpus. Use for 'find similar cases', 'has this pattern been seen before', or clinical research lookups.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.SearchSimilarNotes",
+        "parameters": {
+          "QueryText": "",
+          "TopK": 10,
+          "NoteType": "Discharge",
+          "SinceUtc": null,
+          "Keyword": null
+        }
+      },
+      "rest": { "methods": ["get", "post"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "search_encounters": {
+      "description": "List/count hospital encounters (admissions) with OPTIONAL filters: Status ('Active' or 'Discharged'), UnitName (e.g. 'ICU A'), DepartmentName (e.g. 'Cardiology'), and ProviderName (attending, partial match). Returns readable encounter summaries (patient name, department, unit, bed, attending, admit/discharge, status), capped by Top (default 200). Read-only. Use for questions like 'how many active encounters in ICU A' or 'encounters for Dr. Ward'.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.SearchEncounters",
+        "parameters": {
+          "Status": "",
+          "UnitName": "",
+          "DepartmentName": "",
+          "ProviderName": "",
+          "Top": 200
+        }
+      },
+      "rest": { "methods": ["get"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "get_handoff_candidates": {
+      "description": "List the ACTIVE patients across the synthetic hospital with the shift-change signals already gathered: latest vitals per type together with the earlier reading in the window (so direction of travel is visible), medications started in the window, notes written in the window and the latest note time, pending labs and how long the oldest has been outstanding, diagnosis count and latest diagnosis, and severe allergies. Read-only, one row per patient, capped by Top (default 10) over a SinceHours window (default 12, one shift). This returns EVIDENCE, not a ranking — you decide which patients matter and why. Use it to answer who needs a handoff; do NOT call get_patient_chart for every patient to work this out yourself.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GetHandoffCandidates",
+        "parameters": {
+          "SinceHours": 12,
+          "Top": 10
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "query" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "clinical_assistance": {
+      "description": "Generate ADVISORY AI clinical assistance for one encounter (by EncounterId): a SUGGESTED triage/acuity flag plus a grounded natural-language summary, produced by retrieval-augmented generation and a reasoning model. Advisory only — a human clinician confirms or overrides; not a diagnosis. Slower (calls gpt-5, ~10-15s) and writes an audited record. Use when asked for an AI assessment, triage suggestion, or summary of a patient's case.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.GenerateClinicalAssistance",
+        "parameters": {
+          "EncounterId": 0,
+          "ModelDeployment": "gpt-5",
+          "TopK": 5
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    },
+
+    "save_handoff": {
+      "description": "Save ONE prepared shift handoff for a patient. This CHANGES the database and requires explicit human approval before it can run — propose it, show the full handoff text, and expect to be paused. Inputs: EncounterId (the patient is derived from it, never supplied), the four SBAR sections Situation, Background, Assessment and Recommendation (each written from tool results, never invented), and RequestKey (a GUID you generate once for this specific handoff; reuse the SAME key if it is proposed again, because the database uses it to guarantee the handoff cannot be saved twice). Agentic AI attributes the handoff to the Ward General Assistant system provider inside SQL. Returns the new RecommendationId and Created = 1 when this call created it. The handoff is saved with Status 'Proposed'.",
+      "source": {
+        "type": "stored-procedure",
+        "object": "clinical.SaveShiftHandoff",
+        "parameters": {
+          "EncounterId": 0,
+          "Situation": "",
+          "Background": "",
+          "Assessment": "",
+          "Recommendation": "",
+          "RequestKey": ""
+        }
+      },
+      "rest": { "methods": ["post"] },
+      "graphql": { "operation": "mutation" },
+      "mcp": { "custom-tool": true },
+      "permissions": [ { "role": "anonymous", "actions": ["execute"] } ]
+    }
+  }
+}
