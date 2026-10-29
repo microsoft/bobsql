@@ -1,0 +1,23 @@
+-- Turn on memory grant feedback
+USE [WideWorldImportersDW]
+GO
+-- Step 2: Simulate statistics out of date
+UPDATE STATISTICS Fact.OrderHistory 
+WITH ROWCOUNT = 5000000000
+GO
+ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE
+GO
+ALTER DATABASE SCOPED CONFIGURATION SET ROW_MODE_MEMORY_GRANT_FEEDBACK = ON
+GO
+ALTER DATABASE SCOPED CONFIGURATION SET BATCH_MODE_MEMORY_GRANT_FEEDBACK = ON
+GO
+-- Run the query once
+SELECT fo.[Order Key], fo.Description, si.[Lead Time Days]
+FROM  Fact.OrderHistory AS fo
+INNER JOIN Dimension.[Stock Item] AS si 
+ON fo.[Stock Item Key] = si.[Stock Item Key]
+WHERE fo.[Lineage Key] = 9
+AND si.[Lead Time Days] > 19
+ORDER BY fo.[Order Key], fo.Description, si.[Lead Time Days]
+OPTION (MAXDOP 1)
+GO

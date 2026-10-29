@@ -1,0 +1,8 @@
+USE [master]
+GO
+CREATE LOGIN [pacemakerLogin] with PASSWORD= N'<REDACTED>'
+GO
+GRANT ALTER, CONTROL, VIEW DEFINITION ON AVAILABILITY GROUP::footballag TO pacemakerLogin
+GO
+GRANT VIEW SERVER STATE TO pacemakerLogin
+GO

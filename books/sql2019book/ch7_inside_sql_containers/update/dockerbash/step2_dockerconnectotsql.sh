@@ -1,0 +1,1 @@
+sqlcmd -Usa -P<REDACTED> -Slocalhost,1401 -Q"SELECT @@VERSION"

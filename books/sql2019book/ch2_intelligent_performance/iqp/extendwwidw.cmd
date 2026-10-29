@@ -1,0 +1,1 @@
+sqlcmd -Usa -iextendwwidw.sql -Sbwsql2019

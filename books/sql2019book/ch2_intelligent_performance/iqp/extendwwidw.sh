@@ -1,0 +1,1 @@
+sqlcmd -Usa -P$cprsql2019 -iextendwwidw.sql -Sbwsql2019

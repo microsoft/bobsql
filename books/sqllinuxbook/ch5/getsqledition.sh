@@ -1,0 +1,1 @@
+sqlcmd -Usa -igetsqlversion.sql -P<REDACTED> | grep Edition
