@@ -1,0 +1,34 @@
+title = "bobsql public repository secret checks"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "sql-password"
+description = "Hard-coded database connection password"
+regex = '''(?i)\b(?:password|pwd)\s*=\s*N?['"]?([^\s;'"<>${}@]{4,})'''
+secretGroup = 1
+
+[[rules]]
+id = "sql-credential-secret"
+description = "Hard-coded SQL credential secret"
+regex = '''(?i)\bsecret\s*=\s*['"]([^'"\r\n<>${}]{4,})['"]'''
+secretGroup = 1
+
+[[rules]]
+id = "sqlcmd-password"
+description = "Hard-coded sqlcmd password argument"
+regex = '''(?i)\bsqlcmd(?:\.exe)?\b[^\r\n]*?\s['"]?-P\s*['"]?([^\s'"<>${}%]{4,})'''
+secretGroup = 1
+
+[[rules]]
+id = "sql-password-variable"
+description = "Hard-coded SQL password variable"
+regex = '''(?i)[@$][a-z_]*password\s*=\s*N?['"]([^'"\r\n<>${}]{4,})['"]'''
+secretGroup = 1
+
+[[rules]]
+id = "container-password"
+description = "Hard-coded SQL container password"
+regex = '''(?im)(?:^|[\s'"])(?:MSSQL_SA_PASSWORD|SA_PASSWORD|SQLCMDPASSWORD)\s*[:=]\s*['"]?([^\s;'"<>${}%?\[]{4,})'''
+secretGroup = 1

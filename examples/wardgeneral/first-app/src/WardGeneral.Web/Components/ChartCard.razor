@@ -1,0 +1,21 @@
+@* Reusable chart section: a titled card with a flush list-group body.
+   Shows "None recorded" when Empty is true. *@
+<div class="card mb-3 chart-card">
+    <div class="card-header">@Title</div>
+    <ul class="list-group list-group-flush">
+        @if (Empty)
+        {
+            <li class="list-group-item text-muted">None recorded</li>
+        }
+        else
+        {
+            @ChildContent
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public bool Empty { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zava Digital Patient Chart</title>
+    <link rel="stylesheet" href="digital-chart.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <img src="Picture1.png" alt="Zava Logo" width="40" height="40" style="object-fit: contain;">
+                <span>Zava</span>
+            </div>
+            <div class="header-info">
+                <div class="room-info">
+                    <span class="room-label">Room</span>
+                    <span class="room-number" id="roomNumber">--</span>
+                </div>
+                <div class="bed-info">
+                    <span class="bed-label">Bed</span>
+                    <span class="bed-number" id="bedNumber">--</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn ai-btn" id="aiAssistBtn" title="AI Health Assistance">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span class="btn-text">AI Health Assistance</span>
+                </button>
+                <button class="icon-btn" id="refreshBtn" title="Refresh">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="settingsBtn" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Column: Patient Info & Vitals -->
+            <div class="left-column">
+                <!-- Patient Card -->
+                <section class="card patient-card">
+                    <div class="patient-header">
+                        <div class="patient-avatar">
+                            <svg width="48" height="48" viewBox="0 0 48 48">
+                                <circle cx="24" cy="24" r="24" fill="#e1f5fe"/>
+                                <path d="M24 24c4.4 0 8-3.6 8-8s-3.6-8-8-8-8 3.6-8 8 3.6 8 8 8zm0 4c-5.3 0-16 2.7-16 8v4h32v-4c0-5.3-10.7-8-16-8z" fill="#0277bd"/>
+                            </svg>
+                        </div>
+                        <div class="patient-info">
+                            <h2 id="patientName">--</h2>
+                            <div class="patient-meta">
+                                <span id="patientAge">-- years</span>
+                                <span class="separator">•</span>
+                                <span id="patientGender">--</span>
+                                <span class="separator">•</span>
+                                <span id="patientMRN">MRN: --</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="patient-details">
+                        <div class="detail-row">
+                            <span class="detail-label">DOB</span>
+                            <span class="detail-value" id="patientDOB">--</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Contact</span>
+                            <span class="detail-value" id="patientContact">--</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Admit Date</span>
+                            <span class="detail-value" id="admitDate">--</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Reason</span>
+                            <span class="detail-value" id="admitReason">--</span>
+                        </div>
+                        <div class="detail-row allergies-row" id="allergiesRow" style="display: none;">
+                            <span class="detail-label">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2L1 21h22L12 2zm0 3.83L19.53 19H4.47L12 5.83zM11 16h2v2h-2v-2zm0-6h2v4h-2v-4z"/>
+                                </svg>
+                                Allergies
+                            </span>
+                            <span class="detail-value allergy-badge" id="allergies">--</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Vital Signs -->
+                <section class="card vitals-card">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        Latest Vitals
+                    </h3>
+                    <div class="vitals-grid">
+                        <div class="vital-item">
+                            <div class="vital-icon heart">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                </svg>
+                            </div>
+                            <div class="vital-content">
+                                <span class="vital-label">Heart Rate</span>
+                                <span class="vital-value" id="heartRate">--</span>
+                                <span class="vital-unit">bpm</span>
+                            </div>
+                        </div>
+
+                        <div class="vital-item">
+                            <div class="vital-icon bp">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                                </svg>
+                            </div>
+                            <div class="vital-content">
+                                <span class="vital-label">Blood Pressure</span>
+                                <span class="vital-value" id="bloodPressure">--</span>
+                                <span class="vital-unit">mmHg</span>
+                            </div>
+                        </div>
+
+                        <div class="vital-item">
+                            <div class="vital-icon spo2">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <text x="12" y="16" text-anchor="middle" fill="white" font-size="10" font-weight="bold">O₂</text>
+                                </svg>
+                            </div>
+                            <div class="vital-content">
+                                <span class="vital-label">SpO₂</span>
+                                <span class="vital-value" id="spo2">--</span>
+                                <span class="vital-unit">%</span>
+                            </div>
+                        </div>
+
+                        <div class="vital-item">
+                            <div class="vital-icon temp">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                                </svg>
+                            </div>
+                            <div class="vital-content">
+                                <span class="vital-label">Temperature</span>
+                                <span class="vital-value" id="temperature">--</span>
+                                <span class="vital-unit">°C</span>
+                            </div>
+                        </div>
+
+                        <div class="vital-item">
+                            <div class="vital-icon resp">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12h3m15 0h3m-9-9v3m0 15v3M6.34 6.34l2.12 2.12m9.9 9.9l2.12 2.12M6.34 17.66l2.12-2.12m9.9-9.9l2.12-2.12"/>
+                                </svg>
+                            </div>
+                            <div class="vital-content">
+                                <span class="vital-label">Respiratory</span>
+                                <span class="vital-value" id="respiratory">--</span>
+                                <span class="vital-unit">/min</span>
+                            </div>
+                        </div>
+
+                        <div class="vital-item">
+                            <div class="vital-icon time">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                            </div>
+                            <div class="vital-content">
+                                <span class="vital-label">Last Reading</span>
+                                <span class="vital-value small" id="vitalsTime">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Alerts -->
+                <section class="card alerts-card" id="alertsCard" style="display: none;">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L1 21h22L12 2zm0 3.83L19.53 19H4.47L12 5.83zM11 16h2v2h-2v-2zm0-6h2v4h-2v-4z"/>
+                        </svg>
+                        Active Alerts
+                    </h3>
+                    <div id="alertsList" class="alerts-list"></div>
+                </section>
+            </div>
+
+            <!-- Right Column: Clinical Data -->
+            <div class="right-column">
+                <!-- Care Team -->
+                <section class="card team-card">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Care Team
+                    </h3>
+                    <div id="careTeam" class="care-team-list"></div>
+                </section>
+
+                <!-- Symptoms -->
+                <section class="card symptoms-card">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4m0 4h.01"/>
+                        </svg>
+                        Current Symptoms
+                    </h3>
+                    <div id="symptomsList" class="symptoms-list"></div>
+                </section>
+
+                <!-- Recent Orders -->
+                <section class="card orders-card">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6M16 13H8m8 4H8m8 4H8"/>
+                        </svg>
+                        Recent Orders
+                    </h3>
+                    <div id="ordersList" class="orders-list"></div>
+                </section>
+
+                <!-- Recent Notes -->
+                <section class="card notes-card">
+                    <h3 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                        Recent Notes
+                    </h3>
+                    <div id="notesList" class="notes-list"></div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Disclaimer Footer -->
+        <footer style="text-align: center; padding: 12px 20px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; flex-shrink: 0;">
+            <strong>Note:</strong> All patient information is fictional. This demo is for demonstration purposes only and does not provide medical advice.
+        </footer>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <p>Loading patient data...</p>
+            <div id="debugInfo" style="margin-top: 20px; padding: 20px; background: white; border-radius: 10px; max-width: 600px; display: none;">
+                <h3 style="color: #dc2626; margin-bottom: 10px;">Debug Information</h3>
+                <pre id="debugText" style="text-align: left; font-size: 12px; overflow: auto; max-height: 300px;"></pre>
+            </div>
+        </div>
+
+        <!-- Error Toast -->
+        <div class="toast error-toast" id="errorToast">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <span id="errorMessage">An error occurred</span>
+        </div>
+
+        <!-- AI Health Assistance Modal -->
+        <div class="modal-overlay" id="aiModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <h3>AI Health Assistance</h3>
+                    </div>
+                    <button class="modal-close" id="closeAiModal" title="Close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="ai-recommendation">
+                        <div class="ai-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 16v-4M12 8h.01"/>
+                            </svg>
+                        </div>
+                        <h4>Clinical Recommendation</h4>
+                        <p class="ai-text">Based on the patient's current symptoms and vital signs, I recommend ordering a <strong>Chest X-ray</strong> to further evaluate the respiratory distress and rule out any pulmonary complications.</p>
+                        
+                        <div class="ai-details">
+                            <h5>Supporting Factors:</h5>
+                            <ul>
+                                <li><strong>Symptoms:</strong> Shortness of breath, persistent cough</li>
+                                <li><strong>Vital Signs:</strong> Elevated respiratory rate, decreased SpO₂</li>
+                                <li><strong>Clinical History:</strong> Respiratory distress on admission</li>
+                            </ul>
+                        </div>
+
+                        <div class="ai-actions">
+                            <button class="btn btn-primary" id="orderXrayBtn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <path d="M14 2v6h6M16 13H8m8 4H8m8 4H8"/>
+                                </svg>
+                                Order Chest X-ray
+                            </button>
+                            <button class="btn btn-secondary" id="dismissAiBtn">Dismiss</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="digital-chart.js"></script>
+</body>
+</html>

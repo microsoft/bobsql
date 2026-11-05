@@ -1,0 +1,42 @@
+@inherits LayoutComponentBase
+@using Microsoft.Extensions.Options
+@using WardGeneral.Web.Options
+@inject IOptions<FeatureFlags> Features
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <span class="health-system">Part of the <strong>Collier Health System</strong></span>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@if (Features.Value.AiAgent)
+{
+    <AssistantDock />
+}
+else
+{
+    @* Greyed, not hidden. The chat icon is the visible promise of Agentic AI —
+       the reader sees it from Ward General App and knows it is coming. .assistant-fab
+       is scoped to AssistantDock, so the locked state carries its own global class. *@
+    <button class="assistant-fab-locked" disabled
+            title="Clinical assistant — unlocks in Agentic AI (Microsoft Agent Framework + DAB SQL MCP)"
+            aria-label="Clinical assistant — unlocks in Agentic AI">
+        <span aria-hidden="true">💬</span>
+    </button>
+}
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

@@ -1,0 +1,1 @@
+sqlcmd -Usa -iadjustrgback.sql -Sbwsql2019

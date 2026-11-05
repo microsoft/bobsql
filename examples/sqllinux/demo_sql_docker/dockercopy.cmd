@@ -1,0 +1,1 @@
+docker cp c:\sql_sample_databases\WideWorldImporters-Full.bak sql1:/var/opt/mssql

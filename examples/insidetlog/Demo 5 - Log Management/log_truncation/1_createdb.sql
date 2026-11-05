@@ -1,0 +1,6 @@
+USE MASTER;
+GO
+DROP DATABASE IF EXISTS letsgostars;
+GO
+CREATE DATABASE letsgostars;
+GO

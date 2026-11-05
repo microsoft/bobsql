@@ -1,0 +1,46 @@
+@using Microsoft.Extensions.Options
+@using WardGeneral.Web.Options
+@inject IOptions<FeatureFlags> Features
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="">
+            <img src="ward-general-logo.svg" alt="Ward General" width="34" height="34" />
+            <span class="d-flex flex-column lh-1">
+                <span class="fw-semibold">Ward General</span>
+                <small class="text-white-50" style="font-size:.68rem;">Part of the Collier Health System</small>
+            </span>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Patient worklist
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            @if (Features.Value.AiAssistance)
+            {
+                <NavLink class="nav-link" href="research">
+                    <span class="bi bi-search-nav-menu" aria-hidden="true"></span> Research
+                </NavLink>
+            }
+            else
+            {
+                @* Greyed, not hidden: the reader sees what the app will become, and which
+                   area unlocks it. AI-Ready SQL creates clinical.SearchSimilarNotes; the
+                   wardgeneral-research named replica already exists from Getting Started. *@
+                <span class="nav-link nav-link-locked" title="Unlocks in AI-Ready SQL — vector search over clinical notes">
+                    <span class="bi bi-search-nav-menu" aria-hidden="true"></span> Research
+                    <span class="locked-hint">AI-Ready SQL</span>
+                </span>
+            }
+        </div>
+    </nav>
+</div>
+

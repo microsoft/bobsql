@@ -1,0 +1,32 @@
+{
+  admin localhost:2019
+}
+
+localhost, 127.0.0.1 {
+  tls internal
+
+  @foundry path /v1/* /openai/*
+  reverse_proxy 127.0.0.1:53248 {
+    flush_interval -1
+  }
+
+  @preflight {
+    method OPTIONS
+    path /v1/* /openai/*
+  }
+  respond @preflight 204
+
+  header @foundry {
+    Access-Control-Allow-Origin  *
+    Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers "Content-Type, Authorization"
+    Access-Control-Expose-Headers "*"
+  }
+
+  respond / "Caddy is running with HTTPS on localhost for Foundry Local" 200
+
+  log {
+    output file C:\caddy\logs\foundry-local.log
+    format console
+  }
+}

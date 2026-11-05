@@ -1,0 +1,56 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"workbench.colorTheme": "Dark+",
+		"workbench.colorCustomizations": {
+			"editor.background": "#0B1F3A",
+			"editor.foreground": "#FFFFFF",
+			"sideBar.background": "#0A2342",
+			"sideBar.foreground": "#FFFFFF",
+			"activityBar.background": "#003278",
+			"activityBar.foreground": "#FFFFFF",
+			"statusBar.background": "#68777D",
+			"statusBar.foreground": "#FFFFFF",
+			"titleBar.activeBackground": "#68777D",
+			"titleBar.activeForeground": "#FFFFFF",
+			"button.background": "#869397",
+			"button.foreground": "#FFFFFF",
+			"button.hoverBackground": "#9AA5AA",
+			"icon.foreground": "#FFFFFF"
+		},
+		"editor.tokenColorCustomizations": {
+			"textMateRules": [
+				{
+					"scope": [
+						"keyword",
+						"storage"
+					],
+					"settings": {
+						"foreground": "#569CD6"
+					}
+				},
+				{
+					"scope": [
+						"string"
+					],
+					"settings": {
+						"foreground": "#9CC3E5"
+					}
+				},
+				{
+					"scope": [
+						"entity.name.function",
+						"support.function"
+					],
+					"settings": {
+						"foreground": "#FFFFFF"
+					}
+				}
+			]
+		}
+	}
+}

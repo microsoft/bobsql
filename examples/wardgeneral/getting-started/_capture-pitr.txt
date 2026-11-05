@@ -1,0 +1,17 @@
+--- PITR plan ---
+Source DB        : wardgeneral on collierhealth-ew111025
+Target DB (new)  : wardgeneral-pitr-0025
+Point in time UTC: 2026-06-29T23:55:51Z  (30 minutes ago)
+--- Earliest restore point available ---
+Name         EarliestRestoreDate
+-----------  --------------------------------
+wardgeneral  2026-06-29T03:58:19.583000+00:00
+--- Restoring... ---
+Name                   Status
+---------------------  --------
+wardgeneral-pitr-0025  Online
+Restore wall clock: 383s
+--- Restored DB summary ---
+Name                   Sku        Status
+---------------------  ---------  --------
+wardgeneral-pitr-0025  HS_Gen5_8  Online
