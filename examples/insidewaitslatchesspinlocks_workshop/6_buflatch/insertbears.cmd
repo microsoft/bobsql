@@ -1,0 +1,1 @@
+ostress -E -iinsertbears.sql -n25 -r1000000 -q -dgobaylorbears

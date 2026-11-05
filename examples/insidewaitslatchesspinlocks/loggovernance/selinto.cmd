@@ -1,0 +1,1 @@
+ostress -Sbwazuresqlserver.database.windows.net -iselinto.sql -dbwazuresqldb -q -Uthewandog -P$cprsqlserver2019

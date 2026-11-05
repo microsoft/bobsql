@@ -1,0 +1,1 @@
+az group create --name bwaks --location eastus2

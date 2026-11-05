@@ -1,0 +1,19 @@
+AzureDiagnostics
+| where Category == 'SQLSecurityAuditEvents'
+| where event_time_t between (datetime(__START_UTC__) .. datetime(__END_UTC__))
+| where database_name_s =~ '__DATABASE__'
+| where server_instance_name_s has '__SERVER__'
+| where application_name_s =~ '__APPLICATION__'
+| project EventTime = event_time_t,
+          SessionId = session_id_d,
+          ServerPrincipal = server_principal_name_s,
+          DatabasePrincipal = database_principal_name_s,
+          Action = action_name_s,
+          Succeeded = succeeded_s,
+          Application = application_name_s,
+          ClientIp = client_ip_s,
+          Statement = statement_s,
+          AdditionalInformation = additional_information_s,
+          DurationMs = duration_milliseconds_d,
+          ResponseRows = response_rows_d
+| order by EventTime asc

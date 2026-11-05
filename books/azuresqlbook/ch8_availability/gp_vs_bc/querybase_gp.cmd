@@ -1,0 +1,1 @@
+ostress.exe -S<server>.database.windows.net -Q"SELECT COUNT(*) FROM SalesLT.Customer" -Uthewandog -dbwazuresqldb -P<password> -n1 -r50000

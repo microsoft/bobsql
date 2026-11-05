@@ -1,0 +1,1 @@
+az ad sp create-for-rbac --name sqlserver2022sp --role "Onboard SQL Server Azure Arc" --scopes /subscriptions/<subid>/resourceGroups/<resource group>

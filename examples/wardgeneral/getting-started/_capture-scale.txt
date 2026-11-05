@@ -1,0 +1,18 @@
+--- Before scale ---
+Name         Sku         Ha    State
+-----------  ----------  ----  -------
+wardgeneral  HS_Gen5_16  1     Online
+--- Scaling UP to HS_Gen5_16 at 2026-06-30T00:14:45Z ---
+Sku         State
+----------  -------
+HS_Gen5_16  Online
+Scale-up wall clock: 21s
+--- Scaling DOWN to HS_Gen5_8 at 2026-06-30T00:15:06Z ---
+Sku        State
+---------  -------
+HS_Gen5_8  Online
+Scale-down wall clock: 146s
+--- After scale ---
+Name         Sku        Ha    State
+-----------  ---------  ----  -------
+wardgeneral  HS_Gen5_8  1     Online

@@ -1,0 +1,1 @@
+ostress -Sbwazuresqlserver.database.windows.net -iselinto*.sql -dbwazuresqlhyper80 -q -Uthewandog -P$cprsqlserver2019
