@@ -105,3 +105,7 @@ Markdown README, including supporting-data and result folders; do not document
 generated `bin`, `obj`, or dependency-cache directories as source. Add or update
 the corresponding workspace skill and the example catalog. Keep real secrets
 and private datasets out of both scripts and documentation.
+
+## License
+
+This repository is licensed under the [MIT License](LICENSE).
