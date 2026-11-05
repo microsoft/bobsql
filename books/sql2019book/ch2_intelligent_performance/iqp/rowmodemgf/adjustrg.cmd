@@ -1,0 +1,1 @@
+sqlcmd -Usa -iadjustrg.sql -Sbwsql2019

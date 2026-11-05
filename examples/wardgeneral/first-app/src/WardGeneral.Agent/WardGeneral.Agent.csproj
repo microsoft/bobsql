@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    Microsoft Agent Framework (MAF) + the MCP C# SDK.
+    Versions are PINNED, deliberately. A floating reference (Version="*-*")
+    resolves to the latest prerelease at restore time, which means a package
+    published after this project was released can break the Ward General app build - this
+    project is referenced by WardGeneral.Web so it compiles even though its UI
+    stays dark until Agentic AI. Pinned versions are what the project's listings and
+    screenshots were produced against. To move forward deliberately, bump a
+    version here and rebuild.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.17.0" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WardGeneral.Data\WardGeneral.Data.csproj" />
+  </ItemGroup>
+
+  <!--
+    The Agentic AI runtime Agent Skill. This is prose the model loads on demand -
+    not code - so it ships as content beside the binary rather than as an
+    embedded resource, which keeps it readable and editable next to the app.
+    Ward General App copies it and never reads it; AgentSkillsProvider only comes to
+    life once the AiAgent feature flag is on.
+  -->
+  <ItemGroup>
+    <Content Include="skills\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

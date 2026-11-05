@@ -1,0 +1,30 @@
+{
+  "duration_seconds": 90,
+  "workloads": [
+    {
+      "file": "sql\\get-patient-chart.sql",
+      "threads": 90,
+      "think_time_ms": 500
+    },
+    {
+      "file": "sql\\record-vitals.sql",
+      "threads": 4,
+      "think_time_ms": 250
+    },
+    {
+      "file": "sql\\place-medication-order.sql",
+      "threads": 2,
+      "think_time_ms": 1000
+    },
+    {
+      "file": "sql\\file-lab-result.sql",
+      "threads": 2,
+      "think_time_ms": 1500
+    },
+    {
+      "file": "sql\\add-clinical-note.sql",
+      "threads": 2,
+      "think_time_ms": 1500
+    }
+  ]
+}

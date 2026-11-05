@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+MSSQL_SA_PASSWORD="$SQLCMDPASSWORD"
+export MSSQL_SA_PASSWORD
+: "${SQLCMDPASSWORD:?Set SQLCMDPASSWORD privately before running this demo}"
+export SQLCMDPASSWORD
+sudo --preserve-env=MSSQL_SA_PASSWORD docker run -e 'ACCEPT_EULA=Y' -e MSSQL_SA_PASSWORD -p 1401:1433 -v sqlvolume:/var/opt/mssql --name sql1 -d microsoft/mssql-server-linux:2017-CU8

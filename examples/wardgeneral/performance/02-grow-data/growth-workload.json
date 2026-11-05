@@ -1,0 +1,20 @@
+{
+  "duration_seconds": 300,
+  "workloads": [
+    {
+      "file": "sql\\insert-observation-batch.sql",
+      "threads": 32,
+      "think_time_ms": 0
+    },
+    {
+      "file": "sql\\insert-lab-result-batch.sql",
+      "threads": 24,
+      "think_time_ms": 0
+    },
+    {
+      "file": "sql\\insert-clinical-note-batch.sql",
+      "threads": 8,
+      "think_time_ms": 0
+    }
+  ]
+}

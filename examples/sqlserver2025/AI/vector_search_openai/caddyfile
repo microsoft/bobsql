@@ -1,0 +1,32 @@
+{
+  admin localhost:2019
+}
+
+localhost, 127.0.0.1 {
+  tls internal
+
+  @ollama path /api/* /v1/*
+  reverse_proxy 127.0.0.1:11434 {
+    flush_interval -1
+  }
+
+  @preflight {
+    method OPTIONS
+    path /api/* /v1/*
+  }
+  respond @preflight 204
+
+  header @ollama {
+    Access-Control-Allow-Origin  *
+    Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers "Content-Type, Authorization"
+    Access-Control-Expose-Headers "*"
+  }
+
+  respond / "Caddy is running with HTTPS on localhost" 200
+
+  log {
+    output file C:\caddy\logs\ollama-local.log
+    format console
+  }
+}

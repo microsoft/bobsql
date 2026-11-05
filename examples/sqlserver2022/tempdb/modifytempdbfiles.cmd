@@ -1,0 +1,1 @@
+sqlcmd -E -imodifytempdbfiles.sql

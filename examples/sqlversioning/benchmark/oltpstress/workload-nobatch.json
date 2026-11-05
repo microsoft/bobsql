@@ -1,0 +1,7 @@
+{
+    "duration_seconds": 60,
+    "workloads": [
+        { "file": "workload-point-updates.sql", "threads": 20 },
+        { "file": "workload-insert-delete.sql", "threads": 10 }
+    ]
+}

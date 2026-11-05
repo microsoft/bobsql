@@ -1,0 +1,582 @@
+
+===== Baseline (inventory_baseline) =====
+2026-04-20 07:23:37.622 | === SQL Workload Simulator v1.0 ===
+2026-04-20 07:23:37.623 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 07:23:37.623 | Configuration:
+2026-04-20 07:23:37.623 | Server: localhost
+2026-04-20 07:23:37.623 | Database: inventory_baseline
+2026-04-20 07:23:37.623 | Authentication: Windows
+2026-04-20 07:23:37.623 | Threads: 33
+2026-04-20 07:23:37.623 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 07:23:37.623 | Duration: 30 seconds
+2026-04-20 07:23:37.623 | Workload groups: 4
+2026-04-20 07:23:37.623 |   Group 1: 3 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 07:23:37.623 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 07:23:37.623 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 07:23:37.623 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 07:23:37.623 | Application name: sqlsim
+2026-04-20 07:23:37.623 | Quiet mode: Yes
+2026-04-20 07:23:37.623 | Query stats: Yes
+2026-04-20 07:23:37.623 | 
+2026-04-20 07:23:37.623 | Batches to execute:
+2026-04-20 07:23:37.623 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 07:23:37.623 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 200000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 07:23:37.623 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 07:23:37.623 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 07:23:37.623 | 
+2026-04-20 07:23:37.623 | Connecting...
+2026-04-20 07:23:37.735 | ODBC Driver Version: 18.06.0001
+2026-04-20 07:23:37.735 | Starting execution (33 threads)
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 103) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 116) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 121) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 116) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 116) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.307 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 103) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.312 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 07:24:08.312 | ----------------------------------------------------------------------
+2026-04-20 07:24:08.312 | Query 1: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 07:24:08.312 |   Total elapsed (ms):   avg=144.501  min=5.659  max=4550.991
+2026-04-20 07:24:08.312 |   Server elapsed (ms):  avg=140.988  min=5.000  max=4550.000
+2026-04-20 07:24:08.312 |   Server CPU (ms):      avg=10.431  min=0.000  max=47.000
+2026-04-20 07:24:08.312 |   Server elapsed sum:   avg=140.988  min=5.000  max=4550.000
+2026-04-20 07:24:08.312 |   Server CPU sum:       avg=10.435  min=0.000  max=47.000
+2026-04-20 07:24:08.312 |   Compile elapsed (ms): avg=2.369  min=0.000  max=383.000
+2026-04-20 07:24:08.312 |   Logical reads:        avg=78.6  min=76  max=86
+2026-04-20 07:24:08.312 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 07:24:08.312 |   Executions: 3144
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.312 | Query 2: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 07:24:08.312 |   Total elapsed (ms):   avg=12.609  min=0.229  max=4405.226
+2026-04-20 07:24:08.312 |   Server elapsed (ms):  avg=11.596  min=0.000  max=4404.000
+2026-04-20 07:24:08.312 |   Server CPU (ms):      avg=0.149  min=0.000  max=16.000
+2026-04-20 07:24:08.312 |   Server elapsed sum:   avg=11.596  min=0.000  max=4404.000
+2026-04-20 07:24:08.312 |   Server CPU sum:       avg=0.149  min=0.000  max=16.000
+2026-04-20 07:24:08.312 |   Compile elapsed (ms): avg=0.001  min=0.000  max=6.000
+2026-04-20 07:24:08.312 |   Logical reads:        avg=6.1  min=6  max=11
+2026-04-20 07:24:08.312 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Executions: 10448
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.312 | Query 3: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 07:24:08.312 |   Total elapsed (ms):   avg=419.671  min=144.767  max=4541.691
+2026-04-20 07:24:08.312 |   Server elapsed (ms):  avg=418.333  min=143.000  max=4541.000
+2026-04-20 07:24:08.312 |   Server CPU (ms):      avg=215.569  min=94.000  max=344.000
+2026-04-20 07:24:08.312 |   Server elapsed sum:   avg=418.333  min=143.000  max=4541.000
+2026-04-20 07:24:08.312 |   Server CPU sum:       avg=215.569  min=94.000  max=344.000
+2026-04-20 07:24:08.312 |   Compile elapsed (ms): avg=0.069  min=0.000  max=9.000
+2026-04-20 07:24:08.312 |   Logical reads:        avg=90704.3  min=90701  max=90721
+2026-04-20 07:24:08.312 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Read-ahead reads:     avg=0.0  min=0  max=1
+2026-04-20 07:24:08.312 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Executions: 216
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.312 | Query 4: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 07:24:08.312 |   Total elapsed (ms):   avg=30527.797  min=30509.515  max=30558.308
+2026-04-20 07:24:08.312 |   Server elapsed (ms):  avg=30509.600  min=30496.000  max=30526.000
+2026-04-20 07:24:08.312 |   Server CPU (ms):      avg=28.100  min=0.000  max=47.000
+2026-04-20 07:24:08.312 |   Server elapsed sum:   avg=30509.600  min=30496.000  max=30526.000
+2026-04-20 07:24:08.312 |   Server CPU sum:       avg=28.100  min=0.000  max=47.000
+2026-04-20 07:24:08.312 |   Compile elapsed (ms): avg=13.200  min=0.000  max=29.000
+2026-04-20 07:24:08.312 |   Logical reads:        avg=1818.0  min=1818  max=1818
+2026-04-20 07:24:08.312 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:24:08.312 |   Row count:            avg=20.0  min=20  max=20
+2026-04-20 07:24:08.312 |   Executions: 10
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.312 | ----------------------------------------------------------------------
+2026-04-20 07:24:08.312 | Totals:
+2026-04-20 07:24:08.312 |   Total elapsed:  981979.409 ms
+2026-04-20 07:24:08.312 |   Server elapsed: 959877.000 ms
+2026-04-20 07:24:08.312 |   Server CPU:     81199.000 ms
+2026-04-20 07:24:08.312 |   Server el. sum: 959878.000 ms
+2026-04-20 07:24:08.312 |   Server CPU sum: 81214.000 ms
+2026-04-20 07:24:08.312 |   Compile:        7610.000 ms
+2026-04-20 07:24:08.312 |   Logical reads:  19921608
+2026-04-20 07:24:08.312 |   Physical reads: 0
+2026-04-20 07:24:08.312 |   Read-ahead:     1
+2026-04-20 07:24:08.312 |   Total rows:     31440200
+2026-04-20 07:24:08.312 |   Executions:     13818
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.312 | ======================================================================
+2026-04-20 07:24:08.312 | Performance Metric Summary
+2026-04-20 07:24:08.312 | ======================================================================
+2026-04-20 07:24:08.312 | Total Runtime: 30.687 seconds
+2026-04-20 07:24:08.312 | Start Time: 2026-04-20T07:23:37.624
+2026-04-20 07:24:08.312 | End Time:   2026-04-20T07:24:08.312
+2026-04-20 07:24:08.312 | 
+2026-04-20 07:24:08.313 | Avg Connect Time: 82.18 ms (33 successful, 0 failed)
+2026-04-20 07:24:08.313 | Avg Elapsed: 72.48 ms (13818 successful, 10 failed)
+2026-04-20 07:24:08.313 | 
+2026-04-20 07:24:08.313 | Total Connection Time: 2.712 seconds (0.3% of work)
+2026-04-20 07:24:08.313 | Total Query Execution Time: 1002.250 seconds (99.7% of work)
+2026-04-20 07:24:08.313 | Total Errors: 10
+
+===== RCSI (inventory_rcsi) =====
+2026-04-20 07:24:09.178 | === SQL Workload Simulator v1.0 ===
+2026-04-20 07:24:09.178 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 07:24:09.178 | Configuration:
+2026-04-20 07:24:09.178 | Server: localhost
+2026-04-20 07:24:09.178 | Database: inventory_rcsi
+2026-04-20 07:24:09.178 | Authentication: Windows
+2026-04-20 07:24:09.178 | Threads: 33
+2026-04-20 07:24:09.178 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 07:24:09.178 | Duration: 30 seconds
+2026-04-20 07:24:09.178 | Workload groups: 4
+2026-04-20 07:24:09.178 |   Group 1: 3 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 07:24:09.178 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 07:24:09.178 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 07:24:09.178 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 07:24:09.178 | Application name: sqlsim
+2026-04-20 07:24:09.178 | Quiet mode: Yes
+2026-04-20 07:24:09.178 | Query stats: Yes
+2026-04-20 07:24:09.178 | 
+2026-04-20 07:24:09.178 | Batches to execute:
+2026-04-20 07:24:09.178 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 07:24:09.178 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 200000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 07:24:09.178 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 07:24:09.178 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 07:24:09.178 | 
+2026-04-20 07:24:09.178 | Connecting...
+2026-04-20 07:24:09.238 | ODBC Driver Version: 18.06.0001
+2026-04-20 07:24:09.238 | Starting execution (33 threads)
+2026-04-20 07:24:39.442 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 120) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.449 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 07:24:39.449 | ----------------------------------------------------------------------
+2026-04-20 07:24:39.449 | Query 1: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 07:24:39.449 |   Total elapsed (ms):   avg=32.508  min=13.331  max=324.012
+2026-04-20 07:24:39.449 |   Server elapsed (ms):  avg=31.135  min=13.000  max=268.000
+2026-04-20 07:24:39.449 |   Server CPU (ms):      avg=14.556  min=0.000  max=63.000
+2026-04-20 07:24:39.449 |   Server elapsed sum:   avg=31.135  min=13.000  max=268.000
+2026-04-20 07:24:39.449 |   Server CPU sum:       avg=14.557  min=0.000  max=63.000
+2026-04-20 07:24:39.449 |   Compile elapsed (ms): avg=0.162  min=0.000  max=251.000
+2026-04-20 07:24:39.449 |   Logical reads:        avg=96.0  min=94  max=100
+2026-04-20 07:24:39.449 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 07:24:39.449 |   Executions: 13852
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.449 | Query 2: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 07:24:39.449 |   Total elapsed (ms):   avg=123.360  min=47.094  max=262.240
+2026-04-20 07:24:39.449 |   Server elapsed (ms):  avg=121.279  min=46.000  max=254.000
+2026-04-20 07:24:39.449 |   Server CPU (ms):      avg=86.901  min=0.000  max=203.000
+2026-04-20 07:24:39.449 |   Server elapsed sum:   avg=121.279  min=46.000  max=254.000
+2026-04-20 07:24:39.449 |   Server CPU sum:       avg=86.901  min=0.000  max=203.000
+2026-04-20 07:24:39.449 |   Compile elapsed (ms): avg=0.023  min=0.000  max=10.000
+2026-04-20 07:24:39.449 |   Logical reads:        avg=2158.1  min=2158  max=2170
+2026-04-20 07:24:39.449 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Row count:            avg=20.0  min=20  max=20
+2026-04-20 07:24:39.449 |   Executions: 2438
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.449 | Query 3: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 07:24:39.449 |   Total elapsed (ms):   avg=78.743  min=0.386  max=29626.887
+2026-04-20 07:24:39.449 |   Server elapsed (ms):  avg=77.828  min=0.000  max=29626.000
+2026-04-20 07:24:39.449 |   Server CPU (ms):      avg=0.200  min=0.000  max=16.000
+2026-04-20 07:24:39.449 |   Server elapsed sum:   avg=77.828  min=0.000  max=29626.000
+2026-04-20 07:24:39.449 |   Server CPU sum:       avg=0.200  min=0.000  max=16.000
+2026-04-20 07:24:39.449 |   Compile elapsed (ms): avg=0.005  min=0.000  max=2.000
+2026-04-20 07:24:39.449 |   Logical reads:        avg=6.0  min=6  max=11
+2026-04-20 07:24:39.449 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Executions: 1883
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.449 | Query 4: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 07:24:39.449 |   Total elapsed (ms):   avg=3118.036  min=316.025  max=30189.474
+2026-04-20 07:24:39.449 |   Server elapsed (ms):  avg=3116.172  min=315.000  max=30185.000
+2026-04-20 07:24:39.449 |   Server CPU (ms):      avg=286.034  min=172.000  max=484.000
+2026-04-20 07:24:39.449 |   Server elapsed sum:   avg=3116.172  min=315.000  max=30185.000
+2026-04-20 07:24:39.449 |   Server CPU sum:       avg=286.034  min=172.000  max=484.000
+2026-04-20 07:24:39.449 |   Compile elapsed (ms): avg=0.276  min=0.000  max=3.000
+2026-04-20 07:24:39.449 |   Logical reads:        avg=90723.5  min=90719  max=90745
+2026-04-20 07:24:39.449 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Read-ahead reads:     avg=0.1  min=0  max=3
+2026-04-20 07:24:39.449 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:24:39.449 |   Executions: 29
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.449 | ----------------------------------------------------------------------
+2026-04-20 07:24:39.449 | Totals:
+2026-04-20 07:24:39.449 |   Total elapsed:  989749.861 ms
+2026-04-20 07:24:39.449 |   Server elapsed: 963875.000 ms
+2026-04-20 07:24:39.449 |   Server CPU:     422166.000 ms
+2026-04-20 07:24:39.449 |   Server el. sum: 963875.000 ms
+2026-04-20 07:24:39.449 |   Server CPU sum: 422182.000 ms
+2026-04-20 07:24:39.449 |   Compile:        2314.000 ms
+2026-04-20 07:24:39.449 |   Logical reads:  9232860
+2026-04-20 07:24:39.449 |   Physical reads: 0
+2026-04-20 07:24:39.449 |   Read-ahead:     3
+2026-04-20 07:24:39.449 |   Total rows:     138568760
+2026-04-20 07:24:39.449 |   Executions:     18202
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.449 | ======================================================================
+2026-04-20 07:24:39.449 | Performance Metric Summary
+2026-04-20 07:24:39.449 | ======================================================================
+2026-04-20 07:24:39.449 | Total Runtime: 30.270 seconds
+2026-04-20 07:24:39.449 | Start Time: 2026-04-20T07:24:09.179
+2026-04-20 07:24:39.449 | End Time:   2026-04-20T07:24:39.449
+2026-04-20 07:24:39.449 | 
+2026-04-20 07:24:39.450 | Avg Connect Time: 49.42 ms (33 successful, 0 failed)
+2026-04-20 07:24:39.450 | Avg Elapsed: 54.52 ms (18202 successful, 1 failed)
+2026-04-20 07:24:39.450 | 
+2026-04-20 07:24:39.450 | Total Connection Time: 1.631 seconds (0.2% of work)
+2026-04-20 07:24:39.450 | Total Query Execution Time: 992.425 seconds (99.8% of work)
+2026-04-20 07:24:39.450 | Total Errors: 1
+
+===== ADR + RCSI (inventory_adr_rcsi) =====
+2026-04-20 07:24:40.386 | === SQL Workload Simulator v1.0 ===
+2026-04-20 07:24:40.387 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 07:24:40.387 | Configuration:
+2026-04-20 07:24:40.387 | Server: localhost
+2026-04-20 07:24:40.387 | Database: inventory_adr_rcsi
+2026-04-20 07:24:40.387 | Authentication: Windows
+2026-04-20 07:24:40.387 | Threads: 33
+2026-04-20 07:24:40.387 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 07:24:40.387 | Duration: 30 seconds
+2026-04-20 07:24:40.387 | Workload groups: 4
+2026-04-20 07:24:40.387 |   Group 1: 3 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 07:24:40.387 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 07:24:40.387 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 07:24:40.387 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 07:24:40.387 | Application name: sqlsim
+2026-04-20 07:24:40.387 | Quiet mode: Yes
+2026-04-20 07:24:40.387 | Query stats: Yes
+2026-04-20 07:24:40.387 | 
+2026-04-20 07:24:40.387 | Batches to execute:
+2026-04-20 07:24:40.387 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 07:24:40.387 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 200000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 07:24:40.387 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 07:24:40.387 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 07:24:40.387 | 
+2026-04-20 07:24:40.387 | Connecting...
+2026-04-20 07:24:40.440 | ODBC Driver Version: 18.06.0001
+2026-04-20 07:24:40.441 | Starting execution (33 threads)
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.633 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 07:25:10.633 | ----------------------------------------------------------------------
+2026-04-20 07:25:10.633 | Query 1: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 07:25:10.633 |   Total elapsed (ms):   avg=35.278  min=13.393  max=429.459
+2026-04-20 07:25:10.633 |   Server elapsed (ms):  avg=33.922  min=13.000  max=392.000
+2026-04-20 07:25:10.633 |   Server CPU (ms):      avg=13.875  min=0.000  max=78.000
+2026-04-20 07:25:10.633 |   Server elapsed sum:   avg=33.923  min=13.000  max=392.000
+2026-04-20 07:25:10.633 |   Server CPU sum:       avg=13.875  min=0.000  max=78.000
+2026-04-20 07:25:10.633 |   Compile elapsed (ms): avg=0.039  min=0.000  max=306.000
+2026-04-20 07:25:10.633 |   Logical reads:        avg=151.9  min=95  max=186
+2026-04-20 07:25:10.633 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Read-ahead reads:     avg=0.0  min=0  max=4
+2026-04-20 07:25:10.633 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 07:25:10.633 |   Executions: 12771
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.633 | Query 2: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 07:25:10.633 |   Total elapsed (ms):   avg=147.141  min=66.989  max=464.412
+2026-04-20 07:25:10.633 |   Server elapsed (ms):  avg=144.952  min=66.000  max=460.000
+2026-04-20 07:25:10.633 |   Server CPU (ms):      avg=102.783  min=0.000  max=219.000
+2026-04-20 07:25:10.633 |   Server elapsed sum:   avg=144.952  min=66.000  max=460.000
+2026-04-20 07:25:10.633 |   Server CPU sum:       avg=102.783  min=0.000  max=219.000
+2026-04-20 07:25:10.633 |   Compile elapsed (ms): avg=0.050  min=0.000  max=19.000
+2026-04-20 07:25:10.633 |   Logical reads:        avg=4151.3  min=2229  max=4310
+2026-04-20 07:25:10.633 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Read-ahead reads:     avg=0.0  min=0  max=7
+2026-04-20 07:25:10.633 |   Row count:            avg=20.0  min=20  max=20
+2026-04-20 07:25:10.633 |   Executions: 2046
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.633 | Query 3: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 07:25:10.633 |   Total elapsed (ms):   avg=92.458  min=0.466  max=29167.740
+2026-04-20 07:25:10.633 |   Server elapsed (ms):  avg=91.336  min=0.000  max=29167.000
+2026-04-20 07:25:10.633 |   Server CPU (ms):      avg=0.471  min=0.000  max=16.000
+2026-04-20 07:25:10.633 |   Server elapsed sum:   avg=91.336  min=0.000  max=29167.000
+2026-04-20 07:25:10.633 |   Server CPU sum:       avg=0.471  min=0.000  max=16.000
+2026-04-20 07:25:10.633 |   Compile elapsed (ms): avg=0.006  min=0.000  max=2.000
+2026-04-20 07:25:10.633 |   Logical reads:        avg=17.9  min=6  max=27
+2026-04-20 07:25:10.633 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Executions: 1630
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.633 | Query 4: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 07:25:10.633 |   Total elapsed (ms):   avg=22610.741  min=12393.520  max=30151.562
+2026-04-20 07:25:10.633 |   Server elapsed (ms):  avg=22600.250  min=12388.000  max=30139.000
+2026-04-20 07:25:10.633 |   Server CPU (ms):      avg=546.750  min=328.000  max=687.000
+2026-04-20 07:25:10.633 |   Server elapsed sum:   avg=22600.250  min=12388.000  max=30139.000
+2026-04-20 07:25:10.633 |   Server CPU sum:       avg=546.750  min=328.000  max=687.000
+2026-04-20 07:25:10.633 |   Compile elapsed (ms): avg=7.000  min=0.000  max=11.000
+2026-04-20 07:25:10.633 |   Logical reads:        avg=93540.5  min=91162  max=100619
+2026-04-20 07:25:10.633 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Read-ahead reads:     avg=106.8  min=0  max=423
+2026-04-20 07:25:10.633 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:25:10.633 |   Executions: 4
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.633 | ----------------------------------------------------------------------
+2026-04-20 07:25:10.633 | Totals:
+2026-04-20 07:25:10.633 |   Total elapsed:  992740.074 ms
+2026-04-20 07:25:10.633 |   Server elapsed: 969073.000 ms
+2026-04-20 07:25:10.633 |   Server CPU:     390449.000 ms
+2026-04-20 07:25:10.633 |   Server el. sum: 969088.000 ms
+2026-04-20 07:25:10.633 |   Server CPU sum: 390449.000 ms
+2026-04-20 07:25:10.633 |   Compile:        635.000 ms
+2026-04-20 07:25:10.633 |   Logical reads:  10836788
+2026-04-20 07:25:10.633 |   Physical reads: 0
+2026-04-20 07:25:10.633 |   Read-ahead:     455
+2026-04-20 07:25:10.633 |   Total rows:     127750920
+2026-04-20 07:25:10.633 |   Executions:     16451
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.633 | ======================================================================
+2026-04-20 07:25:10.633 | Performance Metric Summary
+2026-04-20 07:25:10.633 | ======================================================================
+2026-04-20 07:25:10.633 | Total Runtime: 30.245 seconds
+2026-04-20 07:25:10.633 | Start Time: 2026-04-20T07:24:40.388
+2026-04-20 07:25:10.633 | End Time:   2026-04-20T07:25:10.633
+2026-04-20 07:25:10.633 | 
+2026-04-20 07:25:10.634 | Avg Connect Time: 43.35 ms (33 successful, 0 failed)
+2026-04-20 07:25:10.634 | Avg Elapsed: 60.35 ms (16451 successful, 0 failed)
+2026-04-20 07:25:10.634 | 
+2026-04-20 07:25:10.634 | Total Connection Time: 1.431 seconds (0.1% of work)
+2026-04-20 07:25:10.634 | Total Query Execution Time: 992.740 seconds (99.9% of work)
+
+===== ADR + RCSI + OL (inventory_adr_rcsi_ol) =====
+2026-04-20 07:25:11.613 | === SQL Workload Simulator v1.0 ===
+2026-04-20 07:25:11.614 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 07:25:11.614 | Configuration:
+2026-04-20 07:25:11.614 | Server: localhost
+2026-04-20 07:25:11.614 | Database: inventory_adr_rcsi_ol
+2026-04-20 07:25:11.614 | Authentication: Windows
+2026-04-20 07:25:11.614 | Threads: 33
+2026-04-20 07:25:11.614 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 07:25:11.614 | Duration: 30 seconds
+2026-04-20 07:25:11.614 | Workload groups: 4
+2026-04-20 07:25:11.614 |   Group 1: 3 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 07:25:11.614 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 07:25:11.614 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 07:25:11.614 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 07:25:11.614 | Application name: sqlsim
+2026-04-20 07:25:11.614 | Quiet mode: Yes
+2026-04-20 07:25:11.614 | Query stats: Yes
+2026-04-20 07:25:11.614 | 
+2026-04-20 07:25:11.614 | Batches to execute:
+2026-04-20 07:25:11.614 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 07:25:11.614 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 200000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 07:25:11.614 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 20;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 07:25:11.614 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 07:25:11.614 | 
+2026-04-20 07:25:11.614 | Connecting...
+2026-04-20 07:25:11.695 | ODBC Driver Version: 18.06.0001
+2026-04-20 07:25:11.695 | Starting execution (33 threads)
+2026-04-20 07:25:42.032 | 
+2026-04-20 07:25:42.032 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 07:25:42.032 | ----------------------------------------------------------------------
+2026-04-20 07:25:42.032 | Query 1: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 07:25:42.032 |   Total elapsed (ms):   avg=52.313  min=14.226  max=657.473
+2026-04-20 07:25:42.032 |   Server elapsed (ms):  avg=50.439  min=13.000  max=405.000
+2026-04-20 07:25:42.032 |   Server CPU (ms):      avg=18.155  min=0.000  max=79.000
+2026-04-20 07:25:42.032 |   Server elapsed sum:   avg=50.440  min=13.000  max=405.000
+2026-04-20 07:25:42.032 |   Server CPU sum:       avg=18.158  min=0.000  max=79.000
+2026-04-20 07:25:42.032 |   Compile elapsed (ms): avg=0.242  min=0.000  max=371.000
+2026-04-20 07:25:42.032 |   Logical reads:        avg=160.3  min=94  max=186
+2026-04-20 07:25:42.032 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:42.032 |   Read-ahead reads:     avg=0.0  min=0  max=5
+2026-04-20 07:25:42.032 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 07:25:42.032 |   Executions: 8613
+2026-04-20 07:25:42.032 | 
+2026-04-20 07:25:42.032 | Query 2: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 07:25:42.032 |   Total elapsed (ms):   avg=120.660  min=0.569  max=28260.963
+2026-04-20 07:25:42.032 |   Server elapsed (ms):  avg=118.598  min=0.000  max=28260.000
+2026-04-20 07:25:42.032 |   Server CPU (ms):      avg=0.474  min=0.000  max=16.000
+2026-04-20 07:25:42.032 |   Server elapsed sum:   avg=118.600  min=0.000  max=28260.000
+2026-04-20 07:25:42.032 |   Server CPU sum:       avg=0.474  min=0.000  max=16.000
+2026-04-20 07:25:42.032 |   Compile elapsed (ms): avg=0.010  min=0.000  max=3.000
+2026-04-20 07:25:42.032 |   Logical reads:        avg=13.8  min=6  max=28
+2026-04-20 07:25:42.032 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:42.032 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:25:42.032 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:25:42.032 |   Executions: 1251
+2026-04-20 07:25:42.032 | 
+2026-04-20 07:25:42.032 | Query 3: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 07:25:42.032 |   Total elapsed (ms):   avg=4325.607  min=274.158  max=30189.409
+2026-04-20 07:25:42.032 |   Server elapsed (ms):  avg=4323.429  min=273.000  max=30185.000
+2026-04-20 07:25:42.032 |   Server CPU (ms):      avg=263.333  min=141.000  max=890.000
+2026-04-20 07:25:42.032 |   Server elapsed sum:   avg=4323.429  min=273.000  max=30185.000
+2026-04-20 07:25:42.032 |   Server CPU sum:       avg=263.333  min=141.000  max=890.000
+2026-04-20 07:25:42.033 |   Compile elapsed (ms): avg=0.190  min=0.000  max=2.000
+2026-04-20 07:25:42.033 |   Logical reads:        avg=91807.0  min=90810  max=103205
+2026-04-20 07:25:42.033 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:42.033 |   Read-ahead reads:     avg=37.9  min=0  max=629
+2026-04-20 07:25:42.033 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 07:25:42.033 |   Executions: 21
+2026-04-20 07:25:42.033 | 
+2026-04-20 07:25:42.033 | Query 4: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 07:25:42.033 |   Total elapsed (ms):   avg=171.672  min=79.678  max=632.871
+2026-04-20 07:25:42.033 |   Server elapsed (ms):  avg=170.185  min=79.000  max=621.000
+2026-04-20 07:25:42.033 |   Server CPU (ms):      avg=138.654  min=46.000  max=219.000
+2026-04-20 07:25:42.033 |   Server elapsed sum:   avg=170.185  min=79.000  max=621.000
+2026-04-20 07:25:42.033 |   Server CPU sum:       avg=138.654  min=46.000  max=219.000
+2026-04-20 07:25:42.033 |   Compile elapsed (ms): avg=0.032  min=0.000  max=10.000
+2026-04-20 07:25:42.033 |   Logical reads:        avg=4235.7  min=2199  max=4310
+2026-04-20 07:25:42.033 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 07:25:42.033 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 07:25:42.033 |   Row count:            avg=20.0  min=20  max=20
+2026-04-20 07:25:42.033 |   Executions: 1753
+2026-04-20 07:25:42.033 | 
+2026-04-20 07:25:42.033 | ----------------------------------------------------------------------
+2026-04-20 07:25:42.033 | Totals:
+2026-04-20 07:25:42.033 |   Total elapsed:  993296.910 ms
+2026-04-20 07:25:42.033 |   Server elapsed: 971924.000 ms
+2026-04-20 07:25:42.033 |   Server CPU:     405549.000 ms
+2026-04-20 07:25:42.033 |   Server el. sum: 971933.000 ms
+2026-04-20 07:25:42.033 |   Server CPU sum: 405579.000 ms
+2026-04-20 07:25:42.033 |   Compile:        2160.000 ms
+2026-04-20 07:25:42.033 |   Logical reads:  10751024
+2026-04-20 07:25:42.033 |   Physical reads: 0
+2026-04-20 07:25:42.033 |   Read-ahead:     808
+2026-04-20 07:25:42.033 |   Total rows:     86165060
+2026-04-20 07:25:42.033 |   Executions:     11638
+2026-04-20 07:25:42.033 | 
+2026-04-20 07:25:42.033 | ======================================================================
+2026-04-20 07:25:42.033 | Performance Metric Summary
+2026-04-20 07:25:42.033 | ======================================================================
+2026-04-20 07:25:42.033 | Total Runtime: 30.417 seconds
+2026-04-20 07:25:42.033 | Start Time: 2026-04-20T07:25:11.615
+2026-04-20 07:25:42.033 | End Time:   2026-04-20T07:25:42.033
+2026-04-20 07:25:42.033 | 
+2026-04-20 07:25:42.033 | Avg Connect Time: 69.35 ms (33 successful, 0 failed)
+2026-04-20 07:25:42.033 | Avg Elapsed: 85.35 ms (11638 successful, 0 failed)
+2026-04-20 07:25:42.033 | 
+2026-04-20 07:25:42.033 | Total Connection Time: 2.289 seconds (0.2% of work)
+2026-04-20 07:25:42.033 | Total Query Execution Time: 993.297 seconds (99.8% of work)
+
