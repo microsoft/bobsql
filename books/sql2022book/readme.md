@@ -3,6 +3,10 @@
 
 # SQL Server 2022 Revealed
 
+Credential-bearing samples now require private runtime SQLCMD inputs. Follow
+[credential setup](../../SECRET-SCANNING.md#supplying-demo-credentials)
+before running master-key or login-creation scripts.
+
 <p style="border-bottom: 1px solid lightgrey;"></p>
 
 <h2><img style="float: left; margin: 0px 15px 15px 0px;" src="https://github.com/microsoft/sqlworkshops/blob/master/graphics/textbubble.png?raw=true"><b>     About this Book</b></h2>

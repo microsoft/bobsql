@@ -3,7 +3,7 @@ services:
     db1:
         build: ./db1
         environment:
-            SA_PASSWORD: "<REDACTED>"
+            MSSQL_SA_PASSWORD: "${SQLCMDPASSWORD:?Set SQLCMDPASSWORD before starting replication}"
             ACCEPT_EULA: "Y"
             MSSQL_AGENT_ENABLED: "true"
         ports:
@@ -13,7 +13,7 @@ services:
     db2:
         build: ./db2
         environment:
-            SA_PASSWORD: "<REDACTED>"
+            MSSQL_SA_PASSWORD: "${SQLCMDPASSWORD:?Set SQLCMDPASSWORD before starting replication}"
             ACCEPT_EULA: "Y"
             MSSQL_AGENT_ENABLED: "true"
         ports:

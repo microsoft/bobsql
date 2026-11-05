@@ -1,0 +1,713 @@
+
+===== Baseline (inventory_baseline) =====
+2026-04-20 06:13:02.695 | === SQL Workload Simulator v1.0 ===
+2026-04-20 06:13:02.695 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 06:13:02.695 | Configuration:
+2026-04-20 06:13:02.695 | Server: localhost
+2026-04-20 06:13:02.695 | Database: inventory_baseline
+2026-04-20 06:13:02.695 | Authentication: Windows
+2026-04-20 06:13:02.695 | Threads: 40
+2026-04-20 06:13:02.695 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 06:13:02.695 | Duration: 30 seconds
+2026-04-20 06:13:02.695 | Workload groups: 4
+2026-04-20 06:13:02.695 |   Group 1: 10 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 06:13:02.695 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 06:13:02.695 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 06:13:02.695 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 06:13:02.695 | Application name: sqlsim
+2026-04-20 06:13:02.695 | Quiet mode: Yes
+2026-04-20 06:13:02.695 | Query stats: Yes
+2026-04-20 06:13:02.695 | 
+2026-04-20 06:13:02.695 | Batches to execute:
+2026-04-20 06:13:02.695 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 06:13:02.695 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 06:13:02.695 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 06:13:02.695 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 06:13:02.695 | 
+2026-04-20 06:13:02.696 | Connecting...
+2026-04-20 06:13:02.843 | ODBC Driver Version: 18.06.0001
+2026-04-20 06:13:02.843 | Starting execution (40 threads)
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 135) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 155) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 144) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 150) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 132) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 150) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 130) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 154) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 157) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 164) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 140) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 149) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 144) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 162) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 148) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 16 ms, elapsed time = 30 ms.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 151) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 153) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 134) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 155) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 132) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 160) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 20 ms, elapsed time = 20 ms.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 139) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 123) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 150) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 154) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 149) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 144) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 127) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 40 ms, elapsed time = 40 ms.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 162) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 16 ms, elapsed time = 36 ms.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 130) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 159) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 148) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 163) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 125) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 140) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 157) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 147) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 145) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 142) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 156) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.294 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 15 ms, elapsed time = 27 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 153) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 155) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 151) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 149) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 162) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 159) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 16 ms, elapsed time = 24 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 140) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 163) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 139) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 156) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 16 ms, elapsed time = 49 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 145) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 132) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 164) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 154) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 148) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 31 ms, elapsed time = 33 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 147) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 134) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 141) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 127) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 125) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 0 ms, elapsed time = 23 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 144) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 146) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 160) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 123) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 142) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 157) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 149) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 0 ms, elapsed time = 19 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 162) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 153) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 164) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 151) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 153) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 148) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 159) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 147) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 15 ms, elapsed time = 31 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 145) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 15 ms, elapsed time = 19 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 141) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 125) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 127) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 123) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 32 ms, elapsed time = 34 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 140) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 160) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 146) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 162) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 15 ms, elapsed time = 22 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 155) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 155) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 134) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 135) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 150) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 135) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 141) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 125) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 24 ms, elapsed time = 24 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 149) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 148) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 31 ms, elapsed time = 31 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 127) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 18 ms, elapsed time = 18 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 145) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 160) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 144) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 147) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 123) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 31 ms, elapsed time = 31 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 146) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 140) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 157) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 132) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 151) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 162) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 142) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 155) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 154) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 135) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 139) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 131) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 159) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 130) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 156) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 01000: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]SQL Server parse and compile time:     CPU time = 16 ms, elapsed time = 19 ms.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 134) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 150) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.295 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 153) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 06:13:36.297 | ----------------------------------------------------------------------
+2026-04-20 06:13:36.297 | Query 1: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 06:13:36.297 |   Total elapsed (ms):   avg=16505.133  min=6394.840  max=26618.605
+2026-04-20 06:13:36.297 |   Server elapsed (ms):  avg=16499.850  min=6394.000  max=26610.000
+2026-04-20 06:13:36.297 |   Server CPU (ms):      avg=10.900  min=0.000  max=31.000
+2026-04-20 06:13:36.297 |   Server elapsed sum:   avg=16499.850  min=6394.000  max=26610.000
+2026-04-20 06:13:36.297 |   Server CPU sum:       avg=10.900  min=0.000  max=31.000
+2026-04-20 06:13:36.297 |   Compile elapsed (ms): avg=1.800  min=0.000  max=9.000
+2026-04-20 06:13:36.297 |   Logical reads:        avg=448.9  min=448  max=453
+2026-04-20 06:13:36.297 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Row count:            avg=5.0  min=5  max=5
+2026-04-20 06:13:36.297 |   Executions: 20
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | Query 2: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 06:13:36.297 |   Total elapsed (ms):   avg=789.739  min=5.896  max=9173.962
+2026-04-20 06:13:36.297 |   Server elapsed (ms):  avg=781.857  min=5.000  max=9158.000
+2026-04-20 06:13:36.297 |   Server CPU (ms):      avg=6.470  min=0.000  max=32.000
+2026-04-20 06:13:36.297 |   Server elapsed sum:   avg=781.857  min=5.000  max=9158.000
+2026-04-20 06:13:36.297 |   Server CPU sum:       avg=6.470  min=0.000  max=32.000
+2026-04-20 06:13:36.297 |   Compile elapsed (ms): avg=6.458  min=0.000  max=103.000
+2026-04-20 06:13:36.297 |   Logical reads:        avg=76.8  min=74  max=82
+2026-04-20 06:13:36.297 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 06:13:36.297 |   Executions: 336
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | Query 3: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 06:13:36.297 |   Total elapsed (ms):   avg=713.707  min=94.294  max=13209.282
+2026-04-20 06:13:36.297 |   Server elapsed (ms):  avg=711.742  min=94.000  max=13208.000
+2026-04-20 06:13:36.297 |   Server CPU (ms):      avg=147.959  min=47.000  max=266.000
+2026-04-20 06:13:36.297 |   Server elapsed sum:   avg=711.742  min=94.000  max=13208.000
+2026-04-20 06:13:36.297 |   Server CPU sum:       avg=147.959  min=47.000  max=266.000
+2026-04-20 06:13:36.297 |   Compile elapsed (ms): avg=0.093  min=0.000  max=3.000
+2026-04-20 06:13:36.297 |   Logical reads:        avg=60713.1  min=60699  max=60839
+2026-04-20 06:13:36.297 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Read-ahead reads:     avg=0.0  min=0  max=3
+2026-04-20 06:13:36.297 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Executions: 194
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | Query 4: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 06:13:36.297 |   Total elapsed (ms):   avg=23.097  min=0.150  max=12729.278
+2026-04-20 06:13:36.297 |   Server elapsed (ms):  avg=22.179  min=0.000  max=12728.000
+2026-04-20 06:13:36.297 |   Server CPU (ms):      avg=0.122  min=0.000  max=16.000
+2026-04-20 06:13:36.297 |   Server elapsed sum:   avg=22.179  min=0.000  max=12728.000
+2026-04-20 06:13:36.297 |   Server CPU sum:       avg=0.122  min=0.000  max=16.000
+2026-04-20 06:13:36.297 |   Compile elapsed (ms): avg=0.003  min=0.000  max=3.000
+2026-04-20 06:13:36.297 |   Logical reads:        avg=4.1  min=4  max=8
+2026-04-20 06:13:36.297 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:13:36.297 |   Executions: 3326
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | ----------------------------------------------------------------------
+2026-04-20 06:13:36.297 | Totals:
+2026-04-20 06:13:36.297 |   Total elapsed:  810733.976 ms
+2026-04-20 06:13:36.297 |   Server elapsed: 804548.000 ms
+2026-04-20 06:13:36.297 |   Server CPU:     31502.000 ms
+2026-04-20 06:13:36.297 |   Server el. sum: 804548.000 ms
+2026-04-20 06:13:36.297 |   Server CPU sum: 31502.000 ms
+2026-04-20 06:13:36.297 |   Compile:        2235.000 ms
+2026-04-20 06:13:36.297 |   Logical reads:  11826854
+2026-04-20 06:13:36.297 |   Physical reads: 0
+2026-04-20 06:13:36.297 |   Read-ahead:     3
+2026-04-20 06:13:36.297 |   Total rows:     3360100
+2026-04-20 06:13:36.297 |   Executions:     3876
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | ======================================================================
+2026-04-20 06:13:36.297 | Performance Metric Summary
+2026-04-20 06:13:36.297 | ======================================================================
+2026-04-20 06:13:36.297 | Total Runtime: 33.600 seconds
+2026-04-20 06:13:36.297 | Start Time: 2026-04-20T06:13:02.697
+2026-04-20 06:13:36.297 | End Time:   2026-04-20T06:13:36.297
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | Avg Connect Time: 97.87 ms (40 successful, 0 failed)
+2026-04-20 06:13:36.297 | Avg Elapsed: 322.04 ms (3876 successful, 120 failed)
+2026-04-20 06:13:36.297 | 
+2026-04-20 06:13:36.297 | Total Connection Time: 3.915 seconds (0.3% of work)
+2026-04-20 06:13:36.297 | Total Query Execution Time: 1286.872 seconds (99.7% of work)
+2026-04-20 06:13:36.297 | Total Errors: 120
+
+===== RCSI (inventory_rcsi) =====
+2026-04-20 06:13:37.079 | === SQL Workload Simulator v1.0 ===
+2026-04-20 06:13:37.080 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 06:13:37.080 | Configuration:
+2026-04-20 06:13:37.080 | Server: localhost
+2026-04-20 06:13:37.080 | Database: inventory_rcsi
+2026-04-20 06:13:37.080 | Authentication: Windows
+2026-04-20 06:13:37.080 | Threads: 40
+2026-04-20 06:13:37.080 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 06:13:37.080 | Duration: 30 seconds
+2026-04-20 06:13:37.080 | Workload groups: 4
+2026-04-20 06:13:37.080 |   Group 1: 10 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 06:13:37.080 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 06:13:37.080 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 06:13:37.080 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 06:13:37.080 | Application name: sqlsim
+2026-04-20 06:13:37.080 | Quiet mode: Yes
+2026-04-20 06:13:37.080 | Query stats: Yes
+2026-04-20 06:13:37.080 | 
+2026-04-20 06:13:37.080 | Batches to execute:
+2026-04-20 06:13:37.080 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 06:13:37.080 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 06:13:37.080 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 06:13:37.080 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 06:13:37.080 | 
+2026-04-20 06:13:37.080 | Connecting...
+2026-04-20 06:13:37.151 | ODBC Driver Version: 18.06.0001
+2026-04-20 06:13:37.151 | Starting execution (40 threads)
+2026-04-20 06:14:07.914 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 135) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:14:07.914 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 147) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:14:07.914 | 40001: [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Transaction (Process ID 148) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.919 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 06:14:07.919 | ----------------------------------------------------------------------
+2026-04-20 06:14:07.919 | Query 1: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 06:14:07.919 |   Total elapsed (ms):   avg=98.721  min=28.797  max=273.553
+2026-04-20 06:14:07.919 |   Server elapsed (ms):  avg=97.480  min=28.000  max=273.000
+2026-04-20 06:14:07.919 |   Server CPU (ms):      avg=69.751  min=0.000  max=188.000
+2026-04-20 06:14:07.919 |   Server elapsed sum:   avg=97.480  min=28.000  max=273.000
+2026-04-20 06:14:07.919 |   Server CPU sum:       avg=69.751  min=0.000  max=188.000
+2026-04-20 06:14:07.919 |   Compile elapsed (ms): avg=0.010  min=0.000  max=8.000
+2026-04-20 06:14:07.919 |   Logical reads:        avg=532.1  min=532  max=536
+2026-04-20 06:14:07.919 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Row count:            avg=5.0  min=5  max=5
+2026-04-20 06:14:07.919 |   Executions: 3043
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.919 | Query 2: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 06:14:07.919 |   Total elapsed (ms):   avg=58.715  min=14.422  max=445.169
+2026-04-20 06:14:07.919 |   Server elapsed (ms):  avg=56.955  min=14.000  max=440.000
+2026-04-20 06:14:07.919 |   Server CPU (ms):      avg=22.439  min=0.000  max=78.000
+2026-04-20 06:14:07.919 |   Server elapsed sum:   avg=56.955  min=14.000  max=440.000
+2026-04-20 06:14:07.919 |   Server CPU sum:       avg=22.439  min=0.000  max=78.000
+2026-04-20 06:14:07.919 |   Compile elapsed (ms): avg=0.169  min=0.000  max=202.000
+2026-04-20 06:14:07.919 |   Logical reads:        avg=92.2  min=91  max=95
+2026-04-20 06:14:07.919 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 06:14:07.919 |   Executions: 7671
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.919 | Query 3: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 06:14:07.919 |   Total elapsed (ms):   avg=18846.657  min=429.210  max=30434.290
+2026-04-20 06:14:07.919 |   Server elapsed (ms):  avg=18839.750  min=424.000  max=30415.000
+2026-04-20 06:14:07.919 |   Server CPU (ms):      avg=206.000  min=78.000  max=563.000
+2026-04-20 06:14:07.919 |   Server elapsed sum:   avg=18839.750  min=424.000  max=30415.000
+2026-04-20 06:14:07.919 |   Server CPU sum:       avg=206.000  min=78.000  max=563.000
+2026-04-20 06:14:07.919 |   Compile elapsed (ms): avg=4.812  min=0.000  max=17.000
+2026-04-20 06:14:07.919 |   Logical reads:        avg=60731.2  min=60721  max=60743
+2026-04-20 06:14:07.919 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Read-ahead reads:     avg=0.3  min=0  max=5
+2026-04-20 06:14:07.919 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Executions: 16
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.919 | Query 4: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 06:14:07.919 |   Total elapsed (ms):   avg=361.479  min=0.570  max=29667.368
+2026-04-20 06:14:07.919 |   Server elapsed (ms):  avg=360.100  min=0.000  max=29667.000
+2026-04-20 06:14:07.919 |   Server CPU (ms):      avg=0.150  min=0.000  max=16.000
+2026-04-20 06:14:07.919 |   Server elapsed sum:   avg=360.100  min=0.000  max=29667.000
+2026-04-20 06:14:07.919 |   Server CPU sum:       avg=0.150  min=0.000  max=16.000
+2026-04-20 06:14:07.919 |   Compile elapsed (ms): avg=0.032  min=0.000  max=8.000
+2026-04-20 06:14:07.919 |   Logical reads:        avg=4.1  min=4  max=8
+2026-04-20 06:14:07.919 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:14:07.919 |   Executions: 408
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.919 | ----------------------------------------------------------------------
+2026-04-20 06:14:07.919 | Totals:
+2026-04-20 06:14:07.919 |   Total elapsed:  1199837.037 ms
+2026-04-20 06:14:07.919 |   Server elapsed: 1181893.000 ms
+2026-04-20 06:14:07.919 |   Server CPU:     387741.000 ms
+2026-04-20 06:14:07.919 |   Server el. sum: 1181893.000 ms
+2026-04-20 06:14:07.919 |   Server CPU sum: 387741.000 ms
+2026-04-20 06:14:07.919 |   Compile:        1415.000 ms
+2026-04-20 06:14:07.919 |   Logical reads:  3299563
+2026-04-20 06:14:07.919 |   Physical reads: 0
+2026-04-20 06:14:07.919 |   Read-ahead:     5
+2026-04-20 06:14:07.919 |   Total rows:     76725215
+2026-04-20 06:14:07.919 |   Executions:     11138
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.919 | ======================================================================
+2026-04-20 06:14:07.919 | Performance Metric Summary
+2026-04-20 06:14:07.919 | ======================================================================
+2026-04-20 06:14:07.919 | Total Runtime: 30.838 seconds
+2026-04-20 06:14:07.919 | Start Time: 2026-04-20T06:13:37.081
+2026-04-20 06:14:07.919 | End Time:   2026-04-20T06:14:07.919
+2026-04-20 06:14:07.919 | 
+2026-04-20 06:14:07.920 | Avg Connect Time: 59.61 ms (40 successful, 0 failed)
+2026-04-20 06:14:07.920 | Avg Elapsed: 108.23 ms (11138 successful, 3 failed)
+2026-04-20 06:14:07.920 | 
+2026-04-20 06:14:07.920 | Total Connection Time: 2.385 seconds (0.2% of work)
+2026-04-20 06:14:07.920 | Total Query Execution Time: 1205.830 seconds (99.8% of work)
+2026-04-20 06:14:07.920 | Total Errors: 3
+
+===== ADR + RCSI (inventory_adr_rcsi) =====
+2026-04-20 06:14:08.602 | === SQL Workload Simulator v1.0 ===
+2026-04-20 06:14:08.603 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 06:14:08.603 | Configuration:
+2026-04-20 06:14:08.603 | Server: localhost
+2026-04-20 06:14:08.603 | Database: inventory_adr_rcsi
+2026-04-20 06:14:08.603 | Authentication: Windows
+2026-04-20 06:14:08.603 | Threads: 40
+2026-04-20 06:14:08.603 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 06:14:08.603 | Duration: 30 seconds
+2026-04-20 06:14:08.603 | Workload groups: 4
+2026-04-20 06:14:08.603 |   Group 1: 10 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 06:14:08.603 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 06:14:08.603 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 06:14:08.603 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 06:14:08.603 | Application name: sqlsim
+2026-04-20 06:14:08.603 | Quiet mode: Yes
+2026-04-20 06:14:08.603 | Query stats: Yes
+2026-04-20 06:14:08.603 | 
+2026-04-20 06:14:08.603 | Batches to execute:
+2026-04-20 06:14:08.603 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 06:14:08.603 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 06:14:08.603 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 06:14:08.603 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 06:14:08.603 | 
+2026-04-20 06:14:08.603 | Connecting...
+2026-04-20 06:14:08.677 | ODBC Driver Version: 18.06.0001
+2026-04-20 06:14:08.677 | Starting execution (40 threads)
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.764 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 06:14:39.764 | ----------------------------------------------------------------------
+2026-04-20 06:14:39.764 | Query 1: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 06:14:39.764 |   Total elapsed (ms):   avg=45.952  min=14.770  max=351.302
+2026-04-20 06:14:39.764 |   Server elapsed (ms):  avg=44.506  min=14.000  max=350.000
+2026-04-20 06:14:39.764 |   Server CPU (ms):      avg=23.150  min=0.000  max=78.000
+2026-04-20 06:14:39.764 |   Server elapsed sum:   avg=44.506  min=14.000  max=350.000
+2026-04-20 06:14:39.764 |   Server CPU sum:       avg=23.150  min=0.000  max=78.000
+2026-04-20 06:14:39.764 |   Compile elapsed (ms): avg=0.169  min=0.000  max=214.000
+2026-04-20 06:14:39.764 |   Logical reads:        avg=168.5  min=91  max=184
+2026-04-20 06:14:39.764 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Read-ahead reads:     avg=0.0  min=0  max=3
+2026-04-20 06:14:39.764 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 06:14:39.764 |   Executions: 9798
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.764 | Query 2: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 06:14:39.764 |   Total elapsed (ms):   avg=115.355  min=38.036  max=294.107
+2026-04-20 06:14:39.764 |   Server elapsed (ms):  avg=113.195  min=37.000  max=289.000
+2026-04-20 06:14:39.764 |   Server CPU (ms):      avg=80.036  min=0.000  max=203.000
+2026-04-20 06:14:39.764 |   Server elapsed sum:   avg=113.195  min=37.000  max=289.000
+2026-04-20 06:14:39.764 |   Server CPU sum:       avg=80.036  min=0.000  max=203.000
+2026-04-20 06:14:39.764 |   Compile elapsed (ms): avg=0.018  min=0.000  max=10.000
+2026-04-20 06:14:39.764 |   Logical reads:        avg=1041.7  min=534  max=1070
+2026-04-20 06:14:39.764 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Row count:            avg=5.0  min=5  max=5
+2026-04-20 06:14:39.764 |   Executions: 2605
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.764 | Query 3: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 06:14:39.764 |   Total elapsed (ms):   avg=968.785  min=0.508  max=29250.416
+2026-04-20 06:14:39.764 |   Server elapsed (ms):  avg=966.000  min=0.000  max=29249.000
+2026-04-20 06:14:39.764 |   Server CPU (ms):      avg=0.696  min=0.000  max=16.000
+2026-04-20 06:14:39.764 |   Server elapsed sum:   avg=966.000  min=0.000  max=29249.000
+2026-04-20 06:14:39.764 |   Server CPU sum:       avg=0.696  min=0.000  max=16.000
+2026-04-20 06:14:39.764 |   Compile elapsed (ms): avg=0.082  min=0.000  max=3.000
+2026-04-20 06:14:39.764 |   Logical reads:        avg=15.8  min=5  max=24
+2026-04-20 06:14:39.764 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Executions: 158
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.764 | Query 4: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 06:14:39.764 |   Total elapsed (ms):   avg=15332.857  min=1250.736  max=30851.982
+2026-04-20 06:14:39.764 |   Server elapsed (ms):  avg=15328.000  min=1247.000  max=30846.000
+2026-04-20 06:14:39.764 |   Server CPU (ms):      avg=294.650  min=110.000  max=516.000
+2026-04-20 06:14:39.764 |   Server elapsed sum:   avg=15328.000  min=1247.000  max=30846.000
+2026-04-20 06:14:39.764 |   Server CPU sum:       avg=294.650  min=110.000  max=516.000
+2026-04-20 06:14:39.764 |   Compile elapsed (ms): avg=1.100  min=0.000  max=7.000
+2026-04-20 06:14:39.764 |   Logical reads:        avg=91018.4  min=90807  max=93837
+2026-04-20 06:14:39.764 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Read-ahead reads:     avg=19.5  min=0  max=386
+2026-04-20 06:14:39.764 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:14:39.764 |   Executions: 20
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.764 | ----------------------------------------------------------------------
+2026-04-20 06:14:39.764 | Totals:
+2026-04-20 06:14:39.764 |   Total elapsed:  1210464.690 ms
+2026-04-20 06:14:39.764 |   Server elapsed: 1190126.000 ms
+2026-04-20 06:14:39.764 |   Server CPU:     441317.000 ms
+2026-04-20 06:14:39.764 |   Server el. sum: 1190129.000 ms
+2026-04-20 06:14:39.764 |   Server CPU sum: 441317.000 ms
+2026-04-20 06:14:39.764 |   Compile:        1735.000 ms
+2026-04-20 06:14:39.764 |   Logical reads:  6187176
+2026-04-20 06:14:39.764 |   Physical reads: 0
+2026-04-20 06:14:39.764 |   Read-ahead:     393
+2026-04-20 06:14:39.764 |   Total rows:     97993025
+2026-04-20 06:14:39.764 |   Executions:     12581
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.764 | ======================================================================
+2026-04-20 06:14:39.764 | Performance Metric Summary
+2026-04-20 06:14:39.764 | ======================================================================
+2026-04-20 06:14:39.764 | Total Runtime: 31.160 seconds
+2026-04-20 06:14:39.764 | Start Time: 2026-04-20T06:14:08.604
+2026-04-20 06:14:39.764 | End Time:   2026-04-20T06:14:39.764
+2026-04-20 06:14:39.764 | 
+2026-04-20 06:14:39.765 | Avg Connect Time: 55.63 ms (40 successful, 0 failed)
+2026-04-20 06:14:39.765 | Avg Elapsed: 96.21 ms (12581 successful, 0 failed)
+2026-04-20 06:14:39.765 | 
+2026-04-20 06:14:39.765 | Total Connection Time: 2.225 seconds (0.2% of work)
+2026-04-20 06:14:39.765 | Total Query Execution Time: 1210.465 seconds (99.8% of work)
+
+===== ADR + RCSI + OL (inventory_adr_rcsi_ol) =====
+2026-04-20 06:14:40.470 | === SQL Workload Simulator v1.0 ===
+2026-04-20 06:14:40.471 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-20 06:14:40.471 | Configuration:
+2026-04-20 06:14:40.471 | Server: localhost
+2026-04-20 06:14:40.471 | Database: inventory_adr_rcsi_ol
+2026-04-20 06:14:40.471 | Authentication: Windows
+2026-04-20 06:14:40.471 | Threads: 40
+2026-04-20 06:14:40.471 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\inventory\workload-baseline.json
+2026-04-20 06:14:40.471 | Duration: 30 seconds
+2026-04-20 06:14:40.471 | Workload groups: 4
+2026-04-20 06:14:40.471 |   Group 1: 10 thread(s), duration mode, 1 batch(es) [workload-warehouse-restock.sql]
+2026-04-20 06:14:40.471 |   Group 2: 5 thread(s), duration mode, 1 batch(es) [workload-order-fulfillment.sql]
+2026-04-20 06:14:40.471 |   Group 3: 15 thread(s), duration mode, 1 batch(es) [workload-check-availability.sql]
+2026-04-20 06:14:40.471 |   Group 4: 10 thread(s), duration mode, 1 batch(es) [workload-category-report.sql]
+2026-04-20 06:14:40.471 | Application name: sqlsim
+2026-04-20 06:14:40.471 | Quiet mode: Yes
+2026-04-20 06:14:40.471 | Query stats: Yes
+2026-04-20 06:14:40.471 | 
+2026-04-20 06:14:40.471 | Batches to execute:
+2026-04-20 06:14:40.471 | [1] -- Warehouse restock: UPDATE ~10,000 rows in a random category
+-- Exceeds 5,000-lock escalation threshold ΓåÆ table X lock without OL
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+DECLARE @Qty INT = ABS(CHECKSUM(NEWID())) % 50 + 10;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand + @Qty,
+    LastRestocked = SYSUTCDATETIME()
+WHERE CategoryId = @CategoryId;
+2026-04-20 06:14:40.471 | [2] -- Order fulfillment: UPDATE single product (decrement stock)
+SET NOCOUNT ON;
+DECLARE @ProductId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+UPDATE dbo.Products
+SET QuantityOnHand = QuantityOnHand - 1
+WHERE ProductId = @ProductId
+  AND QuantityOnHand > 0;
+2026-04-20 06:14:40.471 | [3] -- Check availability: website checks stock for a category
+-- Readers need S locks ΓÇö blocked by warehouse restock X locks in baseline
+SET NOCOUNT ON;
+DECLARE @CategoryId INT = ABS(CHECKSUM(NEWID())) % 5;
+SELECT ProductId, ProductName, QuantityOnHand, UnitPrice
+FROM dbo.Products
+WHERE CategoryId = @CategoryId
+  AND QuantityOnHand > 0
+ORDER BY ProductName;
+2026-04-20 06:14:40.471 | [4] -- Category report: dashboard aggregation across all categories
+-- Full scan ΓÇö blocked by any writer holding X locks
+SET NOCOUNT ON;
+SELECT CategoryId,
+       COUNT(*) AS ProductCount,
+       SUM(QuantityOnHand) AS TotalStock,
+       SUM(CASE WHEN QuantityOnHand <= ReorderPoint THEN 1 ELSE 0 END) AS NeedsReorder,
+       AVG(UnitPrice) AS AvgPrice
+FROM dbo.Products
+GROUP BY CategoryId
+ORDER BY CategoryId;
+2026-04-20 06:14:40.471 | 
+2026-04-20 06:14:40.471 | Connecting...
+2026-04-20 06:14:40.549 | ODBC Driver Version: 18.06.0001
+2026-04-20 06:14:40.549 | Starting execution (40 threads)
+2026-04-20 06:15:11.666 | 
+2026-04-20 06:15:11.666 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-20 06:15:11.666 | ----------------------------------------------------------------------
+2026-04-20 06:15:11.666 | Query 1: -- Category report: dashboard aggregation across all categories -- Full scan ΓÇö blocked by any writer holding X locks S...
+2026-04-20 06:15:11.666 |   Total elapsed (ms):   avg=138.297  min=31.899  max=432.506
+2026-04-20 06:15:11.666 |   Server elapsed (ms):  avg=136.597  min=31.000  max=431.000
+2026-04-20 06:15:11.666 |   Server CPU (ms):      avg=106.452  min=0.000  max=265.000
+2026-04-20 06:15:11.667 |   Server elapsed sum:   avg=136.597  min=31.000  max=431.000
+2026-04-20 06:15:11.667 |   Server CPU sum:       avg=106.452  min=0.000  max=265.000
+2026-04-20 06:15:11.667 |   Compile elapsed (ms): avg=0.052  min=0.000  max=20.000
+2026-04-20 06:15:11.667 |   Logical reads:        avg=1042.6  min=539  max=1073
+2026-04-20 06:15:11.667 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Row count:            avg=5.0  min=5  max=5
+2026-04-20 06:15:11.667 |   Executions: 2177
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | Query 2: -- Check availability: website checks stock for a category -- Readers need S locks ΓÇö blocked by warehouse restock X lo...
+2026-04-20 06:15:11.667 |   Total elapsed (ms):   avg=58.670  min=14.947  max=658.198
+2026-04-20 06:15:11.667 |   Server elapsed (ms):  avg=57.012  min=14.000  max=568.000
+2026-04-20 06:15:11.667 |   Server CPU (ms):      avg=27.684  min=0.000  max=94.000
+2026-04-20 06:15:11.667 |   Server elapsed sum:   avg=57.012  min=14.000  max=568.000
+2026-04-20 06:15:11.667 |   Server CPU sum:       avg=27.684  min=0.000  max=94.000
+2026-04-20 06:15:11.667 |   Compile elapsed (ms): avg=0.244  min=0.000  max=433.000
+2026-04-20 06:15:11.667 |   Logical reads:        avg=175.4  min=92  max=183
+2026-04-20 06:15:11.667 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Row count:            avg=10000.0  min=10000  max=10000
+2026-04-20 06:15:11.667 |   Executions: 7681
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | Query 3: -- Order fulfillment: UPDATE single product (decrement stock) SET NOCOUNT ON; DECLARE @ProductId INT = (ABS(CHECKSUM(NEW...
+2026-04-20 06:15:11.667 |   Total elapsed (ms):   avg=926.641  min=0.576  max=30561.330
+2026-04-20 06:15:11.667 |   Server elapsed (ms):  avg=922.909  min=0.000  max=30556.000
+2026-04-20 06:15:11.667 |   Server CPU (ms):      avg=0.473  min=0.000  max=16.000
+2026-04-20 06:15:11.667 |   Server elapsed sum:   avg=922.909  min=0.000  max=30556.000
+2026-04-20 06:15:11.667 |   Server CPU sum:       avg=0.473  min=0.000  max=16.000
+2026-04-20 06:15:11.667 |   Compile elapsed (ms): avg=0.048  min=0.000  max=3.000
+2026-04-20 06:15:11.667 |   Logical reads:        avg=13.3  min=6  max=24
+2026-04-20 06:15:11.667 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Executions: 165
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | Query 4: -- Warehouse restock: UPDATE ~10,000 rows in a random category -- Exceeds 5,000-lock escalation threshold ΓåÆ table X lo...
+2026-04-20 06:15:11.667 |   Total elapsed (ms):   avg=16053.377  min=339.206  max=31106.618
+2026-04-20 06:15:11.667 |   Server elapsed (ms):  avg=16049.947  min=331.000  max=31103.000
+2026-04-20 06:15:11.667 |   Server CPU (ms):      avg=271.316  min=109.000  max=500.000
+2026-04-20 06:15:11.667 |   Server elapsed sum:   avg=16049.947  min=331.000  max=31103.000
+2026-04-20 06:15:11.667 |   Server CPU sum:       avg=271.316  min=109.000  max=500.000
+2026-04-20 06:15:11.667 |   Compile elapsed (ms): avg=0.842  min=0.000  max=3.000
+2026-04-20 06:15:11.667 |   Logical reads:        avg=91175.6  min=90806  max=95101
+2026-04-20 06:15:11.667 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Read-ahead reads:     avg=17.6  min=0  max=334
+2026-04-20 06:15:11.667 |   Row count:            avg=0.0  min=0  max=0
+2026-04-20 06:15:11.667 |   Executions: 19
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | ----------------------------------------------------------------------
+2026-04-20 06:15:11.667 | Totals:
+2026-04-20 06:15:11.667 |   Total elapsed:  1209624.284 ms
+2026-04-20 06:15:11.667 |   Server elapsed: 1192510.000 ms
+2026-04-20 06:15:11.667 |   Server CPU:     449619.000 ms
+2026-04-20 06:15:11.667 |   Server el. sum: 1192511.000 ms
+2026-04-20 06:15:11.667 |   Server CPU sum: 449619.000 ms
+2026-04-20 06:15:11.667 |   Compile:        2016.000 ms
+2026-04-20 06:15:11.667 |   Logical reads:  5351752
+2026-04-20 06:15:11.667 |   Physical reads: 0
+2026-04-20 06:15:11.667 |   Read-ahead:     334
+2026-04-20 06:15:11.667 |   Total rows:     76820885
+2026-04-20 06:15:11.667 |   Executions:     10042
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | ======================================================================
+2026-04-20 06:15:11.667 | Performance Metric Summary
+2026-04-20 06:15:11.667 | ======================================================================
+2026-04-20 06:15:11.667 | Total Runtime: 31.195 seconds
+2026-04-20 06:15:11.667 | Start Time: 2026-04-20T06:14:40.472
+2026-04-20 06:15:11.667 | End Time:   2026-04-20T06:15:11.667
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | Avg Connect Time: 65.34 ms (40 successful, 0 failed)
+2026-04-20 06:15:11.667 | Avg Elapsed: 120.46 ms (10042 successful, 0 failed)
+2026-04-20 06:15:11.667 | 
+2026-04-20 06:15:11.667 | Total Connection Time: 2.613 seconds (0.2% of work)
+2026-04-20 06:15:11.667 | Total Query Execution Time: 1209.624 seconds (99.8% of work)
+
