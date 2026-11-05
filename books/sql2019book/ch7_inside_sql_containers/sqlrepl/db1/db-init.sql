@@ -1,3 +1,10 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(SqlLoginPassword)' = N'$' + N'(SqlLoginPassword)' OR LEN(N'$(SqlLoginPassword)') = 0
+BEGIN
+    RAISERROR('Supply SqlLoginPassword using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 CREATE DATABASE Sales
 GO
 USE [SALES]
@@ -14,7 +21,7 @@ DECLARE @distributorpassword AS sysname
 -- Specify the Distributor name. Use 'hostname' command on in terminal to find the hostname
 SET @distributor = @@SERVERNAME--in this example, it will be the name of the publisher
 SET @distributorlogin = N'sa'
-SET @distributorpassword = N'<REDACTED>'
+SET @distributorpassword = N'$(SqlLoginPassword)'
 -- Specify the distribution database. 
 
 use master
@@ -44,7 +51,7 @@ DECLARE @distributorpassword AS sysname
 -- Specify the Distributor name. Use 'hostname' command on in terminal to find the hostname
 SET @publisher = @@SERVERNAME 
 SET @distributorlogin = N'sa'
-SET @distributorpassword = N'<REDACTED>'
+SET @distributorpassword = N'$(SqlLoginPassword)'
 -- Specify the distribution database. 
 
 -- Adding the distribution publishers
@@ -57,7 +64,7 @@ DECLARE @publisherlogin AS sysname
 DECLARE @publisherpassword AS sysname
 SET @replicationdb = N'Sales'
 SET @publisherlogin = N'sa'
-SET @publisherpassword = N'<REDACTED>'
+SET @publisherpassword = N'$(SqlLoginPassword)'
 
 use [Sales]
 exec sp_replicationdboption @dbname = N'Sales', @optname = N'publish', @value = N'true'
@@ -112,7 +119,7 @@ DECLARE @subscriberPassword AS sysname
 SET @subscriber = N'db2' -- for example, MSSQLSERVER
 SET @subscriber_db = N'Sales'
 SET @subscriberLogin = N'sa'
-SET @subscriberPassword = N'<REDACTED>'
+SET @subscriberPassword = N'$(SqlLoginPassword)'
 
 use [Sales]
 exec sp_addsubscription 
@@ -165,3 +172,6 @@ where c.name in ('REPL-Distribution')
 exec msdb.dbo.sp_start_job @jobname 
 
 -- SELECT name, date_modified FROM msdb.dbo.sysjobs order by date_modified desc
+GO
+SET NOEXEC OFF;
+GO

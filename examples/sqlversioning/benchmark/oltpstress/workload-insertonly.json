@@ -1,0 +1,6 @@
+{
+    "duration_seconds": 60,
+    "workloads": [
+        { "file": "workload-insert-only.sql", "threads": 30 }
+    ]
+}

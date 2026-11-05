@@ -87,7 +87,13 @@ GO
 /* ---- 1. Master key + passwordless credential --------------------------- */
 /* A database master key is required to hold database-scoped credentials.       */
 IF NOT EXISTS (SELECT 1 FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMasterKey##')
-    CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'Ch@ngeMe_WardGeneral_2026!';
+    BEGIN
+    DECLARE @GeneratedMasterKeyPassword nvarchar(128) =
+        N'Key!' + CONVERT(nvarchar(64), CRYPT_GEN_RANDOM(32), 2);
+    DECLARE @CreateMasterKeySql nvarchar(max) =
+        N'CREATE MASTER KEY ENCRYPTION BY PASSWORD = ' + QUOTENAME(@GeneratedMasterKeyPassword, '''') + N';';
+    EXEC sys.sp_executesql @CreateMasterKeySql;
+END;
 GO
 
 /* Nothing in this file drops anything. Every object is CREATE-if-absent and is

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nim-embedding
+  labels:
+    app: nim-embedding
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nim-embedding
+  template:
+    metadata:
+      labels:
+        app: nim-embedding
+    spec:
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "present"
+          effect: "NoSchedule"
+      nodeSelector:
+        gpu-type: nvidia-t4
+      containers:
+        - name: nim-embedding
+          image: nvcr.io/nim/nvidia/nv-embedqa-e5-v5:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-secret
+                  key: NGC_API_KEY
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+            requests:
+              nvidia.com/gpu: "1"
+              memory: "8Gi"
+              cpu: "2"
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /v1/health/live
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+      imagePullSecrets:
+        - name: ngc-registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nim-embedding
+spec:
+  selector:
+    app: nim-embedding
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP

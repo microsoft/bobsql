@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLTP Stress Benchmark — SQL Server Versioning</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --green: #3fb950; --blue: #58a6ff; --orange: #d29922; --red: #f85149; --purple: #bc8cff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--blue); }
+  .chart-container { position: relative; height: 320px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+  th:first-child, td:first-child { text-align: left; }
+  tr:hover td { background: rgba(88,166,255,0.05); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(210,153,34,0.15); color: var(--orange); }
+  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
+  .insight { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
+  .insight h3 { font-size: 0.95rem; color: var(--orange); margin-bottom: 8px; }
+  .insight p { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+  .metric-row { display: flex; gap: 16px; margin-bottom: 20px; }
+  .metric { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+  .metric .value { font-size: 1.8rem; font-weight: 700; }
+  .metric .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+  .metric .change { font-size: 0.8rem; margin-top: 4px; }
+  .full { grid-column: 1 / -1; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<h1>OLTP Stress Benchmark — SQL Server Versioning Configurations</h1>
+<p class="subtitle">Pure write workload: 40 threads (20 point + 10 batch + 10 insert/delete) &times; 30 seconds &times; 50K rows &bull; localhost &bull; 2026-04-19</p>
+
+<div class="metric-row">
+  <div class="metric">
+    <div class="value" style="color:var(--green)">560,764</div>
+    <div class="label">Baseline Total Ops</div>
+  </div>
+  <div class="metric">
+    <div class="value" style="color:var(--blue)">490,652</div>
+    <div class="label">RCSI Total Ops</div>
+    <div class="change" style="color:var(--orange)">0.88x baseline</div>
+  </div>
+  <div class="metric">
+    <div class="value" style="color:var(--purple)">443,565</div>
+    <div class="label">ADR+RCSI Total Ops</div>
+    <div class="change" style="color:var(--orange)">0.79x baseline</div>
+  </div>
+  <div class="metric">
+    <div class="value" style="color:var(--red)">179,927</div>
+    <div class="label">ADR+RCSI+OL Total Ops</div>
+    <div class="change" style="color:var(--red)">0.32x baseline</div>
+  </div>
+</div>
+
+<div class="insight">
+  <h3>&#9888; OL Result is a Workload Artifact, Not OL Overhead</h3>
+  <p>OL eliminates lock escalation on batch updates, so those 10 threads run 5&times; more batches (2,414 vs 311&ndash;491).
+     Each batch touches ~2,500 rows, so OL generates <strong>~5.8M row modifications</strong> vs ~700K&ndash;1.2M in other configs.
+     This floods the log writer and PVS, starving point-update threads (7.36ms vs 1.54&ndash;1.98ms).
+     <strong>The per-row cost of OL is zero&mdash;the system is simply doing 5&times; more work.</strong></p>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>Total Executions by Config</h2>
+    <div class="chart-container"><canvas id="chartTotal"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Avg Latency by Config (ms)</h2>
+    <div class="chart-container"><canvas id="chartLatency"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Per-Query Executions</h2>
+    <div class="chart-container"><canvas id="chartPerQuery"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Batch Update: Latency vs Throughput</h2>
+    <div class="chart-container"><canvas id="chartBatch"></canvas></div>
+  </div>
+  <div class="card full">
+    <h2>Detailed Results</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Config</th>
+          <th>Point Updates</th>
+          <th>Pt Latency (ms)</th>
+          <th>Batch Updates</th>
+          <th>Batch Latency (ms)</th>
+          <th>Insert/Delete</th>
+          <th>I/D Latency (ms)</th>
+          <th>Total Ops</th>
+          <th>Avg Latency</th>
+          <th>Logical Reads</th>
+          <th>&times; Baseline</th>
+        </tr>
+      </thead>
+      <tbody id="detailTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const data = {
+  configs: [
+    { name:"Baseline", color:"#3fb950", total:560764, lat:2.14, pt:{e:388331,l:1.543}, bt:{e:491,l:613.180}, id:{e:171942,l:1.743}, lr:2392598 },
+    { name:"RCSI", color:"#58a6ff", total:490652, lat:2.45, pt:{e:329677,l:1.818}, bt:{e:437,l:690.173}, id:{e:160538,l:1.867}, lr:3208927 },
+    { name:"ADR+RCSI", color:"#bc8cff", total:443565, lat:2.71, pt:{e:303198,l:1.978}, bt:{e:311,l:974.606}, id:{e:140056,l:2.140}, lr:2922784 },
+    { name:"ADR+RCSI+OL", color:"#f85149", total:179927, lat:6.67, pt:{e:81556,l:7.361}, bt:{e:2414,l:124.463}, id:{e:95957,l:3.124}, lr:4128437 }
+  ]
+};
+
+const labels = data.configs.map(c => c.name);
+const colors = data.configs.map(c => c.color);
+
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+
+// Total executions bar chart
+new Chart(document.getElementById('chartTotal'), {
+  type: 'bar',
+  data: { labels, datasets: [{ data: data.configs.map(c => c.total), backgroundColor: colors, borderRadius: 4 }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw.toLocaleString() + ' ops' } } }, scales: { y: { beginAtZero: true, ticks: { callback: v => (v/1000)+'K' } } } }
+});
+
+// Avg latency bar chart
+new Chart(document.getElementById('chartLatency'), {
+  type: 'bar',
+  data: { labels, datasets: [{ data: data.configs.map(c => c.lat), backgroundColor: colors, borderRadius: 4 }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw.toFixed(2) + ' ms' } } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'ms' } } } }
+});
+
+// Stacked per-query executions
+new Chart(document.getElementById('chartPerQuery'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Point Updates (20t)', data: data.configs.map(c => c.pt.e), backgroundColor: '#3fb950', borderRadius: 2 },
+      { label: 'Insert/Delete (10t)', data: data.configs.map(c => c.id.e), backgroundColor: '#58a6ff', borderRadius: 2 },
+      { label: 'Batch Updates (10t)', data: data.configs.map(c => c.bt.e), backgroundColor: '#d29922', borderRadius: 2 }
+    ]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => (v/1000)+'K' } } } }
+});
+
+// Batch update: latency vs executions (dual axis)
+new Chart(document.getElementById('chartBatch'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Batch Executions', data: data.configs.map(c => c.bt.e), backgroundColor: colors.map(c => c+'88'), borderRadius: 4, yAxisID: 'y' },
+      { label: 'Batch Latency (ms)', data: data.configs.map(c => c.bt.l), type: 'line', borderColor: '#d29922', backgroundColor: '#d2992244', pointBackgroundColor: '#d29922', pointRadius: 6, tension: 0.3, yAxisID: 'y1' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+    scales: {
+      y: { position: 'left', beginAtZero: true, title: { display: true, text: 'Executions' } },
+      y1: { position: 'right', beginAtZero: true, title: { display: true, text: 'Latency (ms)' }, grid: { drawOnChartArea: false } }
+    }
+  }
+});
+
+// Detail table
+const tbody = document.getElementById('detailTable');
+const baseline = data.configs[0].total;
+data.configs.forEach(c => {
+  const ratio = (c.total / baseline).toFixed(2);
+  const cls = ratio >= 0.9 ? 'badge-green' : ratio >= 0.7 ? 'badge-yellow' : 'badge-red';
+  tbody.innerHTML += `<tr>
+    <td><strong>${c.name}</strong></td>
+    <td>${c.pt.e.toLocaleString()}</td><td>${c.pt.l.toFixed(2)}</td>
+    <td>${c.bt.e.toLocaleString()}</td><td>${c.bt.l.toFixed(1)}</td>
+    <td>${c.id.e.toLocaleString()}</td><td>${c.id.l.toFixed(2)}</td>
+    <td><strong>${c.total.toLocaleString()}</strong></td><td>${c.lat.toFixed(2)}</td>
+    <td>${c.lr.toLocaleString()}</td>
+    <td><span class="badge ${cls}">${ratio}x</span></td>
+  </tr>`;
+});
+</script>
+</body>
+</html>

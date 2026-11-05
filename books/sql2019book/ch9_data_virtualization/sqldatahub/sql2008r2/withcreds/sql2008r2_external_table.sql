@@ -1,12 +1,25 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(ExternalSecret)' = N'$' + N'(ExternalSecret)' OR LEN(N'$(ExternalSecret)') = 0
+BEGIN
+    RAISERROR('Supply ExternalSecret using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
+IF N'$(MasterKeyPassword)' = N'$' + N'(MasterKeyPassword)' OR LEN(N'$(MasterKeyPassword)') = 0
+BEGIN
+    RAISERROR('Supply MasterKeyPassword using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 -- Step 1: Create a master key to encrypt the database scoped credentials if they don't exist
 USE [WideWorldImporters]
 GO
-CREATE MASTER KEY ENCRYPTION BY PASSWORD = '<REDACTED>'
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = '$(MasterKeyPassword)'
 GO
 
 -- Step 2: Create the database scoped credentials with the SQL 2008 R2 login and password
 CREATE DATABASE SCOPED CREDENTIAL SqlServerCredentials   
-WITH IDENTITY = 'sqluser', Secret = '<REDACTED>'
+WITH IDENTITY = 'sqluser', Secret = '$(ExternalSecret)'
 GO
 
 -- Step 3: Create a data source for the name of the SQL Server 2008 R2 server
@@ -79,4 +92,7 @@ on s.SupplierCategoryID = sc.SupplierCategoryID
 and sc.SupplierCategoryName = 'Clothing Supplier'
 JOIN [Application].[Cities] c
 ON s.DeliveryCityID = c.CityID
+GO
+GO
+SET NOEXEC OFF;
 GO
