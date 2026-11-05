@@ -1,1 +1,5 @@
-sqlcmd -Usa -PSql2019isfast -Slocalhost,1401 -Q"SELECT COUNT(*) FROM [WideWorldImporters].[Application].[People]"
+#!/bin/sh
+set -eu
+: "${SQLCMDPASSWORD:?Set SQLCMDPASSWORD privately before running this demo}"
+export SQLCMDPASSWORD
+sqlcmd -b -Usa -Slocalhost,1401 -Q"SELECT COUNT(*) FROM [WideWorldImporters].[Application].[People]"

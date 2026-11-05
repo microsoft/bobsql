@@ -1,0 +1,1 @@
+SqlPackage /Action:Import /SourceFile:".\adventureworkslt2025.bacpac" /TargetConnectionString:"Server=tcp:<server>.database.windows.net,1433;Initial Catalog=AdventureWorksProducts;Authentication=Active Directory Interactive;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"

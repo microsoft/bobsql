@@ -1,0 +1,1 @@
+ostress -E -isqlcpudemo.sql -n24 -q

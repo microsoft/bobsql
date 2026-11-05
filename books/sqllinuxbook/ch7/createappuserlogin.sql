@@ -1,3 +1,10 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(SqlLoginPassword)' = N'$' + N'(SqlLoginPassword)' OR LEN(N'$(SqlLoginPassword)') = 0
+BEGIN
+    RAISERROR('Supply SqlLoginPassword using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 USE [MASTER]
 GO
 USE master
@@ -5,5 +12,8 @@ GO
 IF EXISTS (select * from sys.server_principals where name = 'appuser')
     DROP LOGIN [appuser]
 GO
-CREATE LOGIN [appuser] WITH PASSWORD=N'Sql2017isfast', DEFAULT_DATABASE=[WideWorldImporters]
+CREATE LOGIN [appuser] WITH PASSWORD=N'$(SqlLoginPassword)', DEFAULT_DATABASE=[WideWorldImporters]
+GO
+GO
+SET NOEXEC OFF;
 GO

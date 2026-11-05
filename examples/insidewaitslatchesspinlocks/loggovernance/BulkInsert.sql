@@ -1,3 +1,16 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(MasterKeyPassword)' = N'$' + N'(MasterKeyPassword)' OR LEN(N'$(MasterKeyPassword)') = 0
+BEGIN
+    RAISERROR('Supply MasterKeyPassword using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
+IF N'$(StorageSasToken)' = N'$' + N'(StorageSasToken)' OR LEN(N'$(StorageSasToken)') = 0
+BEGIN
+    RAISERROR('Supply StorageSasToken using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 -- Create MonitoringProcs.sql
 -- Connect to sqlscale.database.windows.net - DemoDBGP ( or a GP database)
 
@@ -63,7 +76,7 @@ GO
 -- Create a master key
 IF not exists ( select 1 from sys.symmetric_keys where name = '##MS_DatabaseMasterKey##')
 CREATE MASTER KEY 
-ENCRYPTION BY PASSWORD='MyComplexPassword00!';
+ENCRYPTION BY PASSWORD='$(MasterKeyPassword)';
 GO 
 
 /*
@@ -77,7 +90,7 @@ IF NOT EXISTS ( select 1 from sys.database_credentials
 where name = 'https://denzilrdiag.blob.core.windows.net/adata/')
 CREATE DATABASE SCOPED CREDENTIAL [https://denzilrdiag.blob.core.windows.net/adata/]
 WITH IDENTITY = 'SHARED ACCESS SIGNATURE',
-SECRET = 'sv=2019-02-02&st=2020-08-04T20%3A44%3A34Z&se=2021-08-05T20%3A44%3A00Z&sr=c&sp=rl&sig=OnCMhPg9ggKdDfwatuiGIaiVDYVG54n2ws%2FDw%2BD0C%2Fk%3D';
+SECRET = '$(StorageSasToken)';
 GO
 
 
@@ -163,4 +176,6 @@ CREATE TABLE DataLoad.store_returnsCCI
 
 ) 
 GO
-
+GO
+SET NOEXEC OFF;
+GO

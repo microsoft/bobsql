@@ -1,11 +1,17 @@
-# Parameters are sa password, sqllinux password
-SERVER=$1
-SAPWD=$2
-sqlcmd -S$SERVER -Usa -P$SAPWD -icleanup.sql
-sqlcmd -S$SERVER -Usa -P$SAPWD -icreatelogin.sql
-sqlcmd -Usqllinux -PSql2017isfast -idropandcreatedb.sql
-sqlcmd -Usqllinux -PSql2017isfast -icreateschemas.sql
-sqlcmd -Usqllinux -PSql2017isfast -icreatesequences.sql
-sqlcmd -Usqllinux -PSql2017isfast -icreatepeople.sql
-sqlcmd -Usqllinux -PSql2017isfast -icreatecustomers.sql
-
+#!/bin/sh
+set -eu
+: "${SQLCMDPASSWORD:?Set SQLCMDPASSWORD privately before running this demo}"
+export SQLCMDPASSWORD
+: "${SQLLINUXPASSWORD:?Set the private sqllinux login password}"
+SERVER="${1:?Supply the server name; passwords come from the environment}"
+SqlLoginPassword=$(printf '%s' "$SQLLINUXPASSWORD" | sed "s/'/''/g")
+export SqlLoginPassword
+sqlcmd -b -S"$SERVER" -Usa -icleanup.sql
+sqlcmd -b -S"$SERVER" -Usa -icreatelogin.sql
+SQLCMDPASSWORD="$SQLLINUXPASSWORD"
+export SQLCMDPASSWORD
+sqlcmd -b -S"$SERVER" -Usqllinux -idropandcreatedb.sql
+sqlcmd -b -S"$SERVER" -Usqllinux -icreateschemas.sql
+sqlcmd -b -S"$SERVER" -Usqllinux -icreatesequences.sql
+sqlcmd -b -S"$SERVER" -Usqllinux -icreatepeople.sql
+sqlcmd -b -S"$SERVER" -Usqllinux -icreatecustomers.sql

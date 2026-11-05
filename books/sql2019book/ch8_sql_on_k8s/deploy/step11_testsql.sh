@@ -1,3 +1,7 @@
+#!/bin/sh
+set -eu
+: "${SQLCMDPASSWORD:?Set SQLCMDPASSWORD privately before running this demo}"
+export SQLCMDPASSWORD
 SERVERIP=$(kubectl get service | grep mssql-service | awk {'print $4'})
 PORT=31433
-sqlcmd -Usa -PSql2019isfast -S$SERVERIP,$PORT -Q"SELECT @@version"
+sqlcmd -b -Usa -S$SERVERIP,$PORT -Q"SELECT @@version"

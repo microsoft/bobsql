@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+root=$(git rev-parse --show-toplevel)
+exec sh "$root/scripts/check-secrets.sh" push

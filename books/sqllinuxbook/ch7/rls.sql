@@ -1,3 +1,10 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(SqlLoginPassword)' = N'$' + N'(SqlLoginPassword)' OR LEN(N'$(SqlLoginPassword)') = 0
+BEGIN
+    RAISERROR('Supply SqlLoginPassword using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 -- Demonstrate Row Level Security
 --
 
@@ -7,7 +14,7 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'GreatLakesUser')
 BEGIN
 	CREATE LOGIN GreatLakesUser 
-	WITH PASSWORD = N'SQLRocks!00',
+	WITH PASSWORD = N'$(SqlLoginPassword)',
 	     CHECK_POLICY = OFF,
 		 CHECK_EXPIRATION = OFF,
 		 DEFAULT_DATABASE = WideWorldImporters;
@@ -72,4 +79,7 @@ GO
 -- Revert back to logged in user
 --
 REVERT
+GO
+GO
+SET NOEXEC OFF;
 GO

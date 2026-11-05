@@ -1,3 +1,10 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(ExternalSecret)' = N'$' + N'(ExternalSecret)' OR LEN(N'$(ExternalSecret)') = 0
+BEGIN
+    RAISERROR('Supply ExternalSecret using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 -- Step 1: Create a master key to encrypt the database scoped credentials if they don't exist
 USE [WideWorldImporters]
 GO
@@ -8,7 +15,7 @@ GO
 DROP DATABASE SCOPED CREDENTIAL OracleCredentials
 GO
 CREATE DATABASE SCOPED CREDENTIAL OracleCredentials   
-WITH IDENTITY = 'gl', Secret = 'glpwd'
+WITH IDENTITY = 'gl', Secret = '$(ExternalSecret)'
 GO
 
 -- Step 3: Create a data source for the name of the server hosting the ORACLE instance and listener port
@@ -75,4 +82,7 @@ SELECT ct.*, oa.arid, oa.ardesc
 FROM oracle.accountsreceivable oa
 JOIN [Sales].[CustomerTransactions] ct
 ON oa.arref = ct.CustomerTransactionID
+GO
+GO
+SET NOEXEC OFF;
 GO

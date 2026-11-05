@@ -1,3 +1,9 @@
+if ([string]::IsNullOrWhiteSpace($env:SQLCMDPASSWORD)) {
+    throw 'Set SQLCMDPASSWORD privately before running this demo. See SECRET-SCANNING.md.'
+}
+$env:MSSQL_SA_PASSWORD = $env:SQLCMDPASSWORD
 docker stop sql2019latest
 docker rm sql2019latest
-docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=Sql2019isfast" -p 1401:1433 --name sql2019latest --hostname sql2019latest -v sqlvolume:/var/opt/mssql -d mcr.microsoft.com/mssql/rhel/server:2019-latest
+docker run -e "ACCEPT_EULA=Y" -e MSSQL_SA_PASSWORD -p 1401:1433 --name sql2019latest --hostname sql2019latest -v sqlvolume:/var/opt/mssql -d mcr.microsoft.com/mssql/rhel/server:2019-latest
+
+if ($LASTEXITCODE -ne 0) { throw 'Demo command failed.' }

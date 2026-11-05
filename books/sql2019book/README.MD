@@ -70,14 +70,19 @@ CMD /bin/bash ./entrypoint.sh
 In the db1 directory, the script **dbinit.sh** does not need the chown and chgrp commands so now looks like this:
 
 ```bash
+set -eu
+SQLCMDPASSWORD="${MSSQL_SA_PASSWORD:?Supply the container password privately}"
+export SQLCMDPASSWORD
+SqlLoginPassword=$(printf '%s' "$SQLCMDPASSWORD" | sed "s/'/''/g")
+export SqlLoginPassword
 #wait for the SQL Server to come up
 sleep 45s
 
-mkdir /var/opt/mssql/ReplData/
+mkdir -p /var/opt/mssql/ReplData/
 
 echo "running set up script"
 #run the setup script to create the DB and the schema in the DB
-/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P MssqlPass123 -d master -i db-init.sql
+/opt/mssql-tools/bin/sqlcmd -b -S localhost -U sa -d master -i db-init.sql
 ```
 
 All other scripts should work as there were documented in the book.
@@ -148,3 +153,5 @@ This includes the following:
 - You can deploy the HA option on AKS with a pre-configured option of **aks-dev-test-ha**.
 - The SQL sa account is disabled by default for the master instance. Instead when you deploy a BDC you are prompted to enter in a AZDATA_USERNAME and AZDATA_PASSWORD. The AZDATA_USERNAME user is the cluster administrator and is a sysadmin on the master instance.
 - As I mentioned in the book Active Directory Authentication did make it into the release. You can read about it at https://docs.microsoft.com/en-us/sql/big-data-cluster/deploy-active-directory?view=sql-server-ver15.
+
+For SQL authentication, supply SQLCMDPASSWORD privately in the same shell; see [runtime credential setup](../../SECRET-SCANNING.md#supplying-demo-credentials). Do not use command-line password arguments.

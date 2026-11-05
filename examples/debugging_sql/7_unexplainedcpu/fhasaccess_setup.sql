@@ -1,3 +1,10 @@
+-- Runtime credentials: SQLCMD variables; never save supplied values in source.
+IF N'$(SqlLoginPassword)' = N'$' + N'(SqlLoginPassword)' OR LEN(N'$(SqlLoginPassword)') = 0
+BEGIN
+    RAISERROR('Supply SqlLoginPassword using SQLCMD mode. See SECRET-SCANNING.md. Nothing was changed.', 16, 1);
+    SET NOEXEC ON;
+END;
+GO
 set nocount on
 go
 use master
@@ -8,7 +15,7 @@ DROP LOGIN [testuser]
 go
 create database test
 go
-CREATE LOGIN [testuser] WITH PASSWORD=N'gocowboys', DEFAULT_DATABASE=test, CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+CREATE LOGIN [testuser] WITH PASSWORD=N'$(SqlLoginPassword)', DEFAULT_DATABASE=test, CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
 GO
 use test
 go
@@ -36,4 +43,6 @@ begin
        set @count = @count - 1
 end
 go
-
+GO
+SET NOEXEC OFF;
+GO

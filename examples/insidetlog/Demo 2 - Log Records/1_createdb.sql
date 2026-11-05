@@ -1,0 +1,8 @@
+DROP DATABASE IF EXISTS simplerecoverydb;
+GO
+CREATE DATABASE simplerecoverydb;
+GO
+ALTER DATABASE simplerecoverydb SET RECOVERY SIMPLE;
+GO
+ALTER DATABASE simplerecoverydb SET QUERY_STORE = OFF;
+GO

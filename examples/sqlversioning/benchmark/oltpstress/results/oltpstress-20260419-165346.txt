@@ -1,0 +1,472 @@
+2026-04-19 16:53:47.812 | === SQL Workload Simulator v1.0 ===
+2026-04-19 16:53:47.812 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-19 16:53:47.812 | Configuration:
+2026-04-19 16:53:47.812 | Server: localhost
+2026-04-19 16:53:47.812 | Database: stress_baseline
+2026-04-19 16:53:47.812 | Authentication: Windows
+2026-04-19 16:53:47.812 | Threads: 40
+2026-04-19 16:53:47.812 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\oltpstress\workload-baseline.json
+2026-04-19 16:53:47.812 | Duration: 30 seconds
+2026-04-19 16:53:47.812 | Workload groups: 3
+2026-04-19 16:53:47.812 |   Group 1: 20 thread(s), duration mode, 1 batch(es) [workload-point-updates.sql]
+2026-04-19 16:53:47.812 |   Group 2: 10 thread(s), duration mode, 1 batch(es) [workload-batch-updates.sql]
+2026-04-19 16:53:47.812 |   Group 3: 10 thread(s), duration mode, 1 batch(es) [workload-insert-delete.sql]
+2026-04-19 16:53:47.812 | Application name: sqlsim
+2026-04-19 16:53:47.812 | Quiet mode: Yes
+2026-04-19 16:53:47.812 | Query stats: Yes
+2026-04-19 16:53:47.812 | 
+2026-04-19 16:53:47.812 | Batches to execute:
+2026-04-19 16:53:47.812 | [1] -- Point UPDATE by PK: single-row update generating one version per execution
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE AccountId = @AccountId;
+2026-04-19 16:53:47.812 | [2] -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation
+SET NOCOUNT ON;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 100) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE Category = @Category;
+2026-04-19 16:53:47.812 | [3] -- INSERT + DELETE cycle: generates versions for both operations
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+
+DECLARE @NewId INT;
+INSERT INTO dbo.StressAccounts (AccountName, Balance, Category)
+VALUES (N'Temp_' + CAST(@AccountId AS NVARCHAR(10)), @Amount, @Category);
+SET @NewId = SCOPE_IDENTITY();
+
+DELETE FROM dbo.StressAccounts WHERE AccountId = @NewId;
+2026-04-19 16:53:47.812 | 
+2026-04-19 16:53:47.812 | Connecting...
+2026-04-19 16:53:47.929 | ODBC Driver Version: 18.06.0001
+2026-04-19 16:53:47.929 | Starting execution (40 threads)
+2026-04-19 16:54:18.378 | 
+2026-04-19 16:54:18.378 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-19 16:54:18.378 | ----------------------------------------------------------------------
+2026-04-19 16:54:18.378 | Query 1: -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation SET NOCOUNT ON; DECLARE @Categor...
+2026-04-19 16:54:18.378 |   Total elapsed (ms):   avg=613.180  min=182.901  max=1261.597
+2026-04-19 16:54:18.378 |   Server elapsed (ms):  avg=609.574  min=182.000  max=1261.000
+2026-04-19 16:54:18.378 |   Server CPU (ms):      avg=37.452  min=0.000  max=78.000
+2026-04-19 16:54:18.378 |   Server elapsed sum:   avg=609.574  min=182.000  max=1261.000
+2026-04-19 16:54:18.378 |   Server CPU sum:       avg=37.452  min=0.000  max=78.000
+2026-04-19 16:54:18.378 |   Compile elapsed (ms): avg=2.405  min=0.000  max=38.000
+2026-04-19 16:54:18.378 |   Logical reads:        avg=445.4  min=387  max=845
+2026-04-19 16:54:18.378 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Executions: 491
+2026-04-19 16:54:18.378 | 
+2026-04-19 16:54:18.378 | Query 2: -- Point UPDATE by PK: single-row update generating one version per execution SET NOCOUNT ON; DECLARE @AccountId INT = (...
+2026-04-19 16:54:18.378 |   Total elapsed (ms):   avg=1.543  min=0.218  max=574.157
+2026-04-19 16:54:18.378 |   Server elapsed (ms):  avg=0.775  min=0.000  max=573.000
+2026-04-19 16:54:18.378 |   Server CPU (ms):      avg=0.172  min=0.000  max=31.000
+2026-04-19 16:54:18.378 |   Server elapsed sum:   avg=0.775  min=0.000  max=573.000
+2026-04-19 16:54:18.378 |   Server CPU sum:       avg=0.172  min=0.000  max=31.000
+2026-04-19 16:54:18.378 |   Compile elapsed (ms): avg=0.003  min=0.000  max=21.000
+2026-04-19 16:54:18.378 |   Logical reads:        avg=2.0  min=2  max=4
+2026-04-19 16:54:18.378 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Executions: 388331
+2026-04-19 16:54:18.378 | 
+2026-04-19 16:54:18.378 | Query 3: -- INSERT + DELETE cycle: generates versions for both operations SET NOCOUNT ON; DECLARE @AccountId INT = (ABS(CHECKSUM(...
+2026-04-19 16:54:18.378 |   Total elapsed (ms):   avg=1.743  min=0.423  max=286.994
+2026-04-19 16:54:18.378 |   Server elapsed (ms):  avg=0.201  min=0.000  max=285.000
+2026-04-19 16:54:18.378 |   Server CPU (ms):      avg=0.144  min=0.000  max=16.000
+2026-04-19 16:54:18.378 |   Server elapsed sum:   avg=0.412  min=0.000  max=285.000
+2026-04-19 16:54:18.378 |   Server CPU sum:       avg=0.363  min=0.000  max=16.000
+2026-04-19 16:54:18.378 |   Compile elapsed (ms): avg=0.001  min=0.000  max=14.000
+2026-04-19 16:54:18.378 |   Logical reads:        avg=8.0  min=8  max=12
+2026-04-19 16:54:18.378 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:54:18.378 |   Executions: 171942
+2026-04-19 16:54:18.378 | 
+2026-04-19 16:54:18.378 | ----------------------------------------------------------------------
+2026-04-19 16:54:18.378 | Totals:
+2026-04-19 16:54:18.378 |   Total elapsed:  1199984.457 ms
+2026-04-19 16:54:18.378 |   Server elapsed: 634789.000 ms
+2026-04-19 16:54:18.378 |   Server CPU:     109744.000 ms
+2026-04-19 16:54:18.378 |   Server el. sum: 671134.000 ms
+2026-04-19 16:54:18.378 |   Server CPU sum: 147552.000 ms
+2026-04-19 16:54:18.378 |   Compile:        2475.000 ms
+2026-04-19 16:54:18.378 |   Logical reads:  2392598
+2026-04-19 16:54:18.378 |   Physical reads: 0
+2026-04-19 16:54:18.378 |   Read-ahead:     0
+2026-04-19 16:54:18.378 |   Total rows:     0
+2026-04-19 16:54:18.378 |   Executions:     560764
+2026-04-19 16:54:18.383 | 
+2026-04-19 16:54:18.383 | ======================================================================
+2026-04-19 16:54:18.383 | Performance Metric Summary
+2026-04-19 16:54:18.383 | ======================================================================
+2026-04-19 16:54:18.383 | Total Runtime: 30.569 seconds
+2026-04-19 16:54:18.383 | Start Time: 2026-04-19T16:53:47.813
+2026-04-19 16:54:18.383 | End Time:   2026-04-19T16:54:18.383
+2026-04-19 16:54:18.383 | 
+2026-04-19 16:54:18.408 | Avg Connect Time: 69.72 ms (40 successful, 0 failed)
+2026-04-19 16:54:18.408 | Avg Elapsed: 2.14 ms (560764 successful, 0 failed)
+2026-04-19 16:54:18.408 | 
+2026-04-19 16:54:18.408 | Total Connection Time: 2.789 seconds (0.2% of work)
+2026-04-19 16:54:18.408 | Total Query Execution Time: 1199.984 seconds (99.8% of work)
+2026-04-19 16:54:19.198 | === SQL Workload Simulator v1.0 ===
+2026-04-19 16:54:19.199 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-19 16:54:19.199 | Configuration:
+2026-04-19 16:54:19.199 | Server: localhost
+2026-04-19 16:54:19.199 | Database: stress_rcsi
+2026-04-19 16:54:19.199 | Authentication: Windows
+2026-04-19 16:54:19.199 | Threads: 40
+2026-04-19 16:54:19.199 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\oltpstress\workload-rcsi.json
+2026-04-19 16:54:19.199 | Duration: 30 seconds
+2026-04-19 16:54:19.199 | Workload groups: 3
+2026-04-19 16:54:19.199 |   Group 1: 20 thread(s), duration mode, 1 batch(es) [workload-point-updates.sql]
+2026-04-19 16:54:19.199 |   Group 2: 10 thread(s), duration mode, 1 batch(es) [workload-batch-updates.sql]
+2026-04-19 16:54:19.199 |   Group 3: 10 thread(s), duration mode, 1 batch(es) [workload-insert-delete.sql]
+2026-04-19 16:54:19.199 | Application name: sqlsim
+2026-04-19 16:54:19.199 | Quiet mode: Yes
+2026-04-19 16:54:19.199 | Query stats: Yes
+2026-04-19 16:54:19.199 | 
+2026-04-19 16:54:19.199 | Batches to execute:
+2026-04-19 16:54:19.199 | [1] -- Point UPDATE by PK: single-row update generating one version per execution
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE AccountId = @AccountId;
+2026-04-19 16:54:19.199 | [2] -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation
+SET NOCOUNT ON;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 100) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE Category = @Category;
+2026-04-19 16:54:19.199 | [3] -- INSERT + DELETE cycle: generates versions for both operations
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+
+DECLARE @NewId INT;
+INSERT INTO dbo.StressAccounts (AccountName, Balance, Category)
+VALUES (N'Temp_' + CAST(@AccountId AS NVARCHAR(10)), @Amount, @Category);
+SET @NewId = SCOPE_IDENTITY();
+
+DELETE FROM dbo.StressAccounts WHERE AccountId = @NewId;
+2026-04-19 16:54:19.199 | 
+2026-04-19 16:54:19.199 | Connecting...
+2026-04-19 16:54:19.287 | ODBC Driver Version: 18.06.0001
+2026-04-19 16:54:19.287 | Starting execution (40 threads)
+2026-04-19 16:54:49.821 | 
+2026-04-19 16:54:49.821 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-19 16:54:49.821 | ----------------------------------------------------------------------
+2026-04-19 16:54:49.821 | Query 1: -- INSERT + DELETE cycle: generates versions for both operations SET NOCOUNT ON; DECLARE @AccountId INT = (ABS(CHECKSUM(...
+2026-04-19 16:54:49.821 |   Total elapsed (ms):   avg=1.867  min=0.451  max=1027.841
+2026-04-19 16:54:49.821 |   Server elapsed (ms):  avg=0.242  min=0.000  max=1026.000
+2026-04-19 16:54:49.821 |   Server CPU (ms):      avg=0.149  min=0.000  max=16.000
+2026-04-19 16:54:49.821 |   Server elapsed sum:   avg=0.513  min=0.000  max=1026.000
+2026-04-19 16:54:49.821 |   Server CPU sum:       avg=0.389  min=0.000  max=16.000
+2026-04-19 16:54:49.821 |   Compile elapsed (ms): avg=0.000  min=0.000  max=12.000
+2026-04-19 16:54:49.821 |   Logical reads:        avg=11.2  min=10  max=26
+2026-04-19 16:54:49.821 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Executions: 160538
+2026-04-19 16:54:49.821 | 
+2026-04-19 16:54:49.821 | Query 2: -- Point UPDATE by PK: single-row update generating one version per execution SET NOCOUNT ON; DECLARE @AccountId INT = (...
+2026-04-19 16:54:49.821 |   Total elapsed (ms):   avg=1.818  min=0.219  max=1411.864
+2026-04-19 16:54:49.821 |   Server elapsed (ms):  avg=1.025  min=0.000  max=1411.000
+2026-04-19 16:54:49.821 |   Server CPU (ms):      avg=0.189  min=0.000  max=32.000
+2026-04-19 16:54:49.821 |   Server elapsed sum:   avg=1.025  min=0.000  max=1411.000
+2026-04-19 16:54:49.821 |   Server CPU sum:       avg=0.189  min=0.000  max=32.000
+2026-04-19 16:54:49.821 |   Compile elapsed (ms): avg=0.002  min=0.000  max=129.000
+2026-04-19 16:54:49.821 |   Logical reads:        avg=3.1  min=3  max=6
+2026-04-19 16:54:49.821 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Executions: 329677
+2026-04-19 16:54:49.821 | 
+2026-04-19 16:54:49.821 | Query 3: -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation SET NOCOUNT ON; DECLARE @Categor...
+2026-04-19 16:54:49.821 |   Total elapsed (ms):   avg=690.173  min=101.536  max=1795.695
+2026-04-19 16:54:49.821 |   Server elapsed (ms):  avg=685.414  min=100.000  max=1794.000
+2026-04-19 16:54:49.821 |   Server CPU (ms):      avg=41.430  min=0.000  max=94.000
+2026-04-19 16:54:49.821 |   Server elapsed sum:   avg=685.414  min=100.000  max=1794.000
+2026-04-19 16:54:49.821 |   Server CPU sum:       avg=41.430  min=0.000  max=94.000
+2026-04-19 16:54:49.821 |   Compile elapsed (ms): avg=3.588  min=0.000  max=166.000
+2026-04-19 16:54:49.821 |   Logical reads:        avg=926.8  min=494  max=1911
+2026-04-19 16:54:49.821 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Read-ahead reads:     avg=0.1  min=0  max=7
+2026-04-19 16:54:49.821 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:54:49.821 |   Executions: 437
+2026-04-19 16:54:49.821 | 
+2026-04-19 16:54:49.821 | ----------------------------------------------------------------------
+2026-04-19 16:54:49.821 | Totals:
+2026-04-19 16:54:49.821 |   Total elapsed:  1200813.138 ms
+2026-04-19 16:54:49.821 |   Server elapsed: 676318.000 ms
+2026-04-19 16:54:49.821 |   Server CPU:     104245.000 ms
+2026-04-19 16:54:49.821 |   Server el. sum: 719841.000 ms
+2026-04-19 16:54:49.821 |   Server CPU sum: 142898.000 ms
+2026-04-19 16:54:49.821 |   Compile:        2141.000 ms
+2026-04-19 16:54:49.821 |   Logical reads:  3208927
+2026-04-19 16:54:49.821 |   Physical reads: 0
+2026-04-19 16:54:49.821 |   Read-ahead:     31
+2026-04-19 16:54:49.821 |   Total rows:     0
+2026-04-19 16:54:49.821 |   Executions:     490652
+2026-04-19 16:54:49.824 | 
+2026-04-19 16:54:49.824 | ======================================================================
+2026-04-19 16:54:49.824 | Performance Metric Summary
+2026-04-19 16:54:49.824 | ======================================================================
+2026-04-19 16:54:49.824 | Total Runtime: 30.624 seconds
+2026-04-19 16:54:49.824 | Start Time: 2026-04-19T16:54:19.200
+2026-04-19 16:54:49.824 | End Time:   2026-04-19T16:54:49.824
+2026-04-19 16:54:49.824 | 
+2026-04-19 16:54:49.847 | Avg Connect Time: 70.79 ms (40 successful, 0 failed)
+2026-04-19 16:54:49.847 | Avg Elapsed: 2.45 ms (490652 successful, 0 failed)
+2026-04-19 16:54:49.847 | 
+2026-04-19 16:54:49.847 | Total Connection Time: 2.832 seconds (0.2% of work)
+2026-04-19 16:54:49.847 | Total Query Execution Time: 1200.813 seconds (99.8% of work)
+2026-04-19 16:54:50.606 | === SQL Workload Simulator v1.0 ===
+2026-04-19 16:54:50.606 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-19 16:54:50.606 | Configuration:
+2026-04-19 16:54:50.606 | Server: localhost
+2026-04-19 16:54:50.606 | Database: stress_adr_rcsi
+2026-04-19 16:54:50.606 | Authentication: Windows
+2026-04-19 16:54:50.606 | Threads: 40
+2026-04-19 16:54:50.606 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\oltpstress\workload-adr-rcsi.json
+2026-04-19 16:54:50.606 | Duration: 30 seconds
+2026-04-19 16:54:50.606 | Workload groups: 3
+2026-04-19 16:54:50.606 |   Group 1: 20 thread(s), duration mode, 1 batch(es) [workload-point-updates.sql]
+2026-04-19 16:54:50.606 |   Group 2: 10 thread(s), duration mode, 1 batch(es) [workload-batch-updates.sql]
+2026-04-19 16:54:50.606 |   Group 3: 10 thread(s), duration mode, 1 batch(es) [workload-insert-delete.sql]
+2026-04-19 16:54:50.606 | Application name: sqlsim
+2026-04-19 16:54:50.606 | Quiet mode: Yes
+2026-04-19 16:54:50.606 | Query stats: Yes
+2026-04-19 16:54:50.606 | 
+2026-04-19 16:54:50.606 | Batches to execute:
+2026-04-19 16:54:50.606 | [1] -- Point UPDATE by PK: single-row update generating one version per execution
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE AccountId = @AccountId;
+2026-04-19 16:54:50.606 | [2] -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation
+SET NOCOUNT ON;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 100) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE Category = @Category;
+2026-04-19 16:54:50.606 | [3] -- INSERT + DELETE cycle: generates versions for both operations
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+
+DECLARE @NewId INT;
+INSERT INTO dbo.StressAccounts (AccountName, Balance, Category)
+VALUES (N'Temp_' + CAST(@AccountId AS NVARCHAR(10)), @Amount, @Category);
+SET @NewId = SCOPE_IDENTITY();
+
+DELETE FROM dbo.StressAccounts WHERE AccountId = @NewId;
+2026-04-19 16:54:50.606 | 
+2026-04-19 16:54:50.606 | Connecting...
+2026-04-19 16:54:50.698 | ODBC Driver Version: 18.06.0001
+2026-04-19 16:54:50.698 | Starting execution (40 threads)
+2026-04-19 16:55:21.442 | 
+2026-04-19 16:55:21.442 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-19 16:55:21.442 | ----------------------------------------------------------------------
+2026-04-19 16:55:21.442 | Query 1: -- INSERT + DELETE cycle: generates versions for both operations SET NOCOUNT ON; DECLARE @AccountId INT = (ABS(CHECKSUM(...
+2026-04-19 16:55:21.442 |   Total elapsed (ms):   avg=2.140  min=0.444  max=527.873
+2026-04-19 16:55:21.442 |   Server elapsed (ms):  avg=0.325  min=0.000  max=525.000
+2026-04-19 16:55:21.442 |   Server CPU (ms):      avg=0.171  min=0.000  max=16.000
+2026-04-19 16:55:21.442 |   Server elapsed sum:   avg=0.702  min=0.000  max=526.000
+2026-04-19 16:55:21.442 |   Server CPU sum:       avg=0.406  min=0.000  max=32.000
+2026-04-19 16:55:21.442 |   Compile elapsed (ms): avg=0.000  min=0.000  max=3.000
+2026-04-19 16:55:21.442 |   Logical reads:        avg=11.2  min=10  max=25
+2026-04-19 16:55:21.442 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Executions: 140056
+2026-04-19 16:55:21.442 | 
+2026-04-19 16:55:21.442 | Query 2: -- Point UPDATE by PK: single-row update generating one version per execution SET NOCOUNT ON; DECLARE @AccountId INT = (...
+2026-04-19 16:55:21.442 |   Total elapsed (ms):   avg=1.978  min=0.218  max=1272.735
+2026-04-19 16:55:21.442 |   Server elapsed (ms):  avg=1.198  min=0.000  max=1272.000
+2026-04-19 16:55:21.442 |   Server CPU (ms):      avg=0.168  min=0.000  max=16.000
+2026-04-19 16:55:21.442 |   Server elapsed sum:   avg=1.199  min=0.000  max=1272.000
+2026-04-19 16:55:21.442 |   Server CPU sum:       avg=0.168  min=0.000  max=16.000
+2026-04-19 16:55:21.442 |   Compile elapsed (ms): avg=0.001  min=0.000  max=16.000
+2026-04-19 16:55:21.442 |   Logical reads:        avg=3.1  min=3  max=6
+2026-04-19 16:55:21.442 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Executions: 303198
+2026-04-19 16:55:21.442 | 
+2026-04-19 16:55:21.442 | Query 3: -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation SET NOCOUNT ON; DECLARE @Categor...
+2026-04-19 16:55:21.442 |   Total elapsed (ms):   avg=974.606  min=107.357  max=1631.102
+2026-04-19 16:55:21.442 |   Server elapsed (ms):  avg=958.325  min=106.000  max=1630.000
+2026-04-19 16:55:21.442 |   Server CPU (ms):      avg=70.656  min=16.000  max=110.000
+2026-04-19 16:55:21.442 |   Server elapsed sum:   avg=958.325  min=106.000  max=1630.000
+2026-04-19 16:55:21.442 |   Server CPU sum:       avg=70.656  min=16.000  max=110.000
+2026-04-19 16:55:21.442 |   Compile elapsed (ms): avg=14.518  min=0.000  max=245.000
+2026-04-19 16:55:21.442 |   Logical reads:        avg=1390.7  min=956  max=2013
+2026-04-19 16:55:21.442 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Read-ahead reads:     avg=0.0  min=0  max=7
+2026-04-19 16:55:21.442 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:55:21.442 |   Executions: 311
+2026-04-19 16:55:21.442 | 
+2026-04-19 16:55:21.442 | ----------------------------------------------------------------------
+2026-04-19 16:55:21.442 | Totals:
+2026-04-19 16:55:21.442 |   Total elapsed:  1202578.975 ms
+2026-04-19 16:55:21.442 |   Server elapsed: 706894.000 ms
+2026-04-19 16:55:21.442 |   Server CPU:     96821.000 ms
+2026-04-19 16:55:21.442 |   Server el. sum: 759759.000 ms
+2026-04-19 16:55:21.442 |   Server CPU sum: 129760.000 ms
+2026-04-19 16:55:21.442 |   Compile:        4836.000 ms
+2026-04-19 16:55:21.442 |   Logical reads:  2922784
+2026-04-19 16:55:21.442 |   Physical reads: 0
+2026-04-19 16:55:21.442 |   Read-ahead:     9
+2026-04-19 16:55:21.442 |   Total rows:     0
+2026-04-19 16:55:21.442 |   Executions:     443565
+2026-04-19 16:55:21.445 | 
+2026-04-19 16:55:21.446 | ======================================================================
+2026-04-19 16:55:21.446 | Performance Metric Summary
+2026-04-19 16:55:21.446 | ======================================================================
+2026-04-19 16:55:21.446 | Total Runtime: 30.837 seconds
+2026-04-19 16:55:21.446 | Start Time: 2026-04-19T16:54:50.608
+2026-04-19 16:55:21.446 | End Time:   2026-04-19T16:55:21.446
+2026-04-19 16:55:21.446 | 
+2026-04-19 16:55:21.466 | Avg Connect Time: 77.45 ms (40 successful, 0 failed)
+2026-04-19 16:55:21.466 | Avg Elapsed: 2.71 ms (443565 successful, 0 failed)
+2026-04-19 16:55:21.466 | 
+2026-04-19 16:55:21.466 | Total Connection Time: 3.098 seconds (0.3% of work)
+2026-04-19 16:55:21.466 | Total Query Execution Time: 1202.579 seconds (99.7% of work)
+2026-04-19 16:55:22.253 | === SQL Workload Simulator v1.0 ===
+2026-04-19 16:55:22.253 | ODBC Driver: ODBC Driver 18 for SQL Server
+2026-04-19 16:55:22.253 | Configuration:
+2026-04-19 16:55:22.253 | Server: localhost
+2026-04-19 16:55:22.253 | Database: stress_adr_rcsi_ol
+2026-04-19 16:55:22.253 | Authentication: Windows
+2026-04-19 16:55:22.253 | Threads: 40
+2026-04-19 16:55:22.253 | Workload file: C:\bwsql\presentations\sqlbits2026\sqlversioning\demos\benchmark\oltpstress\workload-adr-rcsi-ol.json
+2026-04-19 16:55:22.253 | Duration: 30 seconds
+2026-04-19 16:55:22.253 | Workload groups: 3
+2026-04-19 16:55:22.253 |   Group 1: 20 thread(s), duration mode, 1 batch(es) [workload-point-updates.sql]
+2026-04-19 16:55:22.253 |   Group 2: 10 thread(s), duration mode, 1 batch(es) [workload-batch-updates.sql]
+2026-04-19 16:55:22.253 |   Group 3: 10 thread(s), duration mode, 1 batch(es) [workload-insert-delete.sql]
+2026-04-19 16:55:22.253 | Application name: sqlsim
+2026-04-19 16:55:22.253 | Quiet mode: Yes
+2026-04-19 16:55:22.253 | Query stats: Yes
+2026-04-19 16:55:22.253 | 
+2026-04-19 16:55:22.253 | Batches to execute:
+2026-04-19 16:55:22.253 | [1] -- Point UPDATE by PK: single-row update generating one version per execution
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE AccountId = @AccountId;
+2026-04-19 16:55:22.253 | [2] -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation
+SET NOCOUNT ON;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 100) AS DECIMAL(18,2)) / 100.0;
+UPDATE dbo.StressAccounts
+SET Balance = Balance + @Amount,
+    LastUpdated = SYSUTCDATETIME()
+WHERE Category = @Category;
+2026-04-19 16:55:22.253 | [3] -- INSERT + DELETE cycle: generates versions for both operations
+SET NOCOUNT ON;
+DECLARE @AccountId INT = (ABS(CHECKSUM(NEWID())) % 50000) + 1;
+DECLARE @Amount DECIMAL(18,2) = CAST((ABS(CHECKSUM(NEWID())) % 1000) AS DECIMAL(18,2)) / 100.0;
+DECLARE @Category INT = ABS(CHECKSUM(NEWID())) % 20;
+
+DECLARE @NewId INT;
+INSERT INTO dbo.StressAccounts (AccountName, Balance, Category)
+VALUES (N'Temp_' + CAST(@AccountId AS NVARCHAR(10)), @Amount, @Category);
+SET @NewId = SCOPE_IDENTITY();
+
+DELETE FROM dbo.StressAccounts WHERE AccountId = @NewId;
+2026-04-19 16:55:22.253 | 
+2026-04-19 16:55:22.253 | Connecting...
+2026-04-19 16:55:22.388 | ODBC Driver Version: 18.06.0001
+2026-04-19 16:55:22.388 | Starting execution (40 threads)
+2026-04-19 16:55:52.558 | 
+2026-04-19 16:55:52.558 | Query Stats (SET STATISTICS TIME/IO):
+2026-04-19 16:55:52.558 | ----------------------------------------------------------------------
+2026-04-19 16:55:52.558 | Query 1: -- Point UPDATE by PK: single-row update generating one version per execution SET NOCOUNT ON; DECLARE @AccountId INT = (...
+2026-04-19 16:55:52.558 |   Total elapsed (ms):   avg=7.361  min=0.223  max=300.259
+2026-04-19 16:55:52.558 |   Server elapsed (ms):  avg=6.264  min=0.000  max=299.000
+2026-04-19 16:55:52.558 |   Server CPU (ms):      avg=0.206  min=0.000  max=31.000
+2026-04-19 16:55:52.558 |   Server elapsed sum:   avg=6.264  min=0.000  max=299.000
+2026-04-19 16:55:52.558 |   Server CPU sum:       avg=0.206  min=0.000  max=31.000
+2026-04-19 16:55:52.558 |   Compile elapsed (ms): avg=0.000  min=0.000  max=1.000
+2026-04-19 16:55:52.558 |   Logical reads:        avg=3.4  min=3  max=12
+2026-04-19 16:55:52.558 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Executions: 81556
+2026-04-19 16:55:52.558 | 
+2026-04-19 16:55:52.558 | Query 2: -- Batch UPDATE by Category: updates ~2500 rows per execution, heavy version generation SET NOCOUNT ON; DECLARE @Categor...
+2026-04-19 16:55:52.558 |   Total elapsed (ms):   avg=124.463  min=38.662  max=600.772
+2026-04-19 16:55:52.558 |   Server elapsed (ms):  avg=121.836  min=37.000  max=600.000
+2026-04-19 16:55:52.558 |   Server CPU (ms):      avg=50.118  min=0.000  max=125.000
+2026-04-19 16:55:52.558 |   Server elapsed sum:   avg=121.836  min=37.000  max=600.000
+2026-04-19 16:55:52.558 |   Server CPU sum:       avg=50.118  min=0.000  max=125.000
+2026-04-19 16:55:52.558 |   Compile elapsed (ms): avg=1.255  min=0.000  max=238.000
+2026-04-19 16:55:52.558 |   Logical reads:        avg=1192.5  min=947  max=1434
+2026-04-19 16:55:52.558 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Executions: 2414
+2026-04-19 16:55:52.558 | 
+2026-04-19 16:55:52.558 | Query 3: -- INSERT + DELETE cycle: generates versions for both operations SET NOCOUNT ON; DECLARE @AccountId INT = (ABS(CHECKSUM(...
+2026-04-19 16:55:52.558 |   Total elapsed (ms):   avg=3.124  min=0.473  max=169.329
+2026-04-19 16:55:52.558 |   Server elapsed (ms):  avg=0.683  min=0.000  max=96.000
+2026-04-19 16:55:52.558 |   Server CPU (ms):      avg=0.164  min=0.000  max=16.000
+2026-04-19 16:55:52.558 |   Server elapsed sum:   avg=1.507  min=0.000  max=165.000
+2026-04-19 16:55:52.558 |   Server CPU sum:       avg=0.376  min=0.000  max=16.000
+2026-04-19 16:55:52.558 |   Compile elapsed (ms): avg=0.000  min=0.000  max=27.000
+2026-04-19 16:55:52.558 |   Logical reads:        avg=10.2  min=10  max=21
+2026-04-19 16:55:52.558 |   Physical reads:       avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Read-ahead reads:     avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Row count:            avg=0.0  min=0  max=0
+2026-04-19 16:55:52.558 |   Executions: 95957
+2026-04-19 16:55:52.558 | 
+2026-04-19 16:55:52.558 | ----------------------------------------------------------------------
+2026-04-19 16:55:52.558 | Totals:
+2026-04-19 16:55:52.558 |   Total elapsed:  1200591.476 ms
+2026-04-19 16:55:52.558 |   Server elapsed: 870502.000 ms
+2026-04-19 16:55:52.558 |   Server CPU:     153528.000 ms
+2026-04-19 16:55:52.558 |   Server el. sum: 949622.000 ms
+2026-04-19 16:55:52.558 |   Server CPU sum: 173831.000 ms
+2026-04-19 16:55:52.558 |   Compile:        3082.000 ms
+2026-04-19 16:55:52.558 |   Logical reads:  4128437
+2026-04-19 16:55:52.558 |   Physical reads: 0
+2026-04-19 16:55:52.558 |   Read-ahead:     0
+2026-04-19 16:55:52.558 |   Total rows:     0
+2026-04-19 16:55:52.558 |   Executions:     179927
+2026-04-19 16:55:52.559 | 
+2026-04-19 16:55:52.559 | ======================================================================
+2026-04-19 16:55:52.559 | Performance Metric Summary
+2026-04-19 16:55:52.559 | ======================================================================
+2026-04-19 16:55:52.559 | Total Runtime: 30.304 seconds
+2026-04-19 16:55:52.559 | Start Time: 2026-04-19T16:55:22.254
+2026-04-19 16:55:52.559 | End Time:   2026-04-19T16:55:52.559
+2026-04-19 16:55:52.559 | 
+2026-04-19 16:55:52.569 | Avg Connect Time: 94.07 ms (40 successful, 0 failed)
+2026-04-19 16:55:52.569 | Avg Elapsed: 6.67 ms (179927 successful, 0 failed)
+2026-04-19 16:55:52.569 | 
+2026-04-19 16:55:52.570 | Total Connection Time: 3.763 seconds (0.3% of work)
+2026-04-19 16:55:52.570 | Total Query Execution Time: 1200.591 seconds (99.7% of work)
