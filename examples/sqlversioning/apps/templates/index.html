@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>SQL Versioning · Live Lab</title>
+  <script>document.documentElement.setAttribute("data-theme", "light");</script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #b0b7bc; --cp-bg-elevated: #dbe0e3; --cp-surface: #f0f3f5;
+      --cp-surface-soft: #dfe4e8; --cp-border: #929da6; --cp-border-strong: #657489;
+      --cp-text: #122238; --cp-text-muted: #526174; --cp-text-soft: #657489;
+      --cp-accent: #002244; --cp-accent-hover: #123b64; --cp-accent-soft: #e7edf5;
+      --cp-accent-fg: #ffffff; --cp-silver: #b0b7bc; --cp-success: #176b46;
+      --cp-danger: #ae2638; --cp-warning: #875c0e; --cp-link: #174f86;
+      --cp-highlight: #fff1ce; --cp-shadow: 0 2px 6px #0022440d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--cp-bg); color: var(--cp-text); font: 19px/1.55 "Segoe UI", Aptos, Calibri, sans-serif; }
+    button, select { font: inherit; }
+    button, .button { cursor: pointer; border: 1px solid var(--cp-border); border-radius: 10px; background: var(--cp-surface); color: var(--cp-accent); padding: 9px 15px; font-weight: 600; text-decoration: none; }
+    button:hover, .button:hover { background: var(--cp-accent-soft); border-color: var(--cp-border-strong); }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    button.primary, .button.primary { color: var(--cp-accent-fg); background: var(--cp-accent); border-color: var(--cp-accent); }
+    button.primary:hover { background: var(--cp-accent-hover); }
+    button.danger { color: var(--cp-danger); }
+    :focus-visible { outline: 3px solid var(--cp-link); outline-offset: 3px; }
+    a { color: var(--cp-link); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 28px; line-height: 1.2; letter-spacing: -.025em; margin-bottom: 8px; }
+    h2 { font-size: 24px; line-height: 1.25; margin-bottom: 12px; }
+    h3 { font-size: 19px; line-height: 1.3; margin-bottom: 8px; }
+    p { margin-bottom: 12px; }
+    .muted, small { color: var(--cp-text-muted); }
+    .eyebrow { text-transform: uppercase; letter-spacing: .1em; font-size: 11px; font-weight: 700; color: var(--cp-text-muted); margin-bottom: 4px; }
+    header { border-top: 4px solid var(--cp-accent); background: var(--cp-bg-elevated); border-bottom: 1px solid var(--cp-border); }
+    .topbar { max-width: 1600px; margin: auto; padding: 8px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--cp-accent); font-weight: 750; font-size: 20px; }
+    .star { font-size: 32px; line-height: 1; color: var(--cp-accent); text-shadow: 2px 2px var(--cp-silver); }
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .connection { font-size: 13px; display: flex; align-items: center; gap: 7px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cp-border-strong); }
+    .connected .dot { background: var(--cp-success); }
+    .disconnected .dot { background: var(--cp-danger); }
+    .serverbar { max-width: 1600px; padding: 0 20px 4px; margin: auto; font-size: 11px; color: var(--cp-text-muted); overflow-wrap: anywhere; }
+    nav { max-width: 1600px; margin: auto; padding: 6px 20px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    nav a { text-decoration: none; padding: 5px 12px; border-radius: 10px; color: var(--cp-accent); font-weight: 600; font-size: 14px; }
+    nav a:hover, nav a[aria-current="page"] { background: var(--cp-accent); color: var(--cp-accent-fg); }
+    main { max-width: 1800px; margin: auto; padding: 12px 20px; }
+    .panel, .demo-card { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; box-shadow: var(--cp-shadow); padding: 16px; }
+    .hero { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; margin-bottom: 12px; }
+    .hero p { margin-bottom: 4px; font-size: 14px; }
+    #home .hero { padding: 12px 16px; }
+    #home .hero .eyebrow { display: none; }
+    #demo .hero { margin-bottom: 8px; }
+    #demo .hero h1 { font-size: 22px; margin-bottom: 0; }
+    #demo-label { display: none; }
+    .hero-star { font-size: 48px; color: var(--cp-accent); text-shadow: 2px 2px var(--cp-silver); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .demo-card { display: flex; flex-direction: column; }
+    .demo-card h2 { font-size: 18px; }
+    .demo-card p { flex: 1; font-size: 14px; }
+    .demo-card .button { align-self: flex-start; }
+    .number { width: 32px; height: 32px; display: grid; place-items: center; background: var(--cp-accent-soft); color: var(--cp-accent); border-radius: 10px; font-weight: 750; margin-bottom: 10px; }
+    .banner { border: 1px solid var(--cp-border); border-left: 4px solid var(--cp-warning); background: var(--cp-surface); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; overflow-wrap: anywhere; }
+    .banner.error { border-left-color: var(--cp-danger); color: var(--cp-danger); }
+    .banner button { float: right; padding: 0 8px; margin-left: 12px; }
+    .section-head { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 8px; }
+    .section-head h2 { margin: 0; }
+    select { max-width: 100%; border: 1px solid var(--cp-border-strong); border-radius: 10px; padding: 6px 32px 6px 10px; background: var(--cp-surface); color: var(--cp-text); }
+    .scenario-panel { margin-bottom: 8px; padding: 8px 14px; display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+    .scenario-panel .section-head { margin-bottom: 0; }
+    .scenario-panel details { margin-top: 0; }
+    .scenario-panel details[open] { flex-basis: 100%; }
+    .scenario-panel details p { margin: 8px 0; font-size: 14px; }
+    .step-guidance { font-size: 12px; line-height: 1.3; margin-bottom: 8px; }
+    .step .warning-note { margin: 6px 0; }
+    .step details { margin-top: 8px; }
+    .step-notes p { font-size: 14px; margin: 8px 0; }
+    .workspace { display: grid; grid-template-columns: minmax(320px, .9fr) minmax(0, 1.25fr); gap: 24px; align-items: start; }
+    .steps { display: flex; flex-direction: column; gap: 14px; }
+    .step { border: 1px solid var(--cp-border); border-radius: 12px; padding: 14px; background: var(--cp-surface); }
+    .step-heading { display: flex; gap: 12px; align-items: baseline; margin-bottom: 8px; }
+    .step-heading h3 { flex: 1; }
+    .step-number { color: var(--cp-text-soft); font-size: 13px; font-weight: 700; }
+    .step-footer { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+    .badge { border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 650; color: var(--cp-accent); background: var(--cp-accent-soft); }
+    .status { font-size: 16px; color: var(--cp-text-muted); }
+    .status.succeeded { color: var(--cp-success); }
+    .status.failed { color: var(--cp-danger); }
+    .status.expected_error, .status.cancelled { color: var(--cp-warning); }
+    .status.running { color: var(--cp-accent); font-weight: 700; }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; color: var(--cp-link); font-size: 14px; font-weight: 600; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 16px/1.6 Consolas, "Courier New", monospace; background: var(--cp-surface-soft); border: 1px solid var(--cp-border); padding: 14px; border-radius: 10px; max-height: 440px; overflow: auto; margin: 12px 0; }
+    .highlight-line { display: block; background: var(--cp-highlight); color: var(--cp-accent); font-weight: 700; }
+    td.dbcc-line { background: var(--cp-highlight); color: var(--cp-accent); font-weight: 700; }
+    .evidence-column { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .metric { background: var(--cp-surface-soft); border: 1px solid var(--cp-border); border-radius: 10px; padding: 14px; }
+    .metric strong { display: block; font-size: 32px; color: var(--cp-accent); }
+    .metric span { font-size: 12px; color: var(--cp-text-muted); }
+    .blocking { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+    .blocking-edge { background: var(--cp-highlight); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+    .arrow { color: var(--cp-accent); font-weight: 800; padding: 0 8px; }
+    .table-wrap { max-width: 100%; overflow: auto; border: 1px solid var(--cp-border); border-radius: 10px; margin: 12px 0; max-height: 360px; }
+    table { border-collapse: collapse; width: 100%; font-size: 16px; text-align: left; }
+    th { position: sticky; top: 0; background: var(--cp-surface-soft); color: var(--cp-accent); font-weight: 700; }
+    th, td { border-bottom: 1px solid var(--cp-border); padding: 9px 12px; vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 90px; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: var(--cp-bg-elevated); }
+    .sessions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .session { border: 1px solid var(--cp-border); border-radius: 10px; padding: 12px; background: var(--cp-bg-elevated); }
+    .session strong { display: block; }
+    .session button { font-size: 12px; padding: 4px 8px; margin-top: 8px; }
+    .job { border-top: 1px solid var(--cp-border); padding: 16px 0; }
+    .job:last-child { padding-bottom: 0; }
+    .job-header { display: flex; gap: 12px; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
+    .job h3 { font-size: 16px; }
+    .empty { color: var(--cp-text-muted); padding: 16px 0; font-size: 14px; }
+    .comparison { border-left: 3px solid var(--cp-silver); margin: 10px 0; padding: 8px 14px; }
+    .comparison strong { color: var(--cp-accent); font-size: 21px; }
+    .warning-note { font-size: 13px; color: var(--cp-warning); }
+    footer { text-align: center; color: var(--cp-text-muted); padding: 24px; font-size: 12px; }
+    [hidden] { display: none !important; }
+    @media (min-width: 1450px) { .workspace { grid-template-columns: minmax(420px, .85fr) minmax(0, 1.3fr); } }
+    @media (max-width: 1000px) { .workspace { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) {
+      main { padding: 12px 14px; } .topbar { padding: 8px 14px; gap: 12px; }
+      nav { padding: 6px 14px 0; } .serverbar { padding-left: 14px; padding-right: 14px; }
+      .top-actions { margin-left: 0; } .hero { grid-template-columns: 1fr; }
+      .hero-star { display: none; } .panel { padding: 18px; }
+      .metrics { grid-template-columns: 1fr 1fr; } .sessions { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .status.running::before { content: "● "; animation: pulse 1.5s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: .35; } }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <a class="brand" href="/"><span class="star" aria-hidden="true">★</span> SQL Versioning <span class="badge">LIVE LAB</span></a>
+      <div class="top-actions">
+        <span id="connection" class="connection" role="status"><span class="dot"></span><span>Connecting…</span></span>
+        <button id="end-demo" class="danger" disabled>End demo</button>
+      </div>
+    </div>
+    <div class="serverbar" id="server">Local console · Three independent SQL sessions · No steps run automatically</div>
+  </header>
+  <nav id="navigation" aria-label="Demo navigation"><a href="/">Overview</a></nav>
+  <main>
+    <div id="error-banner" class="banner error" role="alert" hidden></div>
+    <div id="storage-banner" class="banner" role="status" hidden></div>
+    <div id="active-warning" class="banner" hidden></div>
+    <section id="home" hidden>
+      <div class="hero panel">
+        <div><p class="eyebrow">SQL Server · Versioning explained</p><h1>Make concurrency visible.</h1>
+          <p class="muted">Pick a demo. Run each step. Watch the live SQL evidence.</p>
+          <details><summary>Session cleanup reminder</summary><p class="warning-note">End demo cancels work and rolls back open app transactions. It does not restore database data or options to the original baseline.</p></details>
+        </div><div class="hero-star" aria-hidden="true">★</div>
+      </div>
+      <div id="demo-grid" class="grid"></div>
+    </section>
+    <section id="demo" hidden>
+      <div class="hero">
+        <div><p class="eyebrow" id="demo-label"></p><h1 id="demo-title"></h1></div>
+      </div>
+      <div class="panel scenario-panel">
+        <div class="section-head"><label>Subdemo <select id="scenario"></select></label></div>
+        <details><summary>Prerequisites &amp; script sources</summary><p id="demo-description" class="muted"></p><p id="scenario-description"></p><small id="scenario-source"></small></details>
+      </div>
+      <div class="workspace">
+        <section aria-labelledby="steps-heading">
+          <div class="section-head"><h2 id="steps-heading">Steps — run in order</h2><span class="badge">Manual execution only</span></div>
+          <p class="muted step-guidance">Blocked reader? Run the writer’s COMMIT/ROLLBACK.</p>
+          <div id="steps" class="steps"></div>
+        </section>
+        <div class="evidence-column">
+          <section class="panel" aria-labelledby="live-heading">
+            <div class="section-head"><h2 id="live-heading">Live engine evidence</h2><small id="observed">Waiting for sample</small></div>
+            <div id="sessions" class="sessions"></div>
+            <div id="metrics" class="metrics"></div>
+            <div id="blocking" class="blocking"></div>
+            <div id="monitor-error" class="banner error" hidden></div>
+            <details><summary>Isolation, database options &amp; raw DMV samples</summary><div id="monitor-tables"></div></details>
+            <small>Measured DMV samples, refreshed every second. “Unavailable” is not zero. Cleanup timing is asynchronous.</small>
+          </section>
+          <section id="balance-panel" class="panel" hidden><h2>Balance read comparison</h2><p class="muted">Actual successful result rows, in execution order. No simulated balances.</p><div id="balances"></div></section>
+          <section class="panel" aria-labelledby="results-heading">
+            <div class="section-head"><h2 id="results-heading">SQL &amp; session results</h2><label>Session <select id="result-session"><option value="all">All sessions</option><option value="1">Session 1</option><option value="2">Session 2</option><option value="admin">Admin</option></select></label></div>
+            <p class="muted">Latest execution stays visible; earlier evidence remains in history. An accepted request is not a completed step.</p>
+            <div id="latest-results"></div>
+            <details id="history-details"><summary id="history-label">Earlier execution history</summary><div id="history"></div></details>
+          </section>
+        </div>
+      </div>
+    </section>
+    <div id="loading" class="panel"><h2>Loading the demo catalog…</h2><p class="muted">Connecting to the local server. Nothing will execute on load.</p><button id="retry">Retry connection</button></div>
+  </main>
+  <footer>★ &nbsp; SQL Server Versioning Lab · Navy &amp; silver · Live evidence, not a simulation</footer>
+  <script>
+    "use strict";
+    (() => {
+      const $ = id => document.getElementById(id);
+      const HISTORY_KEY = "sql-versioning-executions-v1";
+      let catalog = null, currentDemo = null, currentScenario = null, state = null;
+      let connected = false, polling = false, loadingCatalog = false, resetting = false;
+      let history = [], lastResults = "", lastMonitor = "", lastSessions = "";
+      const pending = new Map();
+      const terminal = new Set(["succeeded", "failed", "expected_error", "cancelled"]);
+      const sessionNames = { admin: "Admin", "1": "Session 1", "2": "Session 2" };
+      const statusNames = { running: "Running", succeeded: "Succeeded", failed: "Failed", expected_error: "Expected SQL error", cancelled: "Cancelled", submitted: "Accepted · awaiting job state" };
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+      function storageWarning() {
+        $("storage-banner").hidden = false;
+        $("storage-banner").textContent = "Browser storage is unavailable or full. Evidence remains visible in this tab, but new history may not survive a reload.";
+      }
+      function readLocal(key) { try { return localStorage.getItem(key); } catch { storageWarning(); return null; } }
+      function writeLocal(key, value) { try { localStorage.setItem(key, value); } catch { storageWarning(); } }
+      try {
+        const saved = JSON.parse(readLocal(HISTORY_KEY) || "[]");
+        if (Array.isArray(saved)) history = saved.filter(j => j && typeof j.id === "string" && typeof j.step_id === "string");
+      } catch { storageWarning(); }
+      function report(message) {
+        $("error-banner").replaceChildren();
+        const dismiss = el("button", "", "Dismiss");
+        dismiss.onclick = () => { $("error-banner").hidden = true; };
+        $("error-banner").append(dismiss, document.createTextNode(message));
+        $("error-banner").hidden = false;
+      }
+      async function api(path, body) {
+        const response = await fetch(path, {
+          method: body === undefined ? "GET" : "POST",
+          headers: body === undefined ? {} : { "Content-Type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          cache: "no-store", signal: AbortSignal.timeout(15000)
+        });
+        let data;
+        try { data = await response.json(); } catch { throw new Error("The server returned an invalid response."); }
+        if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
+        return data;
+      }
+      function setConnected(ok) {
+        connected = ok;
+        $("connection").className = `connection ${ok ? "connected" : "disconnected"}`;
+        $("connection").lastElementChild.textContent = ok ? "Connected · live" : "Disconnected · evidence is stale";
+        $("end-demo").disabled = !ok || resetting;
+        updateSteps();
+      }
+      function findStep(id) {
+        for (const demo of catalog?.demos || []) for (const scenario of demo.scenarios || []) {
+          const step = scenario.steps.find(s => s.id === id);
+          if (step) return { step, demo, scenario };
+        }
+        return null;
+      }
+      function demoAt(number) {
+        return catalog.demos.find(d => String(d.id) === number || String(d.id) === `demo${number}`) || catalog.demos[Number(number)];
+      }
+      function route() {
+        if (!catalog) return;
+        const match = location.pathname.match(/^\/demo\/([0-4])\/?$/);
+        currentDemo = match ? demoAt(match[1]) : null;
+        currentScenario = null;
+        $("loading").hidden = true;
+        $("home").hidden = !!currentDemo;
+        $("demo").hidden = !currentDemo;
+        document.querySelectorAll("#navigation a").forEach(a => {
+          if (a.pathname.replace(/\/$/, "") === location.pathname.replace(/\/$/, "")) a.setAttribute("aria-current", "page");
+          else a.removeAttribute("aria-current");
+        });
+        if (currentDemo) {
+          document.title = `Demo ${currentDemo.id} · ${currentDemo.title} · SQL Versioning`;
+          $("demo-label").textContent = `Demo ${match[1]} · Observe, execute, explain`;
+          $("demo-title").textContent = `Demo ${currentDemo.id} — ${currentDemo.title}`;
+          $("demo-description").textContent = currentDemo.description;
+          $("scenario").replaceChildren();
+          for (const s of currentDemo.scenarios) {
+            const option = el("option", "", `${s.id} · ${s.title}`); option.value = s.id; $("scenario").append(option);
+          }
+          const remembered = readLocal(`sql-versioning-scenario-${currentDemo.id}`);
+          if (currentDemo.scenarios.some(s => s.id === remembered)) $("scenario").value = remembered;
+          chooseScenario();
+        } else document.title = "SQL Versioning · Live Lab";
+        activeWarning();
+      }
+      function chooseScenario() {
+        currentScenario = currentDemo.scenarios.find(s => s.id === $("scenario").value) || currentDemo.scenarios[0];
+        if (!currentScenario) { $("steps").textContent = "No steps are available."; return; }
+        writeLocal(`sql-versioning-scenario-${currentDemo.id}`, currentScenario.id);
+        $("scenario-description").textContent = currentScenario.description;
+        const sources = currentScenario.source_files || (currentScenario.source ? [currentScenario.source] : []);
+        $("scenario-source").textContent = sources.length ? `Source: ${sources.join(" · ")}` : "";
+        $("steps").replaceChildren();
+        currentScenario.steps.forEach((step, i) => {
+          const card = el("article", "step");
+          card.dataset.stepId = step.id;
+          const heading = el("div", "step-heading");
+          heading.append(el("span", "step-number", String(i + 1).padStart(2, "0")), el("h3", "", step.title));
+          card.append(heading, el("span", "badge", sessionNames[step.session] || step.session));
+          if (step.expected_error) card.append(el("p", "warning-note", `Expected SQL error ${step.expected_error}; this is evidence, not an ordinary failure.`));
+          if (step.dangerous) card.append(el("p", "warning-note", "Changes lab state. Confirmation required."));
+          const bottom = el("div", "step-footer"), run = el("button", "primary", "Run step");
+          run.type = "button"; run.onclick = () => runStep(step);
+          bottom.append(run, el("span", "status", "Not run")); card.append(bottom);
+          const notes = el("details", "step-notes"); notes.append(el("summary", "", "Instructions & safety"), el("p", "", step.explanation));
+          if (step.requires_clean_sessions) notes.append(el("p", "warning-note", "Use End demo before configuration: sessions 1 and 2 must be closed, not merely committed. End demo does not restore baseline data."));
+          card.append(notes);
+          const sql = el("details"); sql.append(el("summary", "", "Inspect SQL"), el("pre", "", step.sql)); card.append(sql);
+          $("steps").append(card);
+        });
+        lastResults = ""; updateSteps(); renderResults();
+      }
+      function allJobs() {
+        const jobs = new Map(history.map(j => [j.id, { ...j, historical: true }]));
+        for (const job of state?.jobs || []) jobs.set(job.id, { ...jobs.get(job.id), ...job, historical: false });
+        return [...jobs.values()].sort((a, b) => {
+          const time = j => Date.parse(j.started_at || j.accepted_at) || 0;
+          return time(a) - time(b) || String(a.id).localeCompare(String(b.id));
+        });
+      }
+      function relevantJobs() {
+        const ids = new Set(currentScenario?.steps.map(s => s.id) || []);
+        return allJobs().filter(j => ids.has(j.step_id));
+      }
+      function updateSteps() {
+        if (!currentScenario) return;
+        const jobs = relevantJobs();
+        document.querySelectorAll("#steps .step").forEach(card => {
+          const step = currentScenario.steps.find(s => s.id === card.dataset.stepId);
+          const busy = state?.sessions?.find(s => String(s.name) === String(step.session))?.busy;
+          const waiting = [...pending.values()].some(p => String(p.session) === String(step.session));
+          const mustEnd = step.requires_clean_sessions && state?.sessions?.some(s => ["1", "2"].includes(String(s.name)));
+          const configuring = state?.sessions?.some(s => s.busy && s.configuring);
+          const configurationPending = [...pending.values()].some(p => findStep(p.step_id)?.step.requires_clean_sessions);
+          const latest = jobs.filter(j => j.step_id === step.id).at(-1);
+          const button = card.querySelector("button");
+          button.disabled = !connected || resetting || !!busy || waiting || !!mustEnd || configuring || configurationPending;
+          button.title = configuring || configurationPending ? "Wait for database configuration to finish." :
+            mustEnd ? "End demo to close app sessions 1 and 2 before configuration." :
+            busy || waiting ? "This session is executing. Other idle sessions remain available." : "Execute only this SQL step";
+          const status = card.querySelector(".status");
+          status.className = `status ${latest?.status || ""}`;
+          const submitted = [...pending.values()].some(p => p.step_id === step.id);
+          status.textContent = submitted ? "Submitting / awaiting live job…" : latest ? statusLabel(latest) : "Not run";
+        });
+      }
+      function statusLabel(job) {
+        let label = statusNames[job.status] || job.status;
+        if (job.status === "expected_error") {
+          const expected = findStep(job.step_id)?.step.expected_error;
+          label += expected ? ` ${expected}` : "";
+        }
+        if (job.historical && !terminal.has(job.status)) label += " · historical, completion unverified";
+        if (Number.isFinite(job.elapsed_ms)) label += ` · ${(job.elapsed_ms / 1000).toFixed(1)} s`;
+        return label;
+      }
+      function implications(step) {
+        const sql = step.sql || "", list = [];
+        if (/\b(CREATE|DROP)\s+DATABASE\b/i.test(sql)) list.push("Creates or drops databases and may remove existing data.");
+        if (/\bALTER\s+DATABASE\b/i.test(sql)) list.push("Changes database options/isolation; settings remain changed after End demo.");
+        if (/ROLLBACK\s+IMMEDIATE/i.test(sql)) list.push("ROLLBACK IMMEDIATE can disconnect other database users and roll back their work.");
+        if (/\b(UPDATE|DELETE|INSERT|TRUNCATE|MERGE)\b/i.test(sql)) list.push("Modifies table data; committed changes are not undone by End demo.");
+        if (/\b(DROP|ALTER)\s+TABLE\b/i.test(sql)) list.push("Changes or removes table structures and potentially their data.");
+        if (/\bDBCC\b/i.test(sql)) list.push("Runs engine diagnostics; internal page formats are not stable contracts.");
+        if (/\bBEGIN\s+TRAN/i.test(sql)) list.push("May hold a transaction, locks, or versions until an explicit COMMIT or ROLLBACK.");
+        if (!list.length) list.push("May change lab state or run resource-intensive SQL. Review the complete statement below.");
+        return `${step.title}\n\n${list.map(s => "• " + s).join("\n")}\n\nEnd demo does NOT restore baseline data or database options.\n\nSQL to execute:\n${sql}\n\nRun this step?`;
+      }
+      async function runStep(step) {
+        if (!connected || resetting || [...pending.values()].some(p => String(p.session) === String(step.session)) ||
+          state?.sessions?.some(s => String(s.name) === String(step.session) && s.busy)) return;
+        if (step.dangerous && !window.confirm(implications(step))) return;
+        const token = `request-${Date.now()}-${Math.random()}`;
+        pending.set(token, { step_id: step.id, session: step.session });
+        updateSteps();
+        try {
+          const result = await api("/api/run", { step_id: step.id, confirmed: !!step.dangerous });
+          if (!result.job_id) throw new Error("No job identifier returned. Check live sessions before retrying.");
+          pending.set(token, { step_id: step.id, session: step.session, job_id: result.job_id });
+          history.push({ id: result.job_id, step_id: step.id, title: step.title, session: step.session,
+            status: "submitted", accepted_at: new Date().toISOString(), sql: step.sql, result_sets: [], messages: [] });
+          writeLocal(HISTORY_KEY, JSON.stringify(history));
+          lastResults = ""; renderResults();
+          await poll();
+        } catch (error) {
+          pending.delete(token);
+          report(`Run request: ${error.message} If the connection was interrupted, execution may still be active. Check live state before retrying.`);
+          await poll();
+        }
+        updateSteps();
+      }
+      function table(set) {
+        const wrap = el("div", "table-wrap"), t = el("table"), head = el("thead"), tr = el("tr");
+        for (const col of set.columns || []) { const th = el("th", "", col); th.scope = "col"; tr.append(th); }
+        head.append(tr); t.append(head);
+        const body = el("tbody");
+        for (const row of set.rows || []) {
+          const r = el("tr");
+          for (const value of row) {
+            const text = value === null ? "NULL" : typeof value === "object" ? JSON.stringify(value) : String(value);
+            r.append(el("td", /\b(XSN|XTS|VersionPointer|InRowDiff|SlotId)\b/i.test(text) ? "dbcc-line" : "", text));
+          }
+          body.append(r);
+        }
+        t.append(body); wrap.append(t);
+        if (!set.rows?.length) wrap.append(el("p", "empty", "Query returned no rows."));
+        return wrap;
+      }
+      function highlighted(text) {
+        const pre = el("pre");
+        for (const line of String(text).split("\n")) {
+          const span = el("span", /\b(XSN|XTS|version|VersionPointer|InRowDiff|SlotId)\b/i.test(line) ? "highlight-line" : "", line + "\n");
+          pre.append(span);
+        }
+        return pre;
+      }
+      function jobPanel(job) {
+        const panel = el("article", "job"), header = el("div", "job-header");
+        panel.dataset.jobId = job.id;
+        header.append(el("h3", "", job.title || findStep(job.step_id)?.step.title || job.step_id),
+          el("span", `status ${job.status}`, statusLabel(job)));
+        panel.append(header, el("small", "", `${sessionNames[job.session] || job.session} · ${job.started_at || job.accepted_at || "Start time unavailable"} · Job ${job.id}`));
+        if (job.status === "running") panel.append(el("p", "status running", "Executing on SQL Server. A wait or blocked query is still running, not complete."));
+        if (job.status === "expected_error") panel.append(el("p", "warning-note", "The backend classified this as the expected SQL error. Inspect the error text below; no success result is fabricated."));
+        if (job.error) panel.append(el("pre", "", job.error));
+        for (const set of job.result_sets || []) panel.append(table(set));
+        if (job.messages?.length) {
+          const messages = el("details"); messages.open = /DBCC|XSN|version|InRowDiff/i.test(job.messages.join("\n"));
+          messages.append(el("summary", "", "SQL messages / raw DBCC output"), highlighted(job.messages.join("\n")));
+          panel.append(messages);
+        }
+        const sql = job.sql || findStep(job.step_id)?.step.sql;
+        if (sql) { const detail = el("details"); detail.append(el("summary", "", "Executed SQL"), el("pre", "", sql)); panel.append(detail); }
+        if (terminal.has(job.status) && !job.result_sets?.length && !job.messages?.length && !job.error)
+          panel.append(el("p", "empty", "No result rows or SQL messages were returned."));
+        return panel;
+      }
+      function renderResults() {
+        if (!currentScenario) return;
+        const all = relevantJobs(), selected = $("result-session").value;
+        const jobs = all.filter(j => selected === "all" || String(j.session) === selected);
+        const fingerprint = JSON.stringify([currentScenario.id, selected, all]);
+        if (fingerprint === lastResults) return;
+        lastResults = fingerprint;
+        const expanded = new Map();
+        for (const container of [$("latest-results"), $("history")]) for (const panel of container.children) {
+          if (panel.dataset.jobId) expanded.set(panel.dataset.jobId, [...panel.querySelectorAll("details")].map(d => d.open));
+        }
+        // Keep earlier executions, including their SQL and tables, instead of replacing key evidence.
+        const latest = [], older = [], seen = new Set();
+        for (const job of [...jobs].reverse()) {
+          const key = String(job.session);
+          if (!seen.has(key)) { latest.push(job); seen.add(key); } else older.push(job);
+        }
+        $("latest-results").replaceChildren(...latest.map(jobPanel));
+        if (!latest.length) $("latest-results").append(el("p", "empty", "No executions yet. Choose a step to begin."));
+        $("history").replaceChildren(...older.map(jobPanel));
+        for (const container of [$("latest-results"), $("history")]) for (const panel of container.children) {
+          const previous = expanded.get(panel.dataset.jobId);
+          if (previous) [...panel.querySelectorAll("details")].forEach((detail, i) => {
+            if (previous[i] !== undefined) detail.open = previous[i];
+          });
+        }
+        $("history-label").textContent = `Earlier execution history (${older.length}) · this subdemo`;
+        if (!older.length) $("history").append(el("p", "empty", "Earlier executions will remain here, including across reloads when browser storage is available."));
+        const balances = [];
+        for (const job of all) if (job.status === "succeeded") for (const set of job.result_sets || []) {
+          const indexes = set.columns.map((c, i) => /balance/i.test(c) ? i : -1).filter(i => i >= 0);
+          for (const [rowNumber, row] of (set.rows || []).entries()) for (const i of indexes) {
+            const entry = el("div", "comparison");
+            entry.append(el("small", "", `${sessionNames[job.session] || job.session} · ${job.title} · row ${rowNumber + 1}`),
+              el("div", "", `${set.columns[i]}: `));
+            entry.lastElementChild.append(el("strong", "", row[i] === null ? "NULL" : String(row[i])));
+            const identifiers = set.columns.map((c, n) => /(^id$|account.?id|name)/i.test(c) ? `${c}: ${row[n]}` : "").filter(Boolean);
+            if (identifiers.length) entry.append(el("small", "", identifiers.join(" · ")));
+            balances.push(entry);
+          }
+        }
+        $("balance-panel").hidden = !balances.length;
+        $("balances").replaceChildren(...balances);
+      }
+      function records(set) {
+        return (set.rows || []).map(row => Object.fromEntries(set.columns.map((col, i) => [String(col).toLowerCase(), row[i]])));
+      }
+      function renderMonitor() {
+        const monitor = state?.monitor || {}, sets = monitor.result_sets || [];
+        const fingerprint = JSON.stringify([monitor, state?.sessions]);
+        if (fingerprint === lastMonitor) return;
+        lastMonitor = fingerprint;
+        $("monitor-error").hidden = !monitor.error;
+        $("monitor-error").textContent = monitor.error || "";
+        const withColumn = column => sets.filter(s => s.columns.some(c => String(c).toLowerCase() === column));
+        const rows = column => withColumn(column).flatMap(records);
+        const number = value => value !== null && value !== "" && Number.isFinite(Number(value));
+        const sum = column => {
+          const found = withColumn(column);
+          if (monitor.error || !found.length) return "Unavailable";
+          const values = found.flatMap(records).map(r => r[column]);
+          return values.every(number) ? values.reduce((a, v) => a + Number(v), 0).toLocaleString() : "Unavailable";
+        };
+        const requests = rows("blocking_session_id");
+        const blocked = requests.filter(r => number(r.blocking_session_id) && Number(r.blocking_session_id) !== 0);
+        const snapshotRows = rows("elapsed_time_seconds");
+        const metrics = [
+          ["Blocked requests", monitor.error || !withColumn("blocking_session_id").length ? "Unavailable" : String(blocked.length), "Live blocking_session_id ≠ 0"],
+          ["tempdb version store", sum("reserved_space_kb"), "KB · sum of returned database rows"],
+          ["Persistent versions", sum("persistent_version_store_size_kb"), "KB · sum of returned database rows"],
+          ["Active snapshots", monitor.error || !withColumn("elapsed_time_seconds").length ? "Unavailable" : String(snapshotRows.length), "Returned active snapshot rows"],
+          ["Oldest snapshot", monitor.error || !withColumn("elapsed_time_seconds").length || !snapshotRows.length || !snapshotRows.every(r => number(r.elapsed_time_seconds))
+            ? "Unavailable" : `${Math.max(...snapshotRows.map(r => Number(r.elapsed_time_seconds))).toLocaleString()} s`, "Measured elapsed_time_seconds"],
+          ["Open app transactions", (state.sessions || []).every(s => number(s.transaction_count)) && state.sessions?.length
+            ? state.sessions.reduce((a, s) => a + Number(s.transaction_count), 0).toLocaleString() : "Unavailable", "Sum of app session transaction counts"]
+        ];
+        $("metrics").replaceChildren(...metrics.map(([label, value, note]) => {
+          const card = el("div", "metric"); card.append(el("span", "", label), el("strong", "", value), el("span", "", note)); return card;
+        }));
+        $("blocking").replaceChildren();
+        const sessionLabel = spid => {
+          const s = state.sessions?.find(s => Number(s.spid) === Number(spid));
+          return s ? `${sessionNames[s.name]} · SPID ${spid}` : Number(spid) > 0 ? `SPID ${spid}` : `SQL internal blocker ${spid}`;
+        };
+        for (const r of blocked) {
+          const edge = el("div", "blocking-edge");
+          edge.append(document.createTextNode(sessionLabel(r.blocking_session_id)), el("span", "arrow", "→"),
+            document.createTextNode(`${sessionLabel(r.session_id)} · ${r.wait_type || "wait unavailable"} · ${r.status || ""} ${r.command || ""}`));
+          $("blocking").append(edge);
+        }
+        if (!blocked.length) $("blocking").append(el("p", "empty", monitor.error || !withColumn("blocking_session_id").length
+          ? "Blocking evidence unavailable." : "No blocking edges in the current DMV sample."));
+        $("monitor-tables").replaceChildren();
+        for (const [i, set] of sets.entries()) {
+          const columns = set.columns.map(c => String(c).toLowerCase());
+          let title = "Server / features / database isolation evidence";
+          if (columns.includes("blocking_session_id")) title = "Active requests & blocking";
+          else if (columns.includes("reserved_space_kb")) title = "tempdb version store by database";
+          else if (columns.includes("persistent_version_store_size_kb")) title = "Persistent version store by database";
+          else if (columns.includes("elapsed_time_seconds")) title = "Active snapshot transactions";
+          else if (columns.includes("transaction_count")) title = "Session transaction evidence";
+          $("monitor-tables").append(el("h3", "", `${i + 1}. ${title}`), table(set));
+        }
+        if (!sets.length) $("monitor-tables").append(el("p", "empty", "No monitor result sets returned."));
+      }
+      function renderSessions() {
+        const sessions = state?.sessions || [];
+        const fingerprint = JSON.stringify([sessions, connected, resetting]);
+        if (fingerprint === lastSessions) return;
+        lastSessions = fingerprint; $("sessions").replaceChildren();
+        for (const name of ["admin", "1", "2"]) {
+          const session = sessions.find(s => String(s.name) === name), card = el("div", "session");
+          card.append(el("strong", "", sessionNames[name]), el("small", "", session
+            ? `SPID ${session.spid} · ${session.busy ? "Executing" : "Idle"} · ${session.transaction_count ?? "?"} transaction(s)`
+            : "Not connected / unavailable"));
+          const cancel = el("button", "danger", "Cancel request");
+          cancel.disabled = !connected || resetting || !session?.busy;
+          cancel.onclick = async () => {
+            if (!window.confirm(`Cancel the active request in ${sessionNames[name]}? Cancellation is not a guarantee of rollback. Inspect transaction count afterward or use End demo for explicit app-session rollback.`)) return;
+            cancel.disabled = true;
+            try { await api("/api/cancel", { session: name }); await poll(); }
+            catch (e) { report(`Cancel request: ${e.message}`); }
+            finally { lastSessions = ""; renderSessions(); }
+          };
+          card.append(cancel); $("sessions").append(card);
+        }
+      }
+      function activeWarning() {
+        const active = state?.active_demo;
+        const matches = currentDemo && (String(active) === String(currentDemo.id) ||
+          String(active).replace(/^demo/, "") === String(currentDemo.id).replace(/^demo/, ""));
+        $("active-warning").hidden = !active || !currentDemo || matches;
+        $("active-warning").textContent = `The server reports active demo "${active}". Changing pages does not reset sessions or database state. End the active demo before switching if required by the server.`;
+      }
+      async function poll() {
+        if (polling) return;
+        polling = true;
+        try {
+          const next = await api("/api/state");
+          if (!Array.isArray(next.sessions) || !Array.isArray(next.jobs)) throw new Error("Invalid live state.");
+          state = next;
+          let changed = false;
+          for (const job of next.jobs) {
+            const previous = history.find(j => j.id === job.id), found = findStep(job.step_id);
+            const saved = { ...previous, ...job, sql: previous?.sql || found?.step.sql };
+            if (JSON.stringify(previous) !== JSON.stringify(saved)) {
+              if (previous) history[history.indexOf(previous)] = saved; else history.push(saved);
+              changed = true;
+            }
+          }
+          for (const [token, p] of pending) if (p.job_id && next.jobs.some(j => j.id === p.job_id)) pending.delete(token);
+          if (changed) writeLocal(HISTORY_KEY, JSON.stringify(history));
+          setConnected(true);
+          $("observed").textContent = `Sample ${new Date().toLocaleTimeString()}`;
+          renderSessions(); renderMonitor(); renderResults(); activeWarning();
+        } catch (error) {
+          setConnected(false); renderSessions();
+          $("observed").textContent = "Stale · last successful sample retained";
+          $("connection").title = error.message;
+        } finally { polling = false; }
+      }
+      async function loadCatalog() {
+        if (loadingCatalog) return;
+        loadingCatalog = true;
+        try {
+          catalog = await api("/api/catalog");
+          if (!Array.isArray(catalog.demos)) throw new Error("Invalid demo catalog.");
+          $("server").textContent = `${catalog.server || "Local SQL Server"} · Three independent sessions · Nothing runs automatically`;
+          $("navigation").replaceChildren(el("a", "", "Overview")); $("navigation").firstChild.href = "/";
+          $("demo-grid").replaceChildren();
+          for (let i = 0; i <= 4; i++) {
+            const demo = demoAt(String(i));
+            if (!demo) continue;
+            const link = el("a", "", `${i} · ${demo.nav_title || demo.title}`); link.href = `/demo/${i}`; link.title = `Demo ${i} — ${demo.title}`; $("navigation").append(link);
+            const card = el("article", "demo-card");
+            const open = el("a", "button primary", "Open demo →"); open.href = `/demo/${i}`;
+            card.append(el("div", "number", String(i)), el("h2", "", demo.title), el("p", "muted", demo.description),
+              el("p", "muted", `${demo.scenarios.length} subdemo${demo.scenarios.length === 1 ? "" : "s"}`), open);
+            $("demo-grid").append(card);
+          }
+          route(); await poll();
+        } catch (error) { catalog = null; report(`Catalog: ${error.message}`); setConnected(false); }
+        finally { loadingCatalog = false; }
+      }
+      $("scenario").onchange = chooseScenario;
+      $("result-session").onchange = () => { lastResults = ""; renderResults(); };
+      $("end-demo").onclick = async () => {
+        if (!connected || resetting) return;
+        if (!window.confirm("End demo?\n\nCancel active work, explicitly roll back open transactions, and close ONLY this app’s SQL sessions.\n\nThis does NOT restore baseline database data, undo committed changes, or revert database options. Other users’ sessions are not reset. Run the appropriate setup steps manually to restore the lab.\n\nExecution history will be retained.")) return;
+        resetting = true; setConnected(connected); renderSessions();
+        try {
+          await api("/api/reset", { confirmed: true });
+          pending.clear();
+          report("Demo sessions ended. Database data and options were NOT restored. Review setup SQL before beginning again.");
+          await poll();
+        } catch (error) { report(`End demo: ${error.message}`); }
+        finally { resetting = false; setConnected(connected); lastSessions = ""; renderSessions(); }
+      };
+      $("retry").onclick = () => catalog ? poll() : loadCatalog();
+      document.addEventListener("click", event => {
+        const a = event.target.closest("a");
+        if (!a || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
+          a.origin !== location.origin || !/^\/(?:demo\/[0-4]\/?)?$/.test(a.pathname)) return;
+        event.preventDefault(); window.history.pushState({}, "", a.pathname); route(); window.scrollTo(0, 0);
+      });
+      window.addEventListener("popstate", route);
+      loadCatalog();
+      window.setInterval(() => { if (catalog) poll(); }, 1000);
+    })();
+  </script>
+</body>
+</html>
