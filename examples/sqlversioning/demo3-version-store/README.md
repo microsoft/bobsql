@@ -1,4 +1,4 @@
-# Demo 3 — Internals & Costs
+# Demo 3 — Version Store Internals
 
 Shows version chains at the page level using DBCC PAGE, proves cross-database contamination via the global XSN watermark, and explains ghost records vs version records.
 

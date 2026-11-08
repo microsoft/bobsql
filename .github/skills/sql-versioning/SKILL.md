@@ -1,16 +1,21 @@
 ---
 name: sql-versioning
-description: "Run the SQLBits 2026 SQL Server versioning demos: blocking, RCSI versus Snapshot, update conflicts, version chains, ADR/PVS cleanup, optimized locking, and benchmark comparisons. Use when working with examples/sqlversioning."
+description: "Run the SQLBits 2026 SQL Server versioning demos: blocking, RCSI versus Snapshot, update conflicts, version chains, ADR/PVS cleanup, optimized locking, and benchmark comparisons. Use when working with examples/sqlversioning. For the local browser click-through apps, also load sql-versioning-apps."
 ---
 
 # SQL Server versioning explained
 
+For browser-based demos 0-4, load the
+[sql-versioning-apps skill](../sql-versioning-apps/SKILL.md). In this repository,
+"run the app" means verify/start the backend and open a new normal external
+browser window, not the VS Code integrated browser.
+
 ## Procedure
 
 1. Read the [demo inventory](../../../examples/sqlversioning/README.md).
-   Work from `examples/sqlversioning`; inherited `demos/` command prefixes
-   refer to the original layout, not a directory inside this collection.
-2. Verify SQL Server 2025 and permissions. Inspect `demo0/demo0-setup.sql`
+   Work from `examples/sqlversioning`; the descriptive demo folders retain
+   their numeric prefixes. Use the inventory's current paths.
+2. Verify SQL Server 2025 and permissions. Inspect `demo0-setup/demo0-setup.sql`
    for database names/data creation and get approval before executing.
    Run `tools/check-readiness.ps1` with reviewed targets before the session.
 3. Choose the desired concept and open `session1`/`session2` scripts in

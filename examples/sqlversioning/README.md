@@ -6,10 +6,28 @@
 
 ## Quick Start
 
+For local, presenter-controlled browser demos 0-4, see the
+[click-through demo apps](apps/README.md). Each demo has its own page with
+independent SQL sessions, live results, and navy-and-silver presentation styling.
+
 1. Start SQL Server 2025 (local instance)
-2. Run `demo0/demo0-setup.sql` in SSMS (creates 3 databases + seed data)
+2. Run `demo0-setup/demo0-setup.sql` in SSMS (creates 3 databases + seed data)
 3. Run `tools/check-readiness.ps1` to verify everything is ready
 4. Open each demo's session files in separate SSMS windows
+
+## Demo names and folders
+
+The demo numbers are retained in descriptive folder names and browser URLs:
+
+| Demo | Name | Folder | App page |
+|------|------|--------|----------|
+| 0 | Setup | [demo0-setup](demo0-setup/) | `/demo/0` |
+| 1 | Blocking | [demo1-blocking](demo1-blocking/) | `/demo/1` |
+| 2 | RCSI & Snapshot | [demo2-rcsi-snapshot](demo2-rcsi-snapshot/) | `/demo/2` |
+| 3 | Version Store Internals | [demo3-version-store](demo3-version-store/) | `/demo/3` |
+| 4 | ADR & PVS | [demo4-adr-pvs](demo4-adr-pvs/) | `/demo/4` |
+
+Script filenames retain their original numbered prefixes.
 
 ## Databases
 
@@ -23,14 +41,14 @@
 
 | Order | Demo | Script(s) | What It Proves |
 |-------|------|-----------|---------------|
-| 1 | Setup | `demo0/demo0-setup.sql` | Creates databases, tables, seed data |
-| 2 | RCSI vs Snapshot | `demo2/demo2b-*-session1.sql` + `session2.sql` | Statement-level vs transaction-level consistency |
-| 3 | Version Chain | `demo3/demo3a-*-session1.sql` + `session2.sql` | DBCC PAGE proof of version records + chain building |
-| 4 | Instance-Wide Impact | `demo3/demo3b-*-session1.sql` + `session2.sql` | Cross-database contamination via global XSN watermark |
+| 1 | Setup | `demo0-setup/demo0-setup.sql` | Creates databases, tables, seed data |
+| 2 | RCSI vs Snapshot | `demo2-rcsi-snapshot/demo2b-*-session1.sql` + `session2.sql` | Statement-level vs transaction-level consistency |
+| 3 | Version Chain | `demo3-version-store/demo3a-*-session1.sql` + `session2.sql` | DBCC PAGE proof of version records + chain building |
+| 4 | Instance-Wide Impact | `demo3-version-store/demo3b-*-session1.sql` + `session2.sql` | Cross-database contamination via global XSN watermark |
 
 Start the DBCC PAGE Viewer between demo2b and demo3a:
 ```
-python demos/demo3/dbcc_page_viewer.py
+python demo3-version-store\dbcc_page_viewer.py
 # Open http://localhost:5050
 ```
 
@@ -40,8 +58,8 @@ python demos/demo3/dbcc_page_viewer.py
 
 | Script | Sessions | Purpose |
 |--------|----------|---------|
-| `demo1/demo1-blocking-session1.sql` | Session 1 (Writer) | X-lock blocks reader under READ COMMITTED; NOLOCK dirty read proof |
-| `demo1/demo1-blocking-session2.sql` | Session 2 (Reader) | Blocked SELECT, NOLOCK read, clean read |
+| `demo1-blocking/demo1-blocking-session1.sql` | Session 1 (Writer) | X-lock blocks reader under READ COMMITTED; NOLOCK dirty read proof |
+| `demo1-blocking/demo1-blocking-session2.sql` | Session 2 (Reader) | Blocked SELECT, NOLOCK read, clean read |
 
 Proves the problem: readers block on writers without versioning.
 
@@ -49,42 +67,42 @@ Proves the problem: readers block on writers without versioning.
 
 | Script | Sessions | Purpose |
 |--------|----------|---------|
-| `demo2/demo2a-rcsi-session1.sql` | Session 1 (Writer) | Enable RCSI, hold X lock, commit |
-| `demo2/demo2a-rcsi-session2.sql` | Session 2 (Reader) | RCSI non-blocking read; READCOMMITTEDLOCK opt-in blocking |
-| `demo2/demo2b-rcsi-vs-snapshot-session1.sql` | Session 1 (Reader) | Two reads under RCSI (see change) vs Snapshot (frozen) |
-| `demo2/demo2b-rcsi-vs-snapshot-session2.sql` | Session 2 (Writer) | UPDATE between reads (run twice — once per isolation level) |
-| `demo2/demo2c-snapshot-conflict-session1.sql` | Session 1 (Snapshot Writer) | Open snapshot, attempt conflicting update → error 3960 |
-| `demo2/demo2c-snapshot-conflict-session2.sql` | Session 2 (Conflicting Writer) | Modify same row and commit first |
-| `demo2/demo2d-fk-slock.sql` | Single session | FK validation still takes S locks even under RCSI |
-| `demo2/demo2e-fk-scan-conflict-session1.sql` | Session 1 (Snapshot) | DELETE order → error 3960 from FK range scan |
-| `demo2/demo2e-fk-scan-conflict-session2.sql` | Session 2 (Writer) | UPDATE unrelated OrderItem triggers FK scan conflict |
+| `demo2-rcsi-snapshot/demo2a-rcsi-session1.sql` | Session 1 (Writer) | Enable RCSI, hold X lock, commit |
+| `demo2-rcsi-snapshot/demo2a-rcsi-session2.sql` | Session 2 (Reader) | RCSI non-blocking read; READCOMMITTEDLOCK opt-in blocking |
+| `demo2-rcsi-snapshot/demo2b-rcsi-vs-snapshot-session1.sql` | Session 1 (Reader) | Two reads under RCSI (see change) vs Snapshot (frozen) |
+| `demo2-rcsi-snapshot/demo2b-rcsi-vs-snapshot-session2.sql` | Session 2 (Writer) | UPDATE between reads (run twice — once per isolation level) |
+| `demo2-rcsi-snapshot/demo2c-snapshot-conflict-session1.sql` | Session 1 (Snapshot Writer) | Open snapshot, attempt conflicting update → error 3960 |
+| `demo2-rcsi-snapshot/demo2c-snapshot-conflict-session2.sql` | Session 2 (Conflicting Writer) | Modify same row and commit first |
+| `demo2-rcsi-snapshot/demo2d-fk-slock.sql` | Single session | FK validation still takes S locks even under RCSI |
+| `demo2-rcsi-snapshot/demo2e-fk-scan-conflict-session1.sql` | Session 1 (Snapshot) | DELETE order → error 3960 from FK range scan |
+| `demo2-rcsi-snapshot/demo2e-fk-scan-conflict-session2.sql` | Session 2 (Writer) | UPDATE unrelated OrderItem triggers FK scan conflict |
 
 ### Part 3 — Internals & Costs
 
 | Script | Sessions | Purpose |
 |--------|----------|---------|
-| `demo3/demo3a-version-chain-session1.sql` | Session 1 (Reader) | RCSI single-version read, Snapshot chain-walk proof via DBCC PAGE |
-| `demo3/demo3a-version-chain-session2.sql` | Session 2 (Writer) | Single UPDATE (Beat 1), three UPDATEs building 3-hop chain (Beat 2) |
-| `demo3/demo3b-instance-wide-impact-session1.sql` | Session 1 (Culprit) | Forgotten snapshot in eaglesdontfly; fix = COMMIT; verify cleanup |
-| `demo3/demo3b-instance-wide-impact-session2.sql` | Session 2 (Victim OLTP) | 10 UPDATE waves on howboutthemcowboys; tempdb growth + chain depth proof |
-| `demo3/demo3c-ghost-records.sql` | Single session | DELETE creates BOTH ghost record AND version record — two independent cleanup processes |
+| `demo3-version-store/demo3a-version-chain-session1.sql` | Session 1 (Reader) | RCSI single-version read, Snapshot chain-walk proof via DBCC PAGE |
+| `demo3-version-store/demo3a-version-chain-session2.sql` | Session 2 (Writer) | Single UPDATE (Beat 1), three UPDATEs building 3-hop chain (Beat 2) |
+| `demo3-version-store/demo3b-instance-wide-impact-session1.sql` | Session 1 (Culprit) | Forgotten snapshot in eaglesdontfly; fix = COMMIT; verify cleanup |
+| `demo3-version-store/demo3b-instance-wide-impact-session2.sql` | Session 2 (Victim OLTP) | 10 UPDATE waves on howboutthemcowboys; tempdb growth + chain depth proof |
+| `demo3-version-store/demo3c-ghost-records.sql` | Single session | DELETE creates BOTH ghost record AND version record — two independent cleanup processes |
 
-**Requires**: Start `demo3/dbcc_page_viewer.py` before demo3a.
+**Requires**: Start `demo3-version-store/dbcc_page_viewer.py` before demo3a.
 
 ### Part 4 — ADR & PVS
 
 | Script | Sessions | Purpose |
 |--------|----------|---------|
-| `demo4/demo4a-adr-versioning-session1.sql` | Session 1 (Reader) | Beat 0: ADR ON/RCSI OFF — versions exist but reader blocks. Beat 1: enable RCSI+SNAPSHOT — in-row version (33-byte diff), PVS DMV queries, version chain walk, background cleaner observation |
-| `demo4/demo4a-adr-versioning-session2.sql` | Session 2 (Writer) | Beat 0: UPDATE+ROLLBACK. Beat 1: three UPDATEs (Balance 200→300→400) with PVS DMV queries after each showing 0→1→2 off-row records |
-| `demo4/demo4b-adr-offrow-versioning-session1.sql` | Session 1 (Reader) | Direct off-row: wide column (SavingsAccounts, CHAR(600) ComplianceNotes). Self-contained — does not require demo4a. PVS size immediately non-zero |
-| `demo4/demo4b-adr-offrow-versioning-session2.sql` | Session 2 (Writer) | Single wide UPDATE on SavingsAccounts with PVS DMV query showing off-row record |
-| `demo4/demo4c-pvs-cleaner-deep-dive.sql` | Session 1 | PVS Cleaner deep dive: async background timer, page-level cleanup, instance-wide XTS watermark |
-| `demo4/demo4c-session2.sql` | Session 2 | Beat 2 companion — generates versions in eaglesdontfly, proves snapshot in another DB blocks cleanup via global XTS |
-| `demo4/demo4d-pvs-watermark-pinning.sql` | Single session | Snapshot holds cleaner watermark, cross-table pinning proof, skip reasons, idle connection diagnostics, release and drain |
-| `demo4/demo4e-adr-recovery.sql` | Single session | Large transaction rollback: traditional vs ADR near-instant rollback + PVS Cleaner live |
+| `demo4-adr-pvs/demo4a-adr-versioning-session1.sql` | Session 1 (Reader) | Beat 0: ADR ON/RCSI OFF — versions exist but reader blocks. Beat 1: enable RCSI+SNAPSHOT — in-row version (33-byte diff), PVS DMV queries, version chain walk, background cleaner observation |
+| `demo4-adr-pvs/demo4a-adr-versioning-session2.sql` | Session 2 (Writer) | Beat 0: UPDATE+ROLLBACK. Beat 1: three UPDATEs (Balance 200→300→400) with PVS DMV queries after each showing 0→1→2 off-row records |
+| `demo4-adr-pvs/demo4b-adr-offrow-versioning-session1.sql` | Session 1 (Reader) | Direct off-row: wide column (SavingsAccounts, CHAR(600) ComplianceNotes). Self-contained — does not require demo4a. PVS size immediately non-zero |
+| `demo4-adr-pvs/demo4b-adr-offrow-versioning-session2.sql` | Session 2 (Writer) | Single wide UPDATE on SavingsAccounts with PVS DMV query showing off-row record |
+| `demo4-adr-pvs/demo4c-pvs-cleaner-deep-dive.sql` | Session 1 | PVS Cleaner deep dive: async background timer, page-level cleanup, instance-wide XTS watermark |
+| `demo4-adr-pvs/demo4c-session2.sql` | Session 2 | Beat 2 companion — generates versions in eaglesdontfly, proves snapshot in another DB blocks cleanup via global XTS |
+| `demo4-adr-pvs/demo4d-pvs-watermark-pinning.sql` | Single session | Snapshot holds cleaner watermark, cross-table pinning proof, skip reasons, idle connection diagnostics, release and drain |
+| `demo4-adr-pvs/demo4e-adr-recovery.sql` | Single session | Large transaction rollback: traditional vs ADR near-instant rollback + PVS Cleaner live |
 
-**Requires**: Start `demo4/dbcc_page_viewer_adr.py` before demo4a/4b.
+**Requires**: Start `demo4-adr-pvs/dbcc_page_viewer_adr.py` before demo4a/4b.
 
 #### ADR + RCSI: How the Engine Decides
 
@@ -124,8 +142,8 @@ The deciding factor is the **size of the diff payload**, not just page free spac
 | Script | Purpose |
 |--------|---------|
 | `tools/check-readiness.ps1` | Pre-session validation: files, SQL connectivity, features, permissions |
-| `demo3/dbcc_page_viewer.py` | Flask web app — formatted DBCC PAGE output with tempdb version store chain (http://localhost:5050) |
-| `demo4/dbcc_page_viewer_adr.py` | Flask web app — formatted DBCC PAGE output with ADR in-row/off-row PVS versioning (http://localhost:5051) |
+| `demo3-version-store/dbcc_page_viewer.py` | Flask web app — formatted DBCC PAGE output with tempdb version store chain (http://localhost:5050) |
+| `demo4-adr-pvs/dbcc_page_viewer_adr.py` | Flask web app — formatted DBCC PAGE output with ADR in-row/off-row PVS versioning (http://localhost:5051) |
 | `tools/pvs-cleanup-blocker.sql` | PVS cleanup diagnostic — finds active snapshots, open transactions, and idle sessions pinning PVS versions |
 | `tools/xevent-version-store-stats.sql` | XEvent session for `tx_version_additional_stats` — tempdb version store generation stats |
 | `tools/_test_dbcc.sql` | Ad-hoc DBCC PAGE test (scratch file) |
@@ -140,13 +158,13 @@ For scripts with `-session1` / `-session2` suffixes:
 
 ## Dependencies
 
-Each demo enables its own database settings (RCSI, Snapshot, ADR, OL) at the start — no demo depends on a previous demo's state. All are safe to run independently after `demo0/demo0-setup.sql`.
+Each demo enables its own database settings (RCSI, Snapshot, ADR, OL) at the start — no demo depends on a previous demo's state. All are safe to run independently after `demo0-setup/demo0-setup.sql`.
 
 | Dependency | Used By |
 |------------|---------|
 | SQL Server 2025 | All demos (demo5 requires OL support) |
 | sqlsim.exe | benchmark/demo6-run-benchmark.ps1 |
-| Python + Flask + mssql_python | demo3/dbcc_page_viewer.py, demo4/dbcc_page_viewer_adr.py |
+| Python + Flask + mssql_python | demo3-version-store/dbcc_page_viewer.py, demo4-adr-pvs/dbcc_page_viewer_adr.py |
 
 ### Page Viewer — PVS Pinning Fix
 
@@ -154,7 +172,7 @@ Both page viewers use `mssql_python` connections with `autocommit = True`. This 
 
 ## DBCC PAGE Viewer — Technical Details
 
-Both page viewer apps (`demo3/dbcc_page_viewer.py` on port 5050, `demo4/dbcc_page_viewer_adr.py` on port 5051) decode internal SQL Server record structures from `DBCC PAGE ... WITH TABLERESULTS` output. These tools are for educational demo purposes only.
+Both page viewer apps (`demo3-version-store/dbcc_page_viewer.py` on port 5050, `demo4-adr-pvs/dbcc_page_viewer_adr.py` on port 5051) decode internal SQL Server record structures from `DBCC PAGE ... WITH TABLERESULTS` output. These tools are for educational demo purposes only.
 
 > **UNSUPPORTED / UNDOCUMENTED**: `DBCC PAGE` itself is an undocumented, unsupported command. While SQL Server has shipped it for decades and the output is widely known in the community, Microsoft does not document or guarantee its behavior.
 
