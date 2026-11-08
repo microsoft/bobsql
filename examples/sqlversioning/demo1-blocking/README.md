@@ -1,4 +1,4 @@
-# Demo 1 — Why Versioning?
+# Demo 1 — Blocking
 
 Proves the problem: readers block on writers under READ COMMITTED without versioning. Shows `NOLOCK` as the wrong fix (dirty reads).
 
