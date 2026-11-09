@@ -5,7 +5,7 @@
 -- Load this in SSMS Session 1 (left window).
 -- Load demo2a-rcsi-session2.sql in Session 2 (right window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- Reset key rows to known starting balances for clean demo
@@ -20,7 +20,7 @@ GO
 -- TALKING POINT: "In Demo 1 we saw blocking and the NOLOCK disaster. 
 -- Here's the right fix — one ALTER DATABASE, zero code changes."
 
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
 GO
 
 -- TALKING POINT: "Notice the WITH ROLLBACK IMMEDIATE. This ALTER DATABASE  
@@ -31,7 +31,7 @@ GO
 -- and accept that active transactions get killed."
 
 SELECT name, is_read_committed_snapshot_on AS RCSI
-FROM sys.databases WHERE name = N'texasrangerswillwinitthisyear';
+FROM sys.databases WHERE name = N'starswillwinthecup';
 -- Should show RCSI = 1
 GO
 

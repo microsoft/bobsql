@@ -33,7 +33,7 @@ Script filenames retain their original numbered prefixes.
 
 | Database | Purpose |
 |----------|---------|
-| `texasrangerswillwinitthisyear` | Primary demo database — Accounts, Orders, BigTable, BenchAccounts |
+| `starswillwinthecup` | Primary demo database — Accounts, Orders, BigTable, BenchAccounts |
 | `eaglesdontfly` | Cross-database demo — version store / PVS isolation tests (demo3b, demo4c) |
 | `howboutthemcowboys` | Victim database — innocent OLTP impacted by cross-DB version bloat (demo3b) |
 

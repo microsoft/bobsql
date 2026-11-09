@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 import logging
+from pathlib import Path
 import re
 import threading
 import time
@@ -19,7 +21,7 @@ from mssql_python import connect, Error as SqlError
 from catalog import DEMOS
 
 LOG = logging.getLogger(__name__)
-DATABASES = ("texasrangerswillwinitthisyear", "eaglesdontfly", "howboutthemcowboys")
+DATABASES = ("starswillwinthecup", "eaglesdontfly", "howboutthemcowboys")
 GO = re.compile(r"^\s*GO\s*(?:--.*)?$", re.IGNORECASE | re.MULTILINE)
 ROW_LIMIT = 1000
 
@@ -363,6 +365,41 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
     @app.get("/api/catalog")
     def catalog():
         return jsonify(demos=DEMOS, server=runner.server)
+
+    @app.get("/benchmark")
+    def benchmark():
+        return render_template("benchmark.html")
+
+    @app.get("/api/benchmark")
+    def benchmark_results():
+        root = Path(__file__).resolve().parent.parent / "benchmark"
+        captures = []
+        for source in (
+            "inventory/results/inventory-20260420-064554.json",
+        ):
+            path = root / source
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            suite = data["benchmark"]
+            workloads = {}
+            for name in data["configs"][0]["queries"]:
+                script = root / suite / f"workload-{name.replace('_', '-')}.sql"
+                workloads[name] = {
+                    "sql": script.read_text(encoding="utf-8-sig"),
+                    "source": script.relative_to(root).as_posix(),
+                    "kind": "read" if suite == "inventory" and name in (
+                        "check_availability", "category_report"
+                    ) else "write",
+                }
+            captures.append({
+                "source": source,
+                "benchmark": data["benchmark"],
+                "timestamp": data["timestamp"],
+                "table_rows": data["table_rows"],
+                "description": data["description"],
+                "configs": data["configs"],
+                "workloads": workloads,
+            })
+        return jsonify(captures=captures)
 
     @app.get("/api/state")
     def state():

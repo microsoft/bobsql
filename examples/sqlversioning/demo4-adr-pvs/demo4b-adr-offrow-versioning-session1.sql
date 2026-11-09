@@ -13,19 +13,19 @@
 --   2. ADR page viewer running: python demos/dbcc_page_viewer_adr.py
 --   3. Browser open to http://localhost:5051
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- SETUP: Ensure ADR + RCSI + SNAPSHOT are ON
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = ON;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 -- ============================================================================
@@ -70,7 +70,7 @@ GO
 SELECT 
     persistent_version_store_size_kb AS PVS_Size_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "One update, one off-row PVS record. The diff payload was
@@ -105,7 +105,7 @@ SELECT
     aborted_version_cleaner_start_time AS LastCleanerStart,
     aborted_version_cleaner_end_time AS LastCleanerEnd
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- tempdb remains clean — no versions there
@@ -113,17 +113,17 @@ SELECT
     DB_NAME(database_id) AS [Database],
     reserved_space_kb AS TempDB_VersionStoreKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Force PVS cleanup
-EXEC sys.sp_persistent_version_cleanup @dbname = N'texasrangerswillwinitthisyear';
+EXEC sys.sp_persistent_version_cleanup @dbname = N'starswillwinthecup';
 GO
 
 SELECT 
     persistent_version_store_size_kb AS PVS_Size_KB_After_Cleanup
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "Versions are in the user database. PVS cleaner reclaims 

@@ -6,7 +6,7 @@
 -- Load this in SSMS Session 2 (right window).
 -- Load demo4a-adr-versioning-session1.sql in Session 1 (left window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================

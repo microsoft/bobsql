@@ -2,7 +2,7 @@
 from mssql_python import connect as mssql_connect
 import re
 
-conn = mssql_connect('Server=localhost;Database=texasrangerswillwinitthisyear;Trusted_Connection=yes;Encrypt=no')
+conn = mssql_connect('Server=localhost;Database=starswillwinthecup;Trusted_Connection=yes;Encrypt=no')
 cur = conn.cursor()
 
 # Find the page for AccountId 42
@@ -13,7 +13,7 @@ pages = [(r[0], r[1]) for r in cur.fetchall()]
 
 cur.execute('DBCC TRACEON(3604)')
 for fid, pid in pages:
-    cur.execute(f"DBCC PAGE(N'texasrangerswillwinitthisyear', {fid}, {pid}, 3) WITH TABLERESULTS")
+    cur.execute(f"DBCC PAGE(N'starswillwinthecup', {fid}, {pid}, 3) WITH TABLERESULTS")
     rows = cur.fetchall()
     found = False
     target_slot = None
@@ -44,7 +44,7 @@ for fid, pid in pages:
 # Also check PVS stats
 cur.execute("""SELECT persistent_version_store_size_kb
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear')""")
+WHERE database_id = DB_ID(N'starswillwinthecup')""")
 row = cur.fetchone()
 print(f'\nPVS Size: {row[0]} KB' if row else '\nNo PVS stats')
 

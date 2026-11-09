@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Benchmark replay · SQL Versioning</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #b0b7bc; color: #002244; font: 18px "Segoe UI", sans-serif; }
+    header { background: #002244; padding: 10px 24px; color: white; }
+    header a { color: white; }
+    main { max-width: 1400px; margin: auto; padding: 12px 24px; }
+    h1 { margin: 0; font-size: 28px; }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    .intro { margin: 4px 0 10px; font-size: 15px; }
+    .panel { background: #f4f5f7; padding: 14px; margin: 10px 0; border-radius: 10px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .controls select { flex: 1; min-width: 200px; max-width: 100%; }
+    .controls button, .controls select { margin: 0; }
+    .capture-details { margin-top: 8px; font-size: 14px; }
+    summary { cursor: pointer; }
+    .replay-visuals { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+    button, select { font: inherit; padding: 10px; margin: 6px 8px 6px 0; }
+    button { background: #002244; color: white; border: 0; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    th, td { padding: 10px; border-bottom: 1px solid #b0b7bc; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    .scroll { overflow-x: auto; }
+    small { overflow-wrap: anywhere; }
+    pre { background: #002244; color: #f4f5f7; padding: 12px; text-align: left; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow-y: auto; }
+    .counters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; font-size: 14px; }
+    .counter strong { display: block; font-size: clamp(22px, 2.8vw, 38px); font-variant-numeric: tabular-nums; }
+    progress { width: 100%; height: 24px; accent-color: #002244; }
+    .running { border: 3px solid #002244; }
+    .flow { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+    .flow-box { background: #002244; color: white; padding: 12px; border-radius: 10px; text-align: center; font-size: 15px; }
+    .pipeline { flex: 1; height: 8px; background: #b0b7bc; position: relative; overflow: hidden; border-radius: 8px; }
+    .running .pipeline::after { content: ""; display: block; width: 30%; height: 100%; background: #002244; animation: travel 1.2s linear infinite; }
+    @keyframes travel { from { transform: translateX(-100%); } to { transform: translateX(440%); } }
+    .chart-row { display: grid; grid-template-columns: minmax(110px, 160px) 1fr; gap: 10px; margin: 8px 0; align-items: center; font-size: 15px; }
+    .track { background: #d8dde1; border-radius: 6px; height: 24px; overflow: hidden; }
+    .bar { height: 100%; background: #002244; border-radius: 6px; }
+    .chart-row:nth-child(2) .bar { background: #315c83; }
+    .chart-row:nth-child(3) .bar { background: #44776c; }
+    .chart-row:nth-child(4) .bar { background: #746097; }
+    .chart-value { font-variant-numeric: tabular-nums; margin-top: 4px; display: block; }
+    @media (prefers-reduced-motion: reduce) { .running .pipeline::after { animation: none; } }
+    @media (max-width: 760px) { .replay-visuals { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { .flow { gap: 6px; } .flow-box { padding: 10px; font-size: 14px; } .chart-row { grid-template-columns: 120px 1fr; } }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header><a href="/">SQL Versioning</a> · <a href="/demo/0">Demo 0</a> · Benchmark replay</header>
+  <main>
+    <h1>Benchmark replay</h1>
+    <p class="intro">Replay — animated from recorded totals. No live SQL is executed.</p>
+    <div id="error" class="panel" role="alert" hidden></div>
+    <section class="panel">
+      <div class="controls">
+      <label for="capture">Captured run</label>
+      <select id="capture" disabled></select>
+      <button id="next" disabled>Run</button>
+      <button id="restart" disabled>Restart replay</button>
+      </div>
+      <details class="capture-details"><summary>Workload details</summary><p id="description"></p></details>
+      <span id="progress" role="status">Loading captures…</span>
+    </section>
+    <div class="replay-visuals">
+    <section id="run-panel" class="panel" hidden>
+      <h2 id="run-title"></h2>
+      <div class="flow" aria-hidden="true">
+        <div class="flow-box" id="workers">Workers</div>
+        <div class="pipeline"></div><div class="flow-box">SQL Server<br>Recorded workload</div>
+        <div class="pipeline"></div><div class="flow-box">Executions</div>
+      </div>
+      <small>Workload flow illustration — not live engine activity.</small>
+      <div class="counters">
+        <div class="counter">Executions (animated)<strong id="executions">0</strong></div>
+        <div class="counter">Recorded executions/s<strong id="rate">0</strong></div>
+        <div class="counter">Replay elapsed<strong id="elapsed">0.0 s</strong></div>
+      </div>
+      <p id="run-status" role="status"></p>
+      <progress id="run-progress" max="1" value="0" aria-label="Replay progress"></progress>
+      <details class="capture-details"><summary>Playback methodology</summary><p>10-second compressed playback. Counter progress is interpolated, not
+        recorded time-series evidence. Throughput uses the original run duration.</p></details>
+    </section>
+    <section id="chart-panel" class="panel" hidden>
+      <h2>Throughput race</h2>
+      <small>Animated bars · final values are recorded executions/s.</small>
+      <div id="chart"></div>
+    </section>
+    </div>
+    <section id="published-panel" class="panel" hidden>
+      <h2 id="published-title"></h2>
+      <p>Published research comparison — not a local sqlsim run.
+        Baseline is traditional tempdb versioning; ADR uses persistent versions.
+        This is not a separately measured ADR + RCSI configuration.</p>
+      <p id="published-mix"></p>
+      <small>Benchmark transaction mix: read-only versus read/write transactions,
+        not percentages of physical reads and writes.</small>
+      <div id="published-chart"></div>
+      <progress id="published-progress" max="1" value="0" aria-label="Published comparison replay progress"></progress>
+      <p id="published-status" role="status"></p>
+      <small>Published benchmark results, normalized to baseline = 100%.
+        Replay animates the reported throughput comparison.</small>
+      <p><a href="https://aka.ms/sqladr" target="_blank" rel="noopener noreferrer">Source: Constant Time Recovery in Azure SQL Database</a></p>
+      <details class="capture-details"><summary>Workload mix source</summary>
+        <a href="https://cs-people.bu.edu/mathan/publications/sigrec10-chen.pdf" target="_blank" rel="noopener noreferrer">TPC-E vs. TPC-C: benchmark transaction mix comparison (Table 1)</a>
+      </details>
+    </section>
+    <section id="results" class="panel" aria-live="polite" hidden>
+      <h2>Configuration comparison</h2>
+      <p>Executions/s = captured total executions ÷ actual recorded runtime.
+        These are final aggregates, not a time-series replay or a prediction.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Configuration</th><th>Executions</th><th>Executions/s</th><th>Avg latency (ms)</th><th>Deadlocks</th><th id="reference-heading">vs baseline</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <div id="queries"></div>
+    </section>
+  </main>
+  <script>
+    "use strict";
+    const $ = id => document.getElementById(id);
+    let captures = [], running = false, frame = null, activeIndex = null, lastCompleted = null, selectedSuite = null;
+    const completed = new Set();
+    let queue = [];
+    let publishedDone = false;
+    const published = { "TPC-C": 13.8, "TPC-E": 2.4 };
+    const publishedMix = { "TPC-C": { read: 8, write: 92 }, "TPC-E": { read: 76.9, write: 23.1 } };
+    const isPublished = () => $("capture").value.startsWith("paper:");
+    const selectedCapture = () => captures[Number($("capture").value.split(":")[0])];
+    const visibleConfig = index => index === 0 || index === 2;
+    const RUN_MS = 10000;
+    const number = value => typeof value === "number" && Number.isFinite(value);
+    const format = value => number(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "Not captured";
+    function node(tag, text) { const item = document.createElement(tag); item.textContent = text; return item; }
+    function drawChart(fraction = 0) {
+      const capture = selectedCapture();
+      const rates = capture.configs.map(c => c.total_executions / c.runtime_seconds);
+      const max = Math.max(...rates.filter((_, i) => visibleConfig(i)));
+      $("chart").replaceChildren();
+      capture.configs.forEach((config, i) => {
+        if (!visibleConfig(i)) return;
+        const row = node("div", ""); row.className = "chart-row";
+        const label = node("strong", config.name);
+        const content = node("div", ""), track = node("div", ""), bar = node("div", "");
+        track.className = "track"; bar.className = "bar";
+        const active = i === activeIndex && running;
+        const progress = active ? fraction : completed.has(i) ? 1 : 0;
+        bar.style.width = `${rates[i] / max * progress * 100}%`;
+        track.append(bar);
+        const value = node("small", active ? "Replaying…" :
+          completed.has(i) ? `${format(rates[i])} executions/s · complete` : "Not run");
+        value.className = "chart-value"; content.append(track, value);
+        row.append(label, content); $("chart").append(row);
+      });
+      $("chart-panel").hidden = !running && completed.size === 0;
+    }
+    function render() {
+      $("published-panel").hidden = true;
+      if (isPublished()) {
+        $("run-panel").hidden = true; $("chart-panel").hidden = true; $("results").hidden = true;
+        $("description").textContent = "ADR/CTR compared with traditional tempdb versioning; 1% of transactions explicitly rolled back. Published test hardware: 40-core Xeon E7-4850, 512 GB RAM, dedicated data/log SSDs.";
+        $("next").disabled = running; $("next").textContent = running ? "Replaying…" : "Run";
+        $("capture").disabled = running; $("restart").disabled = !running && !publishedDone;
+        $("progress").textContent = publishedDone ? "Published comparison complete" : "Published comparison — ready";
+        if (publishedDone) drawPublished(1);
+        return;
+      }
+      const capture = selectedCapture();
+      $("description").textContent = capture.description;
+      $("rows").replaceChildren(); $("queries").replaceChildren();
+      const baseline = capture.configs[0];
+      $("reference-heading").textContent = "vs baseline";
+      const baselineRate = baseline.total_executions / baseline.runtime_seconds;
+      for (const config of capture.configs.filter((_, i) => completed.has(i))) {
+        const rate = config.total_executions / config.runtime_seconds;
+        const row = document.createElement("tr");
+        for (const value of [config.name, format(config.total_executions), format(rate),
+          format(config.avg_latency_ms), format(config.deadlocks), `${(rate / baselineRate).toFixed(2)}x`])
+          row.append(node("td", value));
+        $("rows").append(row);
+      }
+      if (lastCompleted !== null) {
+        const config = capture.configs[lastCompleted];
+        $("queries").append(node("h3", `${config.name} — workload breakdown`));
+        const table = document.createElement("table"), head = document.createElement("tr");
+        for (const label of ["Query / SQL", "Executions", "Threads", "% read / % write (workers)", "Avg elapsed (ms)"]) head.append(node("th", label));
+        const thead = document.createElement("thead"); thead.append(head); table.append(thead);
+        const tbody = document.createElement("tbody");
+        const totalThreads = Object.values(config.queries).reduce((sum, q) => sum + q.threads, 0);
+        let readThreads = 0;
+        for (const [name, query] of Object.entries(config.queries)) {
+          const workload = capture.workloads[name];
+          const read = workload.kind === "read";
+          if (read) readThreads += query.threads;
+          const share = query.threads / totalThreads * 100;
+          const row = document.createElement("tr");
+          const queryCell = node("td", name);
+          const detail = document.createElement("details");
+          detail.append(node("summary", "Expand SQL"), node("small", `Current repository source: ${workload.source}`),
+            node("pre", workload.sql));
+          queryCell.append(detail); row.append(queryCell);
+          for (const value of [format(query.executions), format(query.threads),
+            `${format(read ? share : 0)}% / ${format(read ? 0 : share)}%`,
+            format(query.avg_elapsed_ms)]) row.append(node("td", value));
+          tbody.append(row);
+        }
+        table.append(tbody);
+        const wrapper = document.createElement("div"); wrapper.className = "scroll"; wrapper.append(table); $("queries").append(wrapper);
+        $("queries").append(node("p", `Worker mix: ${format(readThreads / totalThreads * 100)}% read / ${format((totalThreads - readThreads) / totalThreads * 100)}% write. Percentages are shares of configured workers, not measured IO or execution shares. Write workloads also read rows internally.`),
+          node("small", "SQL shows current repository scripts; historical captures do not embed the original SQL text."));
+      }
+      $("results").hidden = completed.size === 0;
+      $("progress").textContent = `${completed.size} of 2 configurations completed`;
+      $("next").disabled = running;
+      $("next").textContent = running ? "Replaying…" : "Run";
+      $("restart").disabled = !running && completed.size === 0;
+      $("capture").disabled = running;
+      drawChart();
+    }
+    function restart() {
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null; running = false; activeIndex = null; lastCompleted = null; queue = []; publishedDone = false; completed.clear();
+      $("run-panel").hidden = true;
+      render();
+    }
+    function selectCapture() {
+      const suite = isPublished() ? $("capture").value : $("capture").value.split(":")[0];
+      if (suite !== selectedSuite) {
+        selectedSuite = suite;
+        restart();
+      } else render();
+    }
+    $("capture").onchange = selectCapture;
+    $("restart").onclick = restart;
+    $("next").onclick = () => {
+      if (running) return;
+      if (isPublished()) { runPublished(); return; }
+      const selection = $("capture").value.split(":")[1];
+      queue = [Number(selection)];
+      runNext();
+    };
+    function drawPublished(fraction) {
+      const name = $("capture").value.split(":")[1], reduction = published[name];
+      const mix = publishedMix[name];
+      $("published-panel").hidden = false;
+      $("published-title").textContent = `${name} — baseline vs ADR (published)`;
+      $("published-mix").textContent = `${name} workload: ${mix.read}% read-only / ${mix.write}% read/write transactions.`;
+      $("published-chart").replaceChildren();
+      for (const [label, percent] of [["Baseline — tempdb versioning", 100], ["ADR — persistent versioning", 100 - reduction]]) {
+        const row = node("div", ""); row.className = "chart-row";
+        const track = node("div", ""), bar = node("div", ""), content = node("div", "");
+        track.className = "track"; bar.className = "bar";
+        bar.style.width = `${percent * fraction}%`; track.append(bar);
+        content.append(track, node("small", fraction === 1 ? `${format(percent)}% of baseline throughput` : "Replaying published comparison…"));
+        row.append(node("strong", label), content); $("published-chart").append(row);
+      }
+      $("published-progress").value = fraction;
+      $("published-status").textContent = fraction === 1 ? `${reduction}% throughput reduction with ADR` :
+        `Published results replay · ${(fraction * RUN_MS / 1000).toFixed(1)} s / 10 s`;
+    }
+    function runPublished() {
+      publishedDone = false; running = true; render();
+      const start = performance.now();
+      function tick(now) {
+        const fraction = Math.min((now - start) / RUN_MS, 1);
+        drawPublished(fraction);
+        if (fraction < 1) frame = requestAnimationFrame(tick);
+        else { frame = null; running = false; publishedDone = true; render(); }
+      }
+      tick(start);
+    }
+    function runNext() {
+      activeIndex = queue.shift();
+      const config = selectedCapture().configs[activeIndex];
+      running = true;
+      render();
+      $("run-panel").hidden = false;
+      $("run-panel").classList.add("running");
+      $("run-title").textContent = `${config.name} — replay`;
+      $("rate").textContent = format(config.total_executions / config.runtime_seconds);
+      const threads = Object.values(config.queries).reduce((sum, query) => sum + query.threads, 0);
+      $("workers").textContent = `${threads} workers`;
+      const start = performance.now();
+      function tick(now) {
+        const fraction = Math.min((now - start) / RUN_MS, 1);
+        $("executions").textContent = format(Math.floor(config.total_executions * fraction));
+        $("elapsed").textContent = `${(fraction * RUN_MS / 1000).toFixed(1)} s`;
+        $("run-progress").value = fraction;
+        drawChart(fraction);
+        $("run-status").textContent = fraction < 1 ? "Replaying recorded workload…" : "Completed — captured final totals reached";
+        if (fraction < 1) frame = requestAnimationFrame(tick);
+        else {
+          frame = null; running = false; completed.add(activeIndex); lastCompleted = activeIndex;
+          $("run-panel").classList.remove("running");
+          render();
+          if (queue.length) runNext();
+        }
+      }
+      tick(start);
+    }
+    async function load() {
+      try {
+        const response = await fetch("/api/benchmark", { cache: "no-store" });
+        if (!response.ok) throw new Error(`Capture request failed: HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data.captures) || !data.captures.length) throw new Error("No captured results are available.");
+        for (const capture of data.captures) {
+          if (!Array.isArray(capture.configs) || capture.configs.length !== 4 ||
+            capture.configs.some(c => !number(c.total_executions) || !number(c.runtime_seconds) ||
+              c.runtime_seconds <= 0 || !number(c.avg_latency_ms) || !c.queries ||
+              Object.entries(c.queries).some(([name, q]) => !number(q.threads) || q.threads <= 0 ||
+                !capture.workloads?.[name]?.sql || !["read", "write"].includes(capture.workloads[name].kind))) ||
+            capture.configs[0].total_executions <= 0) throw new Error(`Invalid captured results: ${capture.source}`);
+        }
+        captures = data.captures;
+        captures.forEach((capture, index) => {
+          if (capture.benchmark === "inventory") {
+            for (const configIndex of [0, 2]) {
+              const option = node("option", configIndex === 0 ? "Inventory — Baseline" :
+                "Inventory — ADR + RCSI");
+              option.value = `${index}:${configIndex}`; $("capture").append(option);
+            }
+          }
+        });
+        for (const name of Object.keys(published)) {
+          const option = node("option", `${name} — baseline vs ADR (published)`);
+          option.value = `paper:${name}`; $("capture").append(option);
+        }
+        $("capture").disabled = false;
+        selectCapture();
+      } catch (error) {
+        $("error").hidden = false; $("error").textContent = error.message;
+        $("progress").textContent = "Replay unavailable";
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

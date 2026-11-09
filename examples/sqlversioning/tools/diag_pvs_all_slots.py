@@ -3,7 +3,7 @@ import sys, re
 sys.path.insert(0, '.')
 from dbcc_page_viewer_adr import get_connection, find_page_for_row, run_dbcc_page, parse_version_from_hex
 
-DATABASE = 'texasrangerswillwinitthisyear'
+DATABASE = 'starswillwinthecup'
 conn = get_connection('localhost', DATABASE, 'windows')
 cursor = conn.cursor()
 

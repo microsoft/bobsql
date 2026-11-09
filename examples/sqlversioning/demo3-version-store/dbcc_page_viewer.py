@@ -140,7 +140,7 @@ HTML_TEMPLATE = """
         </div>
         <div class="form-group">
             <label>Database</label>
-            <input name="database" value="{{ database or 'texasrangerswillwinitthisyear' }}" style="width:250px">
+            <input name="database" value="{{ database or 'starswillwinthecup' }}" style="width:250px">
         </div>
         <div class="form-group">
             <label>Auth</label>
@@ -606,7 +606,7 @@ def format_page_output(columns, rows, highlight_slot=None):
 def index():
     ctx = {
         'server': request.form.get('server', 'localhost'),
-        'database': request.form.get('database', 'texasrangerswillwinitthisyear'),
+        'database': request.form.get('database', 'starswillwinthecup'),
         'auth': request.form.get('auth', 'trusted'),
         'file_id': request.form.get('file_id', '1'),
         'page_id': request.form.get('page_id', ''),

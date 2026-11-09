@@ -53,16 +53,26 @@
     .hero { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; margin-bottom: 12px; }
     .hero p { margin-bottom: 4px; font-size: 14px; }
     #home .hero { padding: 12px 16px; }
+    #home .hero h1 { font-size: 22px; margin-bottom: 4px; }
     #home .hero .eyebrow { display: none; }
     #demo .hero { margin-bottom: 8px; }
     #demo .hero h1 { font-size: 22px; margin-bottom: 0; }
     #demo-label { display: none; }
     .hero-star { font-size: 48px; color: var(--cp-accent); text-shadow: 2px 2px var(--cp-silver); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-    .demo-card { display: flex; flex-direction: column; }
-    .demo-card h2 { font-size: 18px; }
-    .demo-card p { flex: 1; font-size: 14px; }
-    .demo-card .button { align-self: flex-start; }
+    .grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .demo-card { display: flex; flex-direction: column; min-width: 0; min-height: 200px; padding: 16px; }
+    .demo-card h2 { font-size: 20px; }
+    .demo-card p { flex: 1; font-size: 15px; }
+    .demo-card .button { align-self: flex-start; padding: 8px 10px; font-size: 16px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); } }
+    .database-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 14px 0; }
+    .database-card { min-width: 0; border: 2px solid var(--cp-accent); border-radius: 16px; padding: 16px; background: var(--cp-accent-soft); }
+    .database-card h3 { overflow-wrap: anywhere; color: var(--cp-accent); }
+    .database-symbol { display: block; width: 72px; height: 64px; object-fit: contain; margin-bottom: 12px; }
+    .database-tables { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
+    .database-tables li { border: 1px solid var(--cp-border); border-radius: 8px; padding: 8px 10px; background: var(--cp-surface); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; font-size: 15px; }
+    .database-tables strong { overflow-wrap: anywhere; }
+    @media (max-width: 760px) { .database-grid { grid-template-columns: 1fr; } }
     .number { width: 32px; height: 32px; display: grid; place-items: center; background: var(--cp-accent-soft); color: var(--cp-accent); border-radius: 10px; font-weight: 750; margin-bottom: 10px; }
     .banner { border: 1px solid var(--cp-border); border-left: 4px solid var(--cp-warning); background: var(--cp-surface); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; overflow-wrap: anywhere; }
     .banner.error { border-left-color: var(--cp-danger); color: var(--cp-danger); }
@@ -169,17 +179,17 @@
       <div class="hero">
         <div><p class="eyebrow" id="demo-label"></p><h1 id="demo-title"></h1></div>
       </div>
-      <div class="panel scenario-panel">
+      <div id="scenario-panel" class="panel scenario-panel">
         <div class="section-head"><label>Subdemo <select id="scenario"></select></label></div>
         <details><summary>Prerequisites &amp; script sources</summary><p id="demo-description" class="muted"></p><p id="scenario-description"></p><small id="scenario-source"></small></details>
       </div>
       <div class="workspace">
         <section aria-labelledby="steps-heading">
-          <div class="section-head"><h2 id="steps-heading">Steps — run in order</h2><span class="badge">Manual execution only</span></div>
-          <p class="muted step-guidance">Blocked reader? Run the writer’s COMMIT/ROLLBACK.</p>
+          <div id="steps-intro" class="section-head"><h2 id="steps-heading">Steps — run in order</h2><span class="badge">Manual execution only</span></div>
+          <p id="step-guidance" class="muted step-guidance">Blocked reader? Run the writer’s COMMIT/ROLLBACK.</p>
           <div id="steps" class="steps"></div>
         </section>
-        <div class="evidence-column">
+        <div id="evidence-column" class="evidence-column">
           <section class="panel" aria-labelledby="live-heading">
             <div class="section-head"><h2 id="live-heading">Live engine evidence</h2><small id="observed">Waiting for sample</small></div>
             <div id="sessions" class="sessions"></div>
@@ -197,11 +207,11 @@
             <details id="history-details"><summary id="history-label">Earlier execution history</summary><div id="history"></div></details>
           </section>
         </div>
+        <section id="setup-inventory" class="panel" aria-live="polite" hidden></section>
       </div>
     </section>
     <div id="loading" class="panel"><h2>Loading the demo catalog…</h2><p class="muted">Connecting to the local server. Nothing will execute on load.</p><button id="retry">Retry connection</button></div>
   </main>
-  <footer>★ &nbsp; SQL Server Versioning Lab · Navy &amp; silver · Live evidence, not a simulation</footer>
   <script>
     "use strict";
     (() => {
@@ -219,6 +229,20 @@
         if (className) node.className = className;
         if (text !== undefined) node.textContent = text;
         return node;
+      }
+      function databaseIcon(name) {
+        const teams = {
+          starswillwinthecup: { name: "Dallas Stars", file: "dallas-stars.png" },
+          eaglesdontfly: { name: "Philadelphia Eagles", file: "philadelphia-eagles.png" },
+          howboutthemcowboys: { name: "Dallas Cowboys", file: "dallas-cowboys.png" }
+        };
+        const team = teams[name];
+        if (!team) return el("span", "database-symbol", "DB");
+        const image = el("img", "database-symbol");
+        image.alt = `${team.name} logo`;
+        image.onerror = () => report(`Unable to load the ${team.name} logo.`);
+        image.src = `/static/logos/${team.file}`;
+        return image;
       }
       function storageWarning() {
         $("storage-banner").hidden = false;
@@ -279,6 +303,13 @@
           else a.removeAttribute("aria-current");
         });
         if (currentDemo) {
+          const setup = currentDemo.id === "0";
+          $("scenario-panel").hidden = setup;
+          $("steps-intro").hidden = setup;
+          $("step-guidance").hidden = setup;
+          $("evidence-column").hidden = setup;
+          $("demo").querySelector(".workspace").style.gridTemplateColumns = setup ? "1fr" : "";
+          $("setup-inventory").hidden = true;
           document.title = `Demo ${currentDemo.id} · ${currentDemo.title} · SQL Versioning`;
           $("demo-label").textContent = `Demo ${match[1]} · Observe, execute, explain`;
           $("demo-title").textContent = `Demo ${currentDemo.id} — ${currentDemo.title}`;
@@ -301,15 +332,21 @@
         const sources = currentScenario.source_files || (currentScenario.source ? [currentScenario.source] : []);
         $("scenario-source").textContent = sources.length ? `Source: ${sources.join(" · ")}` : "";
         $("steps").replaceChildren();
-        currentScenario.steps.forEach((step, i) => {
+        const setup = currentDemo.id === "0";
+        const visibleSteps = setup ? currentScenario.steps.filter(s => s.id === "0-setup") : currentScenario.steps;
+        visibleSteps.forEach((step, i) => {
           const card = el("article", "step");
           card.dataset.stepId = step.id;
           const heading = el("div", "step-heading");
-          heading.append(el("span", "step-number", String(i + 1).padStart(2, "0")), el("h3", "", step.title));
-          card.append(heading, el("span", "badge", sessionNames[step.session] || step.session));
+          if (!setup) heading.append(el("span", "step-number", String(i + 1).padStart(2, "0")));
+          heading.append(el("h3", "", setup ? "Prepare the three demo databases" : step.title));
+          card.append(heading);
+          if (!setup) card.append(el("span", "badge", sessionNames[step.session] || step.session));
           if (step.expected_error) card.append(el("p", "warning-note", `Expected SQL error ${step.expected_error}; this is evidence, not an ordinary failure.`));
-          if (step.dangerous) card.append(el("p", "warning-note", "Changes lab state. Confirmation required."));
-          const bottom = el("div", "step-footer"), run = el("button", "primary", "Run step");
+          if (step.dangerous) card.append(el("p", "warning-note", setup ?
+            "Setup replaces all three demo databases and their data. Confirmation required. Tables will appear below when it finishes." :
+            "Changes lab state. Confirmation required."));
+          const bottom = el("div", "step-footer"), run = el("button", "primary", setup ? "Run setup" : "Run step");
           run.type = "button"; run.onclick = () => runStep(step);
           bottom.append(run, el("span", "status", "Not run")); card.append(bottom);
           const notes = el("details", "step-notes"); notes.append(el("summary", "", "Instructions & safety"), el("p", "", step.explanation));
@@ -365,6 +402,7 @@
         return label;
       }
       function implications(step) {
+        if (step.id === "0-setup") return `Run setup?\n\nThis drops and recreates starswillwinthecup, eaglesdontfly, and howboutthemcowboys, disconnects their users, and replaces all their data.\n\nIt may take a few minutes. Continue?`;
         const sql = step.sql || "", list = [];
         if (/\b(CREATE|DROP)\s+DATABASE\b/i.test(sql)) list.push("Creates or drops databases and may remove existing data.");
         if (/\bALTER\s+DATABASE\b/i.test(sql)) list.push("Changes database options/isolation; settings remain changed after End demo.");
@@ -452,6 +490,50 @@
         const fingerprint = JSON.stringify([currentScenario.id, selected, all]);
         if (fingerprint === lastResults) return;
         lastResults = fingerprint;
+        if (currentDemo.id === "0") {
+          const setupJobs = all.filter(j => j.step_id === "0-setup");
+          const latest = setupJobs.filter(j => !j.historical).at(-1) || setupJobs.at(-1);
+          const panel = $("setup-inventory");
+          panel.replaceChildren();
+          panel.hidden = !latest;
+          if (!latest) return;
+          if (latest.status !== "succeeded") {
+            panel.append(el("h2", "", latest.status === "running" && !latest.historical ? "Setting up databases…" : statusLabel(latest)));
+            if (latest.error) panel.append(el("p", "warning-note", latest.error));
+            return;
+          }
+          panel.append(el("h2", "", "Setup complete — databases and tables"));
+          if (latest.historical) panel.append(el("p", "muted", "Saved inventory from the last recorded setup; not a current database-state check."));
+          const inventories = (latest.result_sets || []).filter(s => s.columns.includes("DatabaseName") && s.columns.includes("TableName"));
+          if (inventories.length !== 3 || inventories.some(s => !s.rows?.length)) {
+            panel.append(el("p", "warning-note", "Setup returned an incomplete table inventory. Inspect the setup results before continuing."));
+            panel.append(jobPanel(latest));
+            return;
+          }
+          const grid = el("div", "database-grid");
+          const raw = el("details");
+          raw.append(el("summary", "", "Raw table inventory"));
+          for (const inventory of inventories) {
+            const databaseName = String(inventory.rows[0][inventory.columns.indexOf("DatabaseName")]);
+            const card = el("article", "database-card");
+            card.append(databaseIcon(databaseName), el("h3", "", databaseName), el("small", "", `${inventory.rows.length} table${inventory.rows.length === 1 ? "" : "s"}`));
+            const tables = el("ul", "database-tables");
+            for (const row of records(inventory)) {
+              const item = el("li");
+              const count = typeof row.approximaterows === "number" ? row.approximaterows.toLocaleString() : String(row.approximaterows);
+              item.append(el("strong", "", `${row.schemaname}.${row.tablename}`), el("small", "", `${count} rows`));
+              tables.append(item);
+            }
+            card.append(tables); grid.append(card);
+            raw.append(el("h3", "", databaseName), table({
+              ...inventory,
+              columns: inventory.columns.filter(c => c !== "DatabaseName"),
+              rows: inventory.rows.map(row => row.filter((_, i) => inventory.columns[i] !== "DatabaseName"))
+            }));
+          }
+          panel.append(grid, el("small", "", "Row totals are SQL Server partition metadata estimates."), raw);
+          return;
+        }
         const expanded = new Map();
         for (const container of [$("latest-results"), $("history")]) for (const panel of container.children) {
           if (panel.dataset.jobId) expanded.set(panel.dataset.jobId, [...panel.querySelectorAll("details")].map(d => d.open));
@@ -626,6 +708,7 @@
             $("demo-grid").append(card);
           }
           route(); await poll();
+          const replay = el("a", "", "Benchmark replay"); replay.href = "/benchmark"; $("navigation").append(replay);
         } catch (error) { catalog = null; report(`Catalog: ${error.message}`); setConnected(false); }
         finally { loadingCatalog = false; }
       }

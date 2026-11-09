@@ -5,7 +5,7 @@
 -- Load this in SSMS Session 2 (right window).
 -- Load demo2c-snapshot-conflict-session1.sql in Session 1 (left window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- >>> Session 1 has opened a SNAPSHOT transaction and read AccountId = 100.

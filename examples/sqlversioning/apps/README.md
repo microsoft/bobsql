@@ -18,9 +18,11 @@ From this directory:
 .\start.ps1
 ```
 
-The launcher reuses a healthy backend or starts one in its own console, verifies
-readiness, and opens a **new normal Edge/Chrome browser window**. Keep that
-console open. It does not execute setup or demo SQL. Use `-NoBrowser` only for
+The launcher reuses a healthy backend or starts one hidden in the background,
+verifies readiness, and opens a **new normal Edge/Chrome browser window**.
+No extra console window is needed. It reports the backend PID and saves stdout
+and stderr logs under `%LOCALAPPDATA%\bobsql\sqlversioning`, named by port.
+It does not execute setup or demo SQL. Use `-NoBrowser` only for
 health checks. A repository skill records this as the "run the app" workflow.
 
 For manual startup, or if dependencies are missing:
@@ -50,9 +52,16 @@ these diagnostic demos assume SQL Server sysadmin.
 
 ## Present
 
-1. Check readiness on demo 0. Setup is **destructive**: the original setup
-   script drops and recreates the three named lab databases and seeds data.
-   Run it only after reviewing its SQL and confirming the prompt.
+1. Demo 0 has one **Run setup** button. Setup is **destructive**: it drops and
+   recreates `starswillwinthecup`, `eaglesdontfly`, and `howboutthemcowboys`
+   and seeds their data. Review the expandable SQL and confirm the prompt.
+   After successful setup, three visual database cards show their tables and
+   approximate row totals. Raw result tables are expandable. Saved setup
+   inventory survives a backend restart when browser history storage is available,
+   and is labeled as a previous setup rather than current database state.
+   No separate readiness step is needed.
+   The database cards use locally served Dallas Stars, Philadelphia Eagles,
+   and Dallas Cowboys logos, not generic symbols.
 2. Select a demo and sub-demo, then run individual numbered steps.
    Read each step's SQL, explanation, and handoff before clicking.
 3. Sessions 1 and 2 are independent, persistent SQL connections. Explicit
@@ -84,10 +93,66 @@ running and Windows must not sleep; OS sleep, SQL service restarts, or manually
 killing the process cannot be prevented by the app.
 
 Never close the browser assuming SQL transactions have ended. Use End demo
-first, then stop the Python server with Ctrl+C. Shutdown cleanup is best effort;
+first, then stop the background server with `Stop-Process -Id <backend PID>`
+using the PID reported by the launcher (or Ctrl+C for manual console startup).
+Shutdown cleanup is best effort;
 if the process is forcibly terminated, SQL Server rolls back disconnected sessions.
 
-## Validate
+## Benchmark replay
+
+Open **Benchmark replay** from the navigation, or visit `/benchmark`.
+The single **Captured run** dropdown includes local comparisons:
+**Inventory — Baseline** and **Inventory — ADR + RCSI**. Inventory uses the
+200K-product capture and compares baseline with ADR + RCSI.
+Write-stress captures have been removed; its setup/workload code remains
+available for future testing. Inventory OL results are not presented pending
+further testing.
+It also offers **TPC-C — baseline vs ADR (published)** and
+**TPC-E — baseline vs ADR (published)** using the published figures summarized
+in `../benchmark/ctr-paper-results.html`: 13.8% and 2.4% throughput reduction.
+These replay normalized relative throughput (100% baseline versus 86.2% or
+97.6% with ADR), not fabricated execution counts. Baseline means traditional
+tempdb versioning. The source is linked at <https://aka.ms/sqladr>.
+These are not local sqlsim runs or separately measured ADR + RCSI results.
+The published benchmark transaction mixes are displayed separately:
+TPC-C is 8% read-only / 92% read/write; TPC-E is 76.9% read-only / 23.1% read/write,
+from Table 1 of [TPC-E vs. TPC-C](https://cs-people.bu.edu/mathan/publications/sigrec10-chen.pdf).
+These describe transaction roles, not physical IO or measured mix samples from
+the ADR runs. No workload SQL or latency figures are invented.
+Click the single **Run** button to start the selected replay. Repeat a replay;
+completed comparisons remain visible without duplicate rows.
+Each run animates execution counters and progress for 10 seconds, ending at the
+exact captured total and adding the configuration to the comparison table.
+An illustrative worker-to-SQL flow and color-coded throughput bars make the
+playback visual. Completed bars retain their recorded rates for comparison.
+The throughput display uses the original recorded runtime, not the compressed
+playback duration. **Restart replay** cancels playback and clears the comparison.
+The page shows actual saved execution totals, average latency, available
+deadlocks, and query breakdowns. Executions/s and baseline ratios are calculated
+using each configuration's recorded runtime. Missing metrics say **Not captured**.
+Each workload row has **Expand SQL** for its current repository script.
+Historical captures do not include original SQL text, so the code is explicitly
+labeled as current source. The **% read / % write (workers)** column shows each
+query's share of configured worker threads, with an overall mix below the table
+(inventory: 62.5% read / 37.5% write).
+These are workload-role percentages, not measured IO or execution shares;
+write queries can also read rows internally.
+Only the selected 200K-product inventory capture is offered.
+The 50K inventory capture remains archived but is not shown.
+Presentation labels omit timestamps; original capture metadata remains in the
+JSON files and API for traceability. The page is labeled
+**Replay — animated from recorded totals**. Intermediate counters are explicitly
+interpolated, not measured time-series evidence or new measurements.
+
+## Validation commands
+
+Team logo assets are sourced from ESPN's
+[Stars](https://a.espncdn.com/i/teamlogos/nhl/500/dal.png),
+[Eagles](https://a.espncdn.com/i/teamlogos/nfl/500/phi.png), and
+[Cowboys](https://a.espncdn.com/i/teamlogos/nfl/500/dal.png) images.
+Logos remain the property of their respective owners and identify the
+demo database themes; no affiliation or endorsement is implied.
+The app serves them locally and needs no external image requests at runtime.
 
 ```powershell
 python -m unittest discover -v

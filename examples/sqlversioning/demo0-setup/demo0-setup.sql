@@ -11,19 +11,19 @@ USE master;
 GO
 
 -- ============================================================================
--- 1. Demo database: texasrangerswillwinitthisyear (primary demos D1, D3, D4, D5, D6, D7)
+-- 1. Demo database: starswillwinthecup (primary demos D1, D3, D4, D5, D6, D7)
 -- ============================================================================
-IF DB_ID(N'texasrangerswillwinitthisyear') IS NOT NULL
+IF DB_ID(N'starswillwinthecup') IS NOT NULL
 BEGIN
-    ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE texasrangerswillwinitthisyear;
+    ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE starswillwinthecup;
 END
 GO
-CREATE DATABASE texasrangerswillwinitthisyear;
+CREATE DATABASE starswillwinthecup;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET RECOVERY SIMPLE;
+ALTER DATABASE starswillwinthecup SET RECOVERY SIMPLE;
 GO
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- Main demo table — Accounts
@@ -247,7 +247,7 @@ END
 SET NOCOUNT OFF;
 GO
 
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
@@ -259,7 +259,7 @@ SELECT
     reserved_space_kb
 FROM sys.dm_tran_version_store_space_usage
 WHERE database_id IN (
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     DB_ID(N'eaglesdontfly'), DB_ID(N'howboutthemcowboys')
 );
 
@@ -269,12 +269,12 @@ SELECT name,
        is_accelerated_database_recovery_on AS ADR
 FROM sys.databases
 WHERE name IN (
-    N'texasrangerswillwinitthisyear', 
+    N'starswillwinthecup',
     N'eaglesdontfly', N'howboutthemcowboys'
 );
 
 PRINT N'=== SETUP COMPLETE ===';
-PRINT N'Databases: texasrangerswillwinitthisyear, eaglesdontfly, howboutthemcowboys';
+PRINT N'Databases: starswillwinthecup, eaglesdontfly, howboutthemcowboys';
 PRINT N'Tables: Accounts (10K), Orders (5K), OrderItems (10K), BigTable (500K), BenchAccounts (50K)';
 PRINT N'        ReportData (500K in eaglesdontfly), GameStats (5K in howboutthemcowboys)';
 PRINT N'Next: run each demo script in order (demo1 through demo7)';

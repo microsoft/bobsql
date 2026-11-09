@@ -5,21 +5,21 @@
 -- Load this in SSMS Session 1 (left window).
 -- Load demo1-blocking-session2.sql in Session 2 (right window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- RESET: Clear any options set by later demos so D1 works from a clean state
 -- Run this before every practice/presentation to ensure a clean starting point
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET OPTIMIZED_LOCKING = OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT OFF;
+ALTER DATABASE starswillwinthecup SET OPTIMIZED_LOCKING = OFF;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = OFF;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION OFF;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT OFF;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 -- Reset AccountId 1 to a known starting balance for clean demo
@@ -33,7 +33,7 @@ SELECT name,
     is_read_committed_snapshot_on AS RCSI,
     is_accelerated_database_recovery_on AS ADR,
     is_optimized_locking_on AS OL
-FROM sys.databases WHERE name = N'texasrangerswillwinitthisyear';
+FROM sys.databases WHERE name = N'starswillwinthecup';
 -- Should show RCSI = 0, ADR = 0, OL = 0
 GO
 

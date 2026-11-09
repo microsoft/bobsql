@@ -2,7 +2,7 @@
 from mssql_python import connect as mssql_connect
 import re, struct
 
-conn = mssql_connect('Server=localhost;Database=texasrangerswillwinitthisyear;Trusted_Connection=yes;Encrypt=no')
+conn = mssql_connect('Server=localhost;Database=starswillwinthecup;Trusted_Connection=yes;Encrypt=no')
 cur = conn.cursor()
 
 # Find page for AccountId 42
@@ -13,7 +13,7 @@ pages = [(r[0], r[1]) for r in cur.fetchall()]
 
 cur.execute('DBCC TRACEON(3604)')
 for fid, pid in pages:
-    cur.execute(f"DBCC PAGE(N'texasrangerswillwinitthisyear', {fid}, {pid}, 3) WITH TABLERESULTS")
+    cur.execute(f"DBCC PAGE(N'starswillwinthecup', {fid}, {pid}, 3) WITH TABLERESULTS")
     rows = cur.fetchall()
     target_slot = None
     for r in rows:
