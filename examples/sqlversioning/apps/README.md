@@ -4,8 +4,10 @@ Five light navy-and-silver presentation pages share a local Flask backend.
 Presentation sizing is always on; there is no alternate mode or sizing toggle.
 The Cowboys silver background and compact headings keep demo cards and the
 first execution controls visible without scrolling on typical laptop screens.
-Long step instructions and SQL expand on demand; destructive steps still require
-confirmation. Template changes appear on browser refresh without restarting SQL
+Demo 1-4 show one step at a time with its exact SQL batch always visible.
+Detailed monitoring, prerequisites, and earlier results expand on demand;
+destructive steps still require confirmation.
+Template changes appear on browser refresh without restarting SQL
 sessions or enabling Flask's process reloader.
 SQL runs on your local SQL Server 2025 instance using your Windows account
 and integrated authentication. No credentials, CDN, or cloud services are needed.
@@ -62,17 +64,45 @@ these diagnostic demos assume SQL Server sysadmin.
    No separate readiness step is needed.
    The database cards use locally served Dallas Stars, Philadelphia Eagles,
    and Dallas Cowboys logos, not generic symbols.
-2. Select a demo and sub-demo, then run individual numbered steps.
-   Read each step's SQL, explanation, and handoff before clicking.
+2. Select a demo and sub-demo. Only one step is visible, with its session,
+   explanation, **Run** button, and exact SQL batch, as in an SSMS query window.
+   A short explanation stays visible; full instructions and safety details
+   remain under **Prerequisites & safety**. Long SQL/results scroll inside their
+   own panels rather than sending you down a list of steps.
+   **Previous**, **Next**, and the step picker only change the displayed step;
+   they never execute SQL or wait for a running query. The selected step's
+   actual result appears beside it. Saved results are labeled as previous
+   evidence, not current database state.
+   The current step has a navy highlight. Completed steps turn grey, receive
+   a check mark in the step picker, and their **Run** button becomes disabled
+   **Completed**. **Next** stays highlighted. Successful results and expected
+   SQL errors count as completion; failures and cancellations do not.
+   To repeat deliberately, expand **Instructions & Run again** and confirm
+   **Run again (intentional repeat)**. SQL and earlier results remain readable.
+   After finishing a demo, its first configuration step is available to start
+   a fresh walkthrough; old executions do not mark later steps complete in
+   the new run. Saved results from a previous backend are not completion.
+   Demo 1 separates preparation, **Reader waits**, **NOLOCK reads dirty data**,
+   and cleanup. Writer/Reader labels make the session handoffs explicit.
+   Session cards show the last single-row balance returned by this scenario
+   on the current backend, not a simulated or continuously sampled balance.
 3. Sessions 1 and 2 are independent, persistent SQL connections. Explicit
    transactions remain open across clicks. A blocked reader does not freeze
    the browser: advance the writer's commit step to release it.
-4. Live DMV evidence, actual query results, error 3960, and DBCC PAGE output
-   are shown separately from explanatory text. Result tables display at most
+4. Session state and blocking remain visible. Detailed DMV monitoring and
+   earlier results/balance comparisons are expandable to keep the current SQL
+   and result in view. Actual query results, error 3960, and DBCC PAGE output
+   are separate from explanatory text. Result tables display at most
    1,000 rows. Version cleanup timing and internal page formats vary by build.
 5. **End demo sessions** before switching demos or running database
    configuration steps. This cancels running work, rolls back unfinished
    transactions, and closes only this app's SQL connections.
+   After the last cleanup SQL succeeds, the walkthrough's **Next** control
+   becomes **Finish demo — close sessions**. Click it and confirm to complete
+   the handoff. A success message confirms that connections are closed and
+   you can run the next demo's configuration. Cleanup SQL alone does not
+   close the app connections. The header's **End demo** remains available
+   for early exit or cancellation.
 
 End demo does **not** undo committed updates, restore isolation/ADR options,
 or recreate tables. Use each scenario's explicit restoration steps. Some

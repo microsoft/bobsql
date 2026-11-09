@@ -76,6 +76,7 @@
     .number { width: 32px; height: 32px; display: grid; place-items: center; background: var(--cp-accent-soft); color: var(--cp-accent); border-radius: 10px; font-weight: 750; margin-bottom: 10px; }
     .banner { border: 1px solid var(--cp-border); border-left: 4px solid var(--cp-warning); background: var(--cp-surface); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; overflow-wrap: anywhere; }
     .banner.error { border-left-color: var(--cp-danger); color: var(--cp-danger); }
+    .banner.success { border-left-color: var(--cp-success); color: var(--cp-success); font-size: 16px; }
     .banner button { float: right; padding: 0 8px; margin-left: 12px; }
     .section-head { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 8px; }
     .section-head h2 { margin: 0; }
@@ -90,6 +91,41 @@
     .step details { margin-top: 8px; }
     .step-notes p { font-size: 14px; margin: 8px 0; }
     .workspace { display: grid; grid-template-columns: minmax(320px, .9fr) minmax(0, 1.25fr); gap: 24px; align-items: start; }
+    .walkthrough .workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    .step-navigation { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .step-navigation select { flex: 1; min-width: 0; font-size: 14px; }
+    .step-navigation button { font-size: 14px; padding: 6px 12px; }
+    .step-chapter { font-size: 13px; color: var(--cp-accent); font-weight: 700; margin-bottom: 4px; }
+    .step-explanation { font-size: 14px; line-height: 1.4; margin: 8px 0; }
+    .step-sql { font-size: 15px; line-height: 1.4; max-height: clamp(140px, calc(100dvh - 420px), 320px); margin: 8px 0 0; padding: 10px; }
+    .walkthrough .step { padding: 12px; }
+    .walkthrough .step.current { border-left: 5px solid var(--cp-accent); }
+    .walkthrough .step.completed { background: var(--cp-surface-soft); border-color: var(--cp-border); }
+    .walkthrough .step.completed .step-heading h3 { color: var(--cp-text-muted); }
+    .step.completed .step-footer > button { background: var(--cp-bg-elevated); color: var(--cp-text-muted); border-color: var(--cp-border); opacity: 1; }
+    .repeat-step { font-size: 14px; margin-top: 8px; }
+    .walkthrough .step-heading { margin-bottom: 4px; gap: 8px; align-items: start; }
+    .walkthrough .step-heading h3 { margin: 0; font-size: 18px; }
+    .walkthrough .step-footer { margin: 8px 0; }
+    .walkthrough .step-footer button { padding: 6px 12px; font-size: 16px; }
+    .walkthrough .step-footer .status { font-size: 13px; }
+    .walkthrough .scenario-panel .section-head { flex: 1; min-width: 0; }
+    .walkthrough .scenario-panel label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .walkthrough .scenario-panel select { min-width: 0; flex: 1; padding: 4px 8px; font-size: 14px; }
+    .walkthrough .evidence-column { gap: 10px; }
+    .walkthrough .sessions { margin-bottom: 0; gap: 6px; }
+    .walkthrough .session { padding: 8px; font-size: 14px; }
+    .session-balance { display: block; margin-top: 4px; color: var(--cp-accent); font-size: 14px; }
+    .walkthrough .blocking { max-height: 90px; overflow: auto; margin: 6px 0; }
+    .walkthrough .blocking .empty { padding: 0; margin: 0; font-size: 12px; }
+    #focused-results { max-height: clamp(140px, calc(100dvh - 350px), 480px); overflow: auto; }
+    #focused-results .job { border: 0; padding: 0; }
+    #focused-results .table-wrap { margin: 8px 0; }
+    #focused-results pre { font-size: 14px; line-height: 1.4; }
+    .walkthrough .panel h2 { font-size: 18px; margin-bottom: 6px; }
+    .walkthrough #live-heading { font-size: 15px; }
+    .walkthrough #diagnostics, .walkthrough #execution-details { margin-top: 0; }
+    @media (max-width: 760px) { .walkthrough .workspace { grid-template-columns: 1fr; } }
     .steps { display: flex; flex-direction: column; gap: 14px; }
     .step { border: 1px solid var(--cp-border); border-radius: 12px; padding: 14px; background: var(--cp-surface); }
     .step-heading { display: flex; gap: 12px; align-items: baseline; margin-bottom: 8px; }
@@ -164,6 +200,7 @@
   <nav id="navigation" aria-label="Demo navigation"><a href="/">Overview</a></nav>
   <main>
     <div id="error-banner" class="banner error" role="alert" hidden></div>
+    <div id="completion-banner" class="banner success" role="status" hidden></div>
     <div id="storage-banner" class="banner" role="status" hidden></div>
     <div id="active-warning" class="banner" hidden></div>
     <section id="home" hidden>
@@ -183,6 +220,12 @@
         <div class="section-head"><label>Subdemo <select id="scenario"></select></label></div>
         <details><summary>Prerequisites &amp; script sources</summary><p id="demo-description" class="muted"></p><p id="scenario-description"></p><small id="scenario-source"></small></details>
       </div>
+      <div id="step-navigation" class="step-navigation" hidden>
+        <button id="previous-step" type="button">Previous</button>
+        <label class="eyebrow" for="step-picker">Step</label>
+        <select id="step-picker" aria-label="Choose a step"></select>
+        <button id="next-step" type="button">Next</button>
+      </div>
       <div class="workspace">
         <section aria-labelledby="steps-heading">
           <div id="steps-intro" class="section-head"><h2 id="steps-heading">Steps — run in order</h2><span class="badge">Manual execution only</span></div>
@@ -193,19 +236,27 @@
           <section class="panel" aria-labelledby="live-heading">
             <div class="section-head"><h2 id="live-heading">Live engine evidence</h2><small id="observed">Waiting for sample</small></div>
             <div id="sessions" class="sessions"></div>
-            <div id="metrics" class="metrics"></div>
             <div id="blocking" class="blocking"></div>
             <div id="monitor-error" class="banner error" hidden></div>
-            <details><summary>Isolation, database options &amp; raw DMV samples</summary><div id="monitor-tables"></div></details>
-            <small>Measured DMV samples, refreshed every second. “Unavailable” is not zero. Cleanup timing is asynchronous.</small>
+            <details id="diagnostics"><summary>Detailed monitoring &amp; database options</summary>
+              <div id="metrics" class="metrics"></div>
+              <div id="monitor-tables"></div>
+              <small>Measured DMV samples, refreshed every second. “Unavailable” is not zero. Cleanup timing is asynchronous.</small>
+            </details>
           </section>
-          <section id="balance-panel" class="panel" hidden><h2>Balance read comparison</h2><p class="muted">Actual successful result rows, in execution order. No simulated balances.</p><div id="balances"></div></section>
-          <section class="panel" aria-labelledby="results-heading">
+          <section id="focused-panel" class="panel" aria-labelledby="focused-heading" hidden>
+            <h2 id="focused-heading">Result for this step</h2>
+            <div id="focused-results" aria-live="polite"></div>
+          </section>
+          <details id="execution-details" class="panel"><summary>Earlier results &amp; balance comparisons</summary>
+          <section id="balance-panel" hidden><h2>Balance read comparison</h2><p class="muted">Actual successful result rows, in execution order. No simulated balances.</p><div id="balances"></div></section>
+          <section aria-labelledby="results-heading">
             <div class="section-head"><h2 id="results-heading">SQL &amp; session results</h2><label>Session <select id="result-session"><option value="all">All sessions</option><option value="1">Session 1</option><option value="2">Session 2</option><option value="admin">Admin</option></select></label></div>
             <p class="muted">Latest execution stays visible; earlier evidence remains in history. An accepted request is not a completed step.</p>
             <div id="latest-results"></div>
             <details id="history-details"><summary id="history-label">Earlier execution history</summary><div id="history"></div></details>
           </section>
+          </details>
         </div>
         <section id="setup-inventory" class="panel" aria-live="polite" hidden></section>
       </div>
@@ -220,9 +271,30 @@
       let catalog = null, currentDemo = null, currentScenario = null, state = null;
       let connected = false, polling = false, loadingCatalog = false, resetting = false;
       let history = [], lastResults = "", lastMonitor = "", lastSessions = "";
+      let selectedStep = 0;
       const pending = new Map();
       const terminal = new Set(["succeeded", "failed", "expected_error", "cancelled"]);
       const sessionNames = { admin: "Admin", "1": "Session 1", "2": "Session 2" };
+      const blockingStory = {
+        "1-configure": ["Preparation", "Use locking READ COMMITTED", "End demo first. This turns versioning and optimized locking off so we can show reader/writer blocking."],
+        "1-reset": ["Preparation", "Start with a committed balance of 100", "Reset account 1 to 100. This is the starting value for both stories."],
+        "1-writer": ["1 · Reader waits", "Writer changes 100 to 200 — without committing", "Session 1 updates the balance and holds the lock. Leave the transaction open."],
+        "1-blocked": ["1 · Reader waits", "Reader tries to read — and waits", "Run the SELECT in Session 2. It should wait for the writer's lock. Click Next while it is still running."],
+        "1-waits": ["1 · Reader waits", "See who is blocking whom", "The admin query shows the waiting reader and blocking writer. Next, commit in Session 1 to release the reader."],
+        "1-writer-commit": ["1 · Reader waits", "Writer commits — reader can finish", "Commit Session 1. Watch Session 2 finish and return 200. The COMMIT itself does not return a balance."],
+        "1-committed": ["1 · Reader waits", "Reader confirms the committed balance: 200", "Once the waiting SELECT finishes, read again in Session 2. The committed balance is now 200."],
+        "1-dirty-writer": ["2 · NOLOCK reads dirty data", "Writer makes a change we will roll back", "Session 1 adds 999999 but does not commit. The uncommitted balance would be 1000199; the committed balance is still 200."],
+        "1-nolock": ["2 · NOLOCK reads dirty data", "Reader uses NOLOCK to read the uncommitted value", "Read BEFORE rollback. NOLOCK can return 1000199 without waiting, even though we will never commit that value."],
+        "1-dirty-rollback": ["2 · NOLOCK reads dirty data", "Writer rolls back the change", "Roll back Session 1. The value seen by NOLOCK was dirty data, not a committed balance."],
+        "1-clean": ["2 · NOLOCK reads dirty data", "Reader checks again: the balance is 200", "A normal SELECT now returns 200. The NOLOCK reader saw a change that never became committed data."],
+        "1-cleanup-1": ["Finish", "Clean up Session 1", "Reset the writer connection. This does not undo committed changes."],
+        "1-cleanup-2": ["Finish", "Clean up Session 2", "Reset the reader connection, then use End demo to close both sessions before the next demo."]
+      };
+      function stepTitle(step) { return blockingStory[step.id]?.[1] || step.title; }
+      function stepExplanation(step) {
+        const end = step.explanation.indexOf(". ");
+        return blockingStory[step.id]?.[2] || (end < 0 ? step.explanation : step.explanation.slice(0, end + 1));
+      }
       const statusNames = { running: "Running", succeeded: "Succeeded", failed: "Failed", expected_error: "Expected SQL error", cancelled: "Cancelled", submitted: "Accepted · awaiting job state" };
       function el(tag, className, text) {
         const node = document.createElement(tag);
@@ -292,6 +364,7 @@
       }
       function route() {
         if (!catalog) return;
+        $("completion-banner").hidden = true;
         const match = location.pathname.match(/^\/demo\/([0-4])\/?$/);
         currentDemo = match ? demoAt(match[1]) : null;
         currentScenario = null;
@@ -304,9 +377,12 @@
         });
         if (currentDemo) {
           const setup = currentDemo.id === "0";
-          $("scenario-panel").hidden = setup;
-          $("steps-intro").hidden = setup;
-          $("step-guidance").hidden = setup;
+          $("demo").classList.toggle("walkthrough", !setup);
+          $("scenario-panel").hidden = setup || currentDemo.scenarios.length === 1;
+          $("steps-intro").hidden = true;
+          $("step-guidance").hidden = true;
+          $("step-navigation").hidden = setup;
+          $("focused-panel").hidden = setup;
           $("evidence-column").hidden = setup;
           $("demo").querySelector(".workspace").style.gridTemplateColumns = setup ? "1fr" : "";
           $("setup-inventory").hidden = true;
@@ -333,28 +409,62 @@
         $("scenario-source").textContent = sources.length ? `Source: ${sources.join(" · ")}` : "";
         $("steps").replaceChildren();
         const setup = currentDemo.id === "0";
+        selectedStep = 0;
+        $("step-picker").replaceChildren();
         const visibleSteps = setup ? currentScenario.steps.filter(s => s.id === "0-setup") : currentScenario.steps;
         visibleSteps.forEach((step, i) => {
+          const option = el("option", "", `${i + 1}. ${stepTitle(step)}`);
+          option.value = String(i); $("step-picker").append(option);
           const card = el("article", "step");
           card.dataset.stepId = step.id;
+          if (!setup) card.append(el("p", "step-chapter", blockingStory[step.id]?.[0] || currentScenario.title));
           const heading = el("div", "step-heading");
           if (!setup) heading.append(el("span", "step-number", String(i + 1).padStart(2, "0")));
-          heading.append(el("h3", "", setup ? "Prepare the three demo databases" : step.title));
+          heading.append(el("h3", "", setup ? "Prepare the three demo databases" : stepTitle(step)));
           card.append(heading);
-          if (!setup) card.append(el("span", "badge", sessionNames[step.session] || step.session));
+          if (!setup) card.append(el("span", "badge", sessionName(step.session)),
+            el("p", "step-explanation", i === visibleSteps.length - 1 ?
+              "After this cleanup SQL, click Finish demo — close sessions above to close both connections." :
+              stepExplanation(step)));
           if (step.expected_error) card.append(el("p", "warning-note", `Expected SQL error ${step.expected_error}; this is evidence, not an ordinary failure.`));
           if (step.dangerous) card.append(el("p", "warning-note", setup ?
             "Setup replaces all three demo databases and their data. Confirmation required. Tables will appear below when it finishes." :
             "Changes lab state. Confirmation required."));
-          const bottom = el("div", "step-footer"), run = el("button", "primary", setup ? "Run setup" : "Run step");
+          const bottom = el("div", "step-footer"), run = el("button", "primary", setup ? "Run setup" : `Run in ${sessionName(step.session)}`);
           run.type = "button"; run.onclick = () => runStep(step);
           bottom.append(run, el("span", "status", "Not run")); card.append(bottom);
-          const notes = el("details", "step-notes"); notes.append(el("summary", "", "Instructions & safety"), el("p", "", step.explanation));
+          const notes = el("details", "step-notes"); notes.append(el("summary", "", "Prerequisites & safety"));
+          if (setup) notes.append(el("p", "", step.explanation));
+          else notes.append(el("p", "", step.explanation), el("p", "", currentScenario.description), el("small", "", $("scenario-source").textContent));
           if (step.requires_clean_sessions) notes.append(el("p", "warning-note", "Use End demo before configuration: sessions 1 and 2 must be closed, not merely committed. End demo does not restore baseline data."));
+          const repeat = el("button", "repeat-step", "Run again (intentional repeat)");
+          repeat.type = "button"; repeat.hidden = true; repeat.onclick = () => runStep(step, true);
+          notes.append(repeat);
           card.append(notes);
-          const sql = el("details"); sql.append(el("summary", "", "Inspect SQL"), el("pre", "", step.sql)); card.append(sql);
+          if (setup) {
+            const sql = el("details"); sql.append(el("summary", "", "Inspect SQL"), el("pre", "", step.sql)); card.append(sql);
+          } else card.append(el("pre", "step-sql", step.sql));
           $("steps").append(card);
         });
+        lastSessions = ""; renderSessions(); selectStep(0);
+      }
+      function sessionName(name) {
+        if (currentDemo?.id === "1" && name === "1") return "Session 1 · Writer";
+        if (currentDemo?.id === "1" && name === "2") return "Session 2 · Reader";
+        return sessionNames[name] || name;
+      }
+      function selectStep(index) {
+        selectedStep = index;
+        $("step-picker").value = String(index);
+        const setup = currentDemo.id === "0";
+        [...$("steps").children].forEach((card, i) => {
+          card.hidden = !setup && i !== index;
+          card.classList.toggle("current", i === index);
+          if (i === index) card.setAttribute("aria-current", "step"); else card.removeAttribute("aria-current");
+        });
+        $("previous-step").disabled = index === 0;
+        const next = currentScenario.steps[index + 1];
+        $("next-step").title = next ? `Next: ${stepTitle(next)}. This does not execute SQL.` : "Last step";
         lastResults = ""; updateSteps(); renderResults();
       }
       function allJobs() {
@@ -369,10 +479,31 @@
         const ids = new Set(currentScenario?.steps.map(s => s.id) || []);
         return allJobs().filter(j => ids.has(j.step_id));
       }
+      function walkthroughJobs() {
+        const jobs = relevantJobs().filter(j => !j.historical);
+        const start = jobs.findLastIndex(j => j.step_id === currentScenario.steps[0].id);
+        return start < 0 ? jobs : jobs.slice(start);
+      }
+      function completedStep(step, jobs = walkthroughJobs()) {
+        if (step.id === currentScenario.steps[0].id && state?.active_demo === null) return false;
+        if ([...pending.values()].some(p => p.step_id === step.id)) return false;
+        return ["succeeded", "expected_error"].includes(jobs.filter(j => j.step_id === step.id).at(-1)?.status);
+      }
       function updateSteps() {
         if (!currentScenario) return;
-        const jobs = relevantJobs();
-        document.querySelectorAll("#steps .step").forEach(card => {
+        const jobs = walkthroughJobs();
+        const finalStep = selectedStep === currentScenario.steps.length - 1 && currentDemo.id !== "0";
+        const lastJob = jobs.filter(j => j.step_id === currentScenario.steps.at(-1).id).at(-1);
+        const cleaned = lastJob?.status === "succeeded" && !lastJob.historical;
+        const closed = cleaned && connected && state?.active_demo === null && state.sessions.length === 0;
+        $("next-step").textContent = finalStep ? closed ? "Demo finished" : "Finish demo — close sessions" : "Next";
+        $("next-step").classList.toggle("primary", !closed);
+        $("next-step").disabled = finalStep && (!connected || resetting || !cleaned || closed || pending.size > 0 ||
+          state?.sessions.some(s => s.busy) || String(state?.active_demo) !== currentDemo.id);
+        if (finalStep) $("next-step").title = closed ? "Connections closed. Ready for the next demo." :
+          cleaned ? "Close the demo connections. Confirmation required; committed data and database options are not restored." :
+          "Run the final cleanup SQL first, then finish the demo here.";
+        document.querySelectorAll("#steps .step").forEach((card, i) => {
           const step = currentScenario.steps.find(s => s.id === card.dataset.stepId);
           const busy = state?.sessions?.find(s => String(s.name) === String(step.session))?.busy;
           const waiting = [...pending.values()].some(p => String(p.session) === String(step.session));
@@ -380,16 +511,33 @@
           const configuring = state?.sessions?.some(s => s.busy && s.configuring);
           const configurationPending = [...pending.values()].some(p => findStep(p.step_id)?.step.requires_clean_sessions);
           const latest = jobs.filter(j => j.step_id === step.id).at(-1);
+          const completed = completedStep(step, jobs);
+          card.classList.toggle("completed", completed);
+          const option = $("step-picker").options[i];
+          option.textContent = `${completed ? "✓ " : ""}${i + 1}. ${stepTitle(step)}`;
           const button = card.querySelector("button");
-          button.disabled = !connected || resetting || !!busy || waiting || !!mustEnd || configuring || configurationPending;
+          const unavailable = !connected || resetting || !!busy || waiting || !!mustEnd || configuring || configurationPending;
+          button.disabled = unavailable || completed;
+          button.textContent = completed ? "Completed" : currentDemo.id === "0" ? "Run setup" : `Run in ${sessionName(step.session)}`;
           button.title = configuring || configurationPending ? "Wait for database configuration to finish." :
             mustEnd ? "End demo to close app sessions 1 and 2 before configuration." :
-            busy || waiting ? "This session is executing. Other idle sessions remain available." : "Execute only this SQL step";
+            busy || waiting ? "This session is executing. Other idle sessions remain available." :
+            completed ? "Step completed. Use Next, or expand instructions for an intentional repeat." : "Execute only this SQL step";
+          const repeat = card.querySelector(".repeat-step");
+          repeat.hidden = !completed; repeat.disabled = unavailable;
+          card.querySelector(".step-notes summary").textContent = completed ? "Instructions & Run again" : "Prerequisites & safety";
           const status = card.querySelector(".status");
           status.className = `status ${latest?.status || ""}`;
           const submitted = [...pending.values()].some(p => p.step_id === step.id);
-          status.textContent = submitted ? "Submitting / awaiting live job…" : latest ? statusLabel(latest) : "Not run";
+          const shown = latest && step.id === currentScenario.steps[0].id && state?.active_demo === null ? { ...latest, historical: true } : latest;
+          status.textContent = submitted ? "Submitting / awaiting live job…" : shown ? statusLabel(shown) : "Not run in this walkthrough";
+          if (unavailable) status.textContent += ` · ${button.title}`;
         });
+        fitStepSql();
+      }
+      function fitStepSql() {
+        const sql = $("steps").querySelector(".step:not([hidden]) .step-sql");
+        if (sql) sql.style.maxHeight = `${Math.max(80, Math.min(360, window.innerHeight - sql.getBoundingClientRect().top - 24))}px`;
       }
       function statusLabel(job) {
         let label = statusNames[job.status] || job.status;
@@ -398,6 +546,7 @@
           label += expected ? ` ${expected}` : "";
         }
         if (job.historical && !terminal.has(job.status)) label += " · historical, completion unverified";
+        else if (job.historical) label += " · saved result, not current state";
         if (Number.isFinite(job.elapsed_ms)) label += ` · ${(job.elapsed_ms / 1000).toFixed(1)} s`;
         return label;
       }
@@ -414,9 +563,13 @@
         if (!list.length) list.push("May change lab state or run resource-intensive SQL. Review the complete statement below.");
         return `${step.title}\n\n${list.map(s => "• " + s).join("\n")}\n\nEnd demo does NOT restore baseline data or database options.\n\nSQL to execute:\n${sql}\n\nRun this step?`;
       }
-      async function runStep(step) {
+      async function runStep(step, repeat = false) {
         if (!connected || resetting || [...pending.values()].some(p => String(p.session) === String(step.session)) ||
           state?.sessions?.some(s => String(s.name) === String(step.session) && s.busy)) return;
+        if (completedStep(step)) {
+          if (!repeat) return;
+          if (!step.dangerous && !window.confirm(`Run "${stepTitle(step)}" again?\n\nThis step already completed. Only repeat it intentionally; an UPDATE can apply the change a second time.`)) return;
+        }
         if (step.dangerous && !window.confirm(implications(step))) return;
         const token = `request-${Date.now()}-${Math.random()}`;
         pending.set(token, { step_id: step.id, session: step.session });
@@ -462,13 +615,14 @@
         }
         return pre;
       }
-      function jobPanel(job) {
+      function jobPanel(job, focused = false) {
         const panel = el("article", "job"), header = el("div", "job-header");
         panel.dataset.jobId = job.id;
         header.append(el("h3", "", job.title || findStep(job.step_id)?.step.title || job.step_id),
           el("span", `status ${job.status}`, statusLabel(job)));
-        panel.append(header, el("small", "", `${sessionNames[job.session] || job.session} · ${job.started_at || job.accepted_at || "Start time unavailable"} · Job ${job.id}`));
-        if (job.status === "running") panel.append(el("p", "status running", "Executing on SQL Server. A wait or blocked query is still running, not complete."));
+        if (focused) panel.append(el("span", `status ${job.status}`, statusLabel(job)));
+        else panel.append(header, el("small", "", `${sessionNames[job.session] || job.session} · ${job.started_at || job.accepted_at || "Start time unavailable"} · Job ${job.id}`));
+        if (job.status === "running") panel.append(el("p", "status running", "Still executing. If blocked, use Next to reach the other session's COMMIT or ROLLBACK."));
         if (job.status === "expected_error") panel.append(el("p", "warning-note", "The backend classified this as the expected SQL error. Inspect the error text below; no success result is fabricated."));
         if (job.error) panel.append(el("pre", "", job.error));
         for (const set of job.result_sets || []) panel.append(table(set));
@@ -478,7 +632,7 @@
           panel.append(messages);
         }
         const sql = job.sql || findStep(job.step_id)?.step.sql;
-        if (sql) { const detail = el("details"); detail.append(el("summary", "", "Executed SQL"), el("pre", "", sql)); panel.append(detail); }
+        if (sql && !focused) { const detail = el("details"); detail.append(el("summary", "", "Executed SQL"), el("pre", "", sql)); panel.append(detail); }
         if (terminal.has(job.status) && !job.result_sets?.length && !job.messages?.length && !job.error)
           panel.append(el("p", "empty", "No result rows or SQL messages were returned."));
         return panel;
@@ -487,7 +641,7 @@
         if (!currentScenario) return;
         const all = relevantJobs(), selected = $("result-session").value;
         const jobs = all.filter(j => selected === "all" || String(j.session) === selected);
-        const fingerprint = JSON.stringify([currentScenario.id, selected, all]);
+        const fingerprint = JSON.stringify([currentScenario.id, selectedStep, selected, all]);
         if (fingerprint === lastResults) return;
         lastResults = fingerprint;
         if (currentDemo.id === "0") {
@@ -534,6 +688,21 @@
           panel.append(grid, el("small", "", "Row totals are SQL Server partition metadata estimates."), raw);
           return;
         }
+        const step = currentScenario.steps[selectedStep];
+        const previousJob = all.filter(j => j.step_id === step.id).at(-1);
+        const previousRun = step.id === currentScenario.steps[0].id && state?.active_demo === null;
+        const currentJob = previousJob && (previousRun || !walkthroughJobs().some(j => j.id === previousJob.id)) ? { ...previousJob, historical: true } : previousJob;
+        $("focused-heading").textContent = `Result · step ${selectedStep + 1}`;
+        const previousPanel = $("focused-results").querySelector(".job");
+        const expandedMessages = previousPanel?.dataset.jobId === currentJob?.id ? previousPanel?.querySelector("details")?.open : undefined;
+        $("focused-results").replaceChildren();
+        if (currentJob) {
+          $("focused-results").append(jobPanel(currentJob, true));
+          if (expandedMessages !== undefined) {
+            const detail = $("focused-results").querySelector("details");
+            if (detail) detail.open = expandedMessages;
+          }
+        } else $("focused-results").append(el("p", "empty", `Run the SQL in ${sessionName(step.session)}. Its actual result will appear here.`));
         const expanded = new Map();
         for (const container of [$("latest-results"), $("history")]) for (const panel of container.children) {
           if (panel.dataset.jobId) expanded.set(panel.dataset.jobId, [...panel.querySelectorAll("details")].map(d => d.open));
@@ -609,7 +778,7 @@
         $("blocking").replaceChildren();
         const sessionLabel = spid => {
           const s = state.sessions?.find(s => Number(s.spid) === Number(spid));
-          return s ? `${sessionNames[s.name]} · SPID ${spid}` : Number(spid) > 0 ? `SPID ${spid}` : `SQL internal blocker ${spid}`;
+          return s ? `${sessionName(s.name)} · SPID ${spid}` : Number(spid) > 0 ? `SPID ${spid}` : `SQL internal blocker ${spid}`;
         };
         for (const r of blocked) {
           const edge = el("div", "blocking-edge");
@@ -634,14 +803,22 @@
       }
       function renderSessions() {
         const sessions = state?.sessions || [];
-        const fingerprint = JSON.stringify([sessions, connected, resetting]);
+        const balances = new Map();
+        for (const job of relevantJobs()) if (!job.historical && job.status === "succeeded") {
+          for (const set of job.result_sets || []) {
+            const index = set.columns.findIndex(c => /^balance$/i.test(c));
+            if (index >= 0 && set.rows?.length === 1) balances.set(String(job.session), set.rows[0][index]);
+          }
+        }
+        const fingerprint = JSON.stringify([sessions, connected, resetting, currentDemo?.id, [...balances]]);
         if (fingerprint === lastSessions) return;
         lastSessions = fingerprint; $("sessions").replaceChildren();
         for (const name of ["admin", "1", "2"]) {
           const session = sessions.find(s => String(s.name) === name), card = el("div", "session");
-          card.append(el("strong", "", sessionNames[name]), el("small", "", session
+          card.append(el("strong", "", sessionName(name)), el("small", "", session
             ? `SPID ${session.spid} · ${session.busy ? "Executing" : "Idle"} · ${session.transaction_count ?? "?"} transaction(s)`
             : "Not connected / unavailable"));
+          if (session && balances.has(name)) card.append(el("span", "session-balance", `Last returned balance: ${balances.get(name)}`));
           const cancel = el("button", "danger", "Cancel request");
           cancel.disabled = !connected || resetting || !session?.busy;
           cancel.onclick = async () => {
@@ -668,6 +845,7 @@
           const next = await api("/api/state");
           if (!Array.isArray(next.sessions) || !Array.isArray(next.jobs)) throw new Error("Invalid live state.");
           state = next;
+          if (next.active_demo !== null || next.sessions.length) $("completion-banner").hidden = true;
           let changed = false;
           for (const job of next.jobs) {
             const previous = history.find(j => j.id === job.id), found = findStep(job.step_id);
@@ -713,6 +891,12 @@
         finally { loadingCatalog = false; }
       }
       $("scenario").onchange = chooseScenario;
+      $("step-picker").onchange = () => selectStep(Number($("step-picker").value));
+      $("previous-step").onclick = () => { if (selectedStep > 0) selectStep(selectedStep - 1); };
+      $("next-step").onclick = () => {
+        if (selectedStep + 1 < currentScenario.steps.length) selectStep(selectedStep + 1);
+        else $("end-demo").click();
+      };
       $("result-session").onchange = () => { lastResults = ""; renderResults(); };
       $("end-demo").onclick = async () => {
         if (!connected || resetting) return;
@@ -721,7 +905,9 @@
         try {
           await api("/api/reset", { confirmed: true });
           pending.clear();
-          report("Demo sessions ended. Database data and options were NOT restored. Review setup SQL before beginning again.");
+          $("error-banner").hidden = true;
+          $("completion-banner").textContent = "Connections closed — ready for the next demo. Data and database options were not restored.";
+          $("completion-banner").hidden = false;
           await poll();
         } catch (error) { report(`End demo: ${error.message}`); }
         finally { resetting = false; setConnected(connected); lastSessions = ""; renderSessions(); }
@@ -734,6 +920,7 @@
         event.preventDefault(); window.history.pushState({}, "", a.pathname); route(); window.scrollTo(0, 0);
       });
       window.addEventListener("popstate", route);
+      window.addEventListener("resize", fitStepSql);
       loadCatalog();
       window.setInterval(() => { if (catalog) poll(); }, 1000);
     })();
