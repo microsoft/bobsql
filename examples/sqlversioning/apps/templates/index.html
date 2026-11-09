@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>SQL Versioning · Live Lab</title>
+  <link rel="stylesheet" href="/static/sql-syntax.css">
+  <script src="/static/sql-syntax.js"></script>
   <script>document.documentElement.setAttribute("data-theme", "light");</script>
   <style>
     :root {
@@ -58,6 +60,8 @@
     #demo .hero { margin-bottom: 8px; }
     #demo .hero h1 { font-size: 22px; margin-bottom: 0; }
     #demo-label { display: none; }
+    #restart-controls button { font-size: 13px; line-height: 1.2; padding: 3px 10px; white-space: nowrap; }
+    #restart-status { display: none; }
     .hero-star { font-size: 48px; color: var(--cp-accent); text-shadow: 2px 2px var(--cp-silver); }
     .grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
     .demo-card { display: flex; flex-direction: column; min-width: 0; min-height: 200px; padding: 16px; }
@@ -108,16 +112,34 @@
     .walkthrough .step-heading h3 { margin: 0; font-size: 18px; }
     .walkthrough .step-footer { margin: 8px 0; }
     .walkthrough .step-footer button { padding: 6px 12px; font-size: 16px; }
-    .walkthrough .step-footer .status { font-size: 13px; }
+    .walkthrough .step-footer .status { font-size: 13px; flex: 1; min-width: 0; }
     .walkthrough .scenario-panel .section-head { flex: 1; min-width: 0; }
     .walkthrough .scenario-panel label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
     .walkthrough .scenario-panel select { min-width: 0; flex: 1; padding: 4px 8px; font-size: 14px; }
     .walkthrough .evidence-column { gap: 10px; }
+    .walkthrough #evidence-column > .panel { padding: 12px; }
     .walkthrough .sessions { margin-bottom: 0; gap: 6px; }
-    .walkthrough .session { padding: 8px; font-size: 14px; }
-    .session-balance { display: block; margin-top: 4px; color: var(--cp-accent); font-size: 14px; }
+    .walkthrough .session { padding: 8px; font-size: 14px; min-width: 0; border-top: 4px solid var(--cp-accent); }
+    .walkthrough .session:nth-child(2) { border-top-color: var(--cp-link); }
+    .walkthrough .session.blocked { border-top-color: var(--cp-danger); background: var(--cp-highlight); }
+    .session > small { display: block; font-size: 11px; line-height: 1.35; }
+    .session-balance { display: block; margin: 4px 0; color: var(--cp-accent); font-size: 11px; line-height: 1.35; }
+    .session-balance strong { display: block; font-size: 24px; line-height: 1.2; }
+    .session-output { max-height: clamp(100px, calc(100dvh - 510px), 300px); overflow: auto; margin: 8px 0; }
+    .session-output .job { border: 0; padding: 0; }
+    .session-output .status, .session-output .empty, .session-output p { font-size: 13px; }
+    .session-output .empty { padding: 6px 0; margin: 0; }
+    .session-output table { font-size: 13px; }
+    .session-output th, .session-output td { padding: 5px 6px; min-width: 65px; }
+    .session-output caption { padding: 6px; text-align: left; font-size: 12px; color: var(--cp-text-muted); }
+    .session-output .table-wrap { margin: 6px 0; }
+    .session-output pre, .session pre.sql-source { font-size: 13px; line-height: 1.4; padding: 8px; }
+    .session-step { margin-top: 4px; overflow-wrap: anywhere; }
+    #focused-panel { margin-top: 10px; }
+    #execution-details { grid-column: 1 / -1; }
     .walkthrough .blocking { max-height: 90px; overflow: auto; margin: 6px 0; }
     .walkthrough .blocking .empty { padding: 0; margin: 0; font-size: 12px; }
+    .walkthrough .blocking-edge { padding: 6px 8px; font-size: 12px; line-height: 1.3; }
     #focused-results { max-height: clamp(140px, calc(100dvh - 350px), 480px); overflow: auto; }
     #focused-results .job { border: 0; padding: 0; }
     #focused-results .table-wrap { margin: 8px 0; }
@@ -157,7 +179,7 @@
     th, td { border-bottom: 1px solid var(--cp-border); padding: 9px 12px; vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 90px; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:nth-child(even) { background: var(--cp-bg-elevated); }
-    .sessions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .sessions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
     .session { border: 1px solid var(--cp-border); border-radius: 10px; padding: 12px; background: var(--cp-bg-elevated); }
     .session strong { display: block; }
     .session button { font-size: 12px; padding: 4px 8px; margin-top: 8px; }
@@ -215,6 +237,10 @@
     <section id="demo" hidden>
       <div class="hero">
         <div><p class="eyebrow" id="demo-label"></p><h1 id="demo-title"></h1></div>
+        <div id="restart-controls" hidden>
+          <button id="restart-demo" type="button" class="danger">Reset demo</button>
+          <small id="restart-status"></small>
+        </div>
       </div>
       <div id="scenario-panel" class="panel scenario-panel">
         <div class="section-head"><label>Subdemo <select id="scenario"></select></label></div>
@@ -231,10 +257,14 @@
           <div id="steps-intro" class="section-head"><h2 id="steps-heading">Steps — run in order</h2><span class="badge">Manual execution only</span></div>
           <p id="step-guidance" class="muted step-guidance">Blocked reader? Run the writer’s COMMIT/ROLLBACK.</p>
           <div id="steps" class="steps"></div>
+          <section id="focused-panel" class="panel" aria-labelledby="focused-heading" hidden>
+            <h2 id="focused-heading">Result for this step</h2>
+            <div id="focused-results" aria-live="polite"></div>
+          </section>
         </section>
         <div id="evidence-column" class="evidence-column">
           <section class="panel" aria-labelledby="live-heading">
-            <div class="section-head"><h2 id="live-heading">Live engine evidence</h2><small id="observed">Waiting for sample</small></div>
+            <div class="section-head"><h2 id="live-heading">Side-by-side sessions</h2><small id="observed">Waiting for sample</small></div>
             <div id="sessions" class="sessions"></div>
             <div id="blocking" class="blocking"></div>
             <div id="monitor-error" class="banner error" hidden></div>
@@ -244,11 +274,9 @@
               <small>Measured DMV samples, refreshed every second. “Unavailable” is not zero. Cleanup timing is asynchronous.</small>
             </details>
           </section>
-          <section id="focused-panel" class="panel" aria-labelledby="focused-heading" hidden>
-            <h2 id="focused-heading">Result for this step</h2>
-            <div id="focused-results" aria-live="polite"></div>
-          </section>
-          <details id="execution-details" class="panel"><summary>Earlier results &amp; balance comparisons</summary>
+        </div>
+        <section id="setup-inventory" class="panel" aria-live="polite" hidden></section>
+        <details id="execution-details" class="panel"><summary>Earlier results &amp; balance comparisons</summary>
           <section id="balance-panel" hidden><h2>Balance read comparison</h2><p class="muted">Actual successful result rows, in execution order. No simulated balances.</p><div id="balances"></div></section>
           <section aria-labelledby="results-heading">
             <div class="section-head"><h2 id="results-heading">SQL &amp; session results</h2><label>Session <select id="result-session"><option value="all">All sessions</option><option value="1">Session 1</option><option value="2">Session 2</option><option value="admin">Admin</option></select></label></div>
@@ -256,9 +284,7 @@
             <div id="latest-results"></div>
             <details id="history-details"><summary id="history-label">Earlier execution history</summary><div id="history"></div></details>
           </section>
-          </details>
-        </div>
-        <section id="setup-inventory" class="panel" aria-live="polite" hidden></section>
+        </details>
       </div>
     </section>
     <div id="loading" class="panel"><h2>Loading the demo catalog…</h2><p class="muted">Connecting to the local server. Nothing will execute on load.</p><button id="retry">Retry connection</button></div>
@@ -384,6 +410,7 @@
           $("step-navigation").hidden = setup;
           $("focused-panel").hidden = setup;
           $("evidence-column").hidden = setup;
+          $("execution-details").hidden = setup;
           $("demo").querySelector(".workspace").style.gridTemplateColumns = setup ? "1fr" : "";
           $("setup-inventory").hidden = true;
           document.title = `Demo ${currentDemo.id} · ${currentDemo.title} · SQL Versioning`;
@@ -442,8 +469,8 @@
           notes.append(repeat);
           card.append(notes);
           if (setup) {
-            const sql = el("details"); sql.append(el("summary", "", "Inspect SQL"), el("pre", "", step.sql)); card.append(sql);
-          } else card.append(el("pre", "step-sql", step.sql));
+            const sql = el("details"); sql.append(el("summary", "", "Inspect SQL"), SqlSyntax.render(step.sql)); card.append(sql);
+          } else card.append(SqlSyntax.render(step.sql, "step-sql"));
           $("steps").append(card);
         });
         lastSessions = ""; renderSessions(); selectStep(0);
@@ -465,7 +492,7 @@
         $("previous-step").disabled = index === 0;
         const next = currentScenario.steps[index + 1];
         $("next-step").title = next ? `Next: ${stepTitle(next)}. This does not execute SQL.` : "Last step";
-        lastResults = ""; updateSteps(); renderResults();
+        lastResults = ""; updateSteps(); renderSessions(); renderResults();
       }
       function allJobs() {
         const jobs = new Map(history.map(j => [j.id, { ...j, historical: true }]));
@@ -480,7 +507,7 @@
         return allJobs().filter(j => ids.has(j.step_id));
       }
       function walkthroughJobs() {
-        const jobs = relevantJobs().filter(j => !j.historical);
+        const jobs = relevantJobs().filter(j => !j.historical && !j.archived);
         const start = jobs.findLastIndex(j => j.step_id === currentScenario.steps[0].id);
         return start < 0 ? jobs : jobs.slice(start);
       }
@@ -491,6 +518,12 @@
       }
       function updateSteps() {
         if (!currentScenario) return;
+        $("restart-controls").hidden = currentDemo?.id === "0";
+        $("restart-demo").disabled = !connected || resetting || state?.resetting ||
+          !!state?.sessions.some(s => s.busy && s.configuring);
+        $("restart-demo").textContent = `Reset demo ${currentScenario.id}`;
+        $("restart-status").textContent = "Undo this walkthrough's known SQL changes and return to step 1.";
+        $("restart-demo").title = $("restart-status").textContent;
         const jobs = walkthroughJobs();
         const finalStep = selectedStep === currentScenario.steps.length - 1 && currentDemo.id !== "0";
         const lastJob = jobs.filter(j => j.step_id === currentScenario.steps.at(-1).id).at(-1);
@@ -516,7 +549,8 @@
           const option = $("step-picker").options[i];
           option.textContent = `${completed ? "✓ " : ""}${i + 1}. ${stepTitle(step)}`;
           const button = card.querySelector("button");
-          const unavailable = !connected || resetting || !!busy || waiting || !!mustEnd || configuring || configurationPending;
+          const unavailable = !connected || resetting || state?.resetting || state?.incomplete_resets?.length ||
+            !!busy || waiting || !!mustEnd || configuring || configurationPending;
           button.disabled = unavailable || completed;
           button.textContent = completed ? "Completed" : currentDemo.id === "0" ? "Run setup" : `Run in ${sessionName(step.session)}`;
           button.title = configuring || configurationPending ? "Wait for database configuration to finish." :
@@ -537,7 +571,9 @@
       }
       function fitStepSql() {
         const sql = $("steps").querySelector(".step:not([hidden]) .step-sql");
-        if (sql) sql.style.maxHeight = `${Math.max(80, Math.min(360, window.innerHeight - sql.getBoundingClientRect().top - 24))}px`;
+        const results = $("focused-results"), reserve = $("focused-panel").hidden ? 0 : 180;
+        if (sql) sql.style.maxHeight = `${Math.max(80, Math.min(360, window.innerHeight - sql.getBoundingClientRect().top - 24 - reserve))}px`;
+        if (reserve) results.style.maxHeight = `${Math.max(80, Math.min(260, window.innerHeight - results.getBoundingClientRect().top - 24))}px`;
       }
       function statusLabel(job) {
         let label = statusNames[job.status] || job.status;
@@ -590,14 +626,20 @@
         }
         updateSteps();
       }
-      function table(set) {
+      function table(set, compact = false) {
         const wrap = el("div", "table-wrap"), t = el("table"), head = el("thead"), tr = el("tr");
-        for (const col of set.columns || []) { const th = el("th", "", col); th.scope = "col"; tr.append(th); }
+        const columns = set.columns || [];
+        const observation = compact && columns.length > 1 ? columns.findIndex(c => /^observation$/i.test(c)) : -1;
+        const caption = observation >= 0 && set.rows?.length && set.rows.every(row => row[observation] === set.rows[0][observation]);
+        const indexes = columns.map((_, i) => i).filter(i => !caption || i !== observation);
+        if (caption) t.append(el("caption", "", String(set.rows[0][observation])));
+        for (const i of indexes) { const th = el("th", "", columns[i]); th.scope = "col"; tr.append(th); }
         head.append(tr); t.append(head);
         const body = el("tbody");
         for (const row of set.rows || []) {
           const r = el("tr");
-          for (const value of row) {
+          for (const i of indexes) {
+            const value = row[i];
             const text = value === null ? "NULL" : typeof value === "object" ? JSON.stringify(value) : String(value);
             r.append(el("td", /\b(XSN|XTS|VersionPointer|InRowDiff|SlotId)\b/i.test(text) ? "dbcc-line" : "", text));
           }
@@ -615,24 +657,25 @@
         }
         return pre;
       }
-      function jobPanel(job, focused = false) {
+      function jobPanel(job, focused = false, compact = false) {
         const panel = el("article", "job"), header = el("div", "job-header");
         panel.dataset.jobId = job.id;
         header.append(el("h3", "", job.title || findStep(job.step_id)?.step.title || job.step_id),
           el("span", `status ${job.status}`, statusLabel(job)));
         if (focused) panel.append(el("span", `status ${job.status}`, statusLabel(job)));
         else panel.append(header, el("small", "", `${sessionNames[job.session] || job.session} · ${job.started_at || job.accepted_at || "Start time unavailable"} · Job ${job.id}`));
-        if (job.status === "running") panel.append(el("p", "status running", "Still executing. If blocked, use Next to reach the other session's COMMIT or ROLLBACK."));
+        if (job.status === "running") panel.append(el("p", "status running", compact ?
+          "Query still running; no result yet." : "Still executing. If blocked, use Next to reach the other session's COMMIT or ROLLBACK."));
         if (job.status === "expected_error") panel.append(el("p", "warning-note", "The backend classified this as the expected SQL error. Inspect the error text below; no success result is fabricated."));
         if (job.error) panel.append(el("pre", "", job.error));
-        for (const set of job.result_sets || []) panel.append(table(set));
+        for (const set of job.result_sets || []) panel.append(table(set, compact));
         if (job.messages?.length) {
           const messages = el("details"); messages.open = /DBCC|XSN|version|InRowDiff/i.test(job.messages.join("\n"));
           messages.append(el("summary", "", "SQL messages / raw DBCC output"), highlighted(job.messages.join("\n")));
           panel.append(messages);
         }
         const sql = job.sql || findStep(job.step_id)?.step.sql;
-        if (sql && !focused) { const detail = el("details"); detail.append(el("summary", "", "Executed SQL"), el("pre", "", sql)); panel.append(detail); }
+        if (sql && !focused) { const detail = el("details"); detail.append(el("summary", "", "Executed SQL"), SqlSyntax.render(sql)); panel.append(detail); }
         if (terminal.has(job.status) && !job.result_sets?.length && !job.messages?.length && !job.error)
           panel.append(el("p", "empty", "No result rows or SQL messages were returned."));
         return panel;
@@ -692,6 +735,7 @@
         const previousJob = all.filter(j => j.step_id === step.id).at(-1);
         const previousRun = step.id === currentScenario.steps[0].id && state?.active_demo === null;
         const currentJob = previousJob && (previousRun || !walkthroughJobs().some(j => j.id === previousJob.id)) ? { ...previousJob, historical: true } : previousJob;
+        $("focused-panel").hidden = step.session !== "admin" || !currentJob;
         $("focused-heading").textContent = `Result · step ${selectedStep + 1}`;
         const previousPanel = $("focused-results").querySelector(".job");
         const expandedMessages = previousPanel?.dataset.jobId === currentJob?.id ? previousPanel?.querySelector("details")?.open : undefined;
@@ -713,9 +757,9 @@
           const key = String(job.session);
           if (!seen.has(key)) { latest.push(job); seen.add(key); } else older.push(job);
         }
-        $("latest-results").replaceChildren(...latest.map(jobPanel));
+        $("latest-results").replaceChildren(...latest.map(job => jobPanel(job)));
         if (!latest.length) $("latest-results").append(el("p", "empty", "No executions yet. Choose a step to begin."));
-        $("history").replaceChildren(...older.map(jobPanel));
+        $("history").replaceChildren(...older.map(job => jobPanel(job)));
         for (const container of [$("latest-results"), $("history")]) for (const panel of container.children) {
           const previous = expanded.get(panel.dataset.jobId);
           if (previous) [...panel.querySelectorAll("details")].forEach((detail, i) => {
@@ -739,9 +783,13 @@
         }
         $("balance-panel").hidden = !balances.length;
         $("balances").replaceChildren(...balances);
+        fitStepSql();
       }
       function records(set) {
         return (set.rows || []).map(row => Object.fromEntries(set.columns.map((col, i) => [String(col).toLowerCase(), row[i]])));
+      }
+      function monitorRows(column) {
+        return (state?.monitor?.result_sets || []).filter(s => s.columns.some(c => String(c).toLowerCase() === column)).flatMap(records);
       }
       function renderMonitor() {
         const monitor = state?.monitor || {}, sets = monitor.result_sets || [];
@@ -751,7 +799,7 @@
         $("monitor-error").hidden = !monitor.error;
         $("monitor-error").textContent = monitor.error || "";
         const withColumn = column => sets.filter(s => s.columns.some(c => String(c).toLowerCase() === column));
-        const rows = column => withColumn(column).flatMap(records);
+        const rows = monitorRows;
         const number = value => value !== null && value !== "" && Number.isFinite(Number(value));
         const sum = column => {
           const found = withColumn(column);
@@ -803,23 +851,58 @@
       }
       function renderSessions() {
         const sessions = state?.sessions || [];
-        const balances = new Map();
-        for (const job of relevantJobs()) if (!job.historical && job.status === "succeeded") {
-          for (const set of job.result_sets || []) {
-            const index = set.columns.findIndex(c => /^balance$/i.test(c));
-            if (index >= 0 && set.rows?.length === 1) balances.set(String(job.session), set.rows[0][index]);
-          }
-        }
-        const fingerprint = JSON.stringify([sessions, connected, resetting, currentDemo?.id, [...balances]]);
+        const jobs = currentScenario ? walkthroughJobs() : [];
+        const requests = monitorRows("blocking_session_id");
+        const fingerprint = JSON.stringify([sessions, connected, resetting, currentScenario?.id, selectedStep, jobs, requests, state?.monitor?.error]);
         if (fingerprint === lastSessions) return;
+        const views = new Map([...$("sessions").children].map(card => [card.dataset.session, {
+          jobId: card.dataset.jobId,
+          details: new Map([...card.querySelectorAll("details")].map(d => [d.querySelector("summary")?.textContent, d.open])),
+          scroll: card.querySelector(".session-output")?.scrollTop || 0,
+          tables: [...card.querySelectorAll(".table-wrap")].map(wrap => wrap.scrollLeft)
+        }]));
         lastSessions = fingerprint; $("sessions").replaceChildren();
-        for (const name of ["admin", "1", "2"]) {
+        for (const name of ["1", "2"]) {
           const session = sessions.find(s => String(s.name) === name), card = el("div", "session");
+          card.dataset.session = name;
+          const blocked = connected && !state?.monitor?.error && session && requests.some(r =>
+            Number(r.session_id) === Number(session.spid) && Number(r.blocking_session_id) !== 0);
+          card.classList.toggle("blocked", !!blocked);
           card.append(el("strong", "", sessionName(name)), el("small", "", session
-            ? `SPID ${session.spid} · ${session.busy ? "Executing" : "Idle"} · ${session.transaction_count ?? "?"} transaction(s)`
+            ? `${connected ? "Live" : "Last observed"}: ${blocked ? "Blocked" : session.busy ? "Executing" : "Idle"} · SPID ${session.spid} · Tx ${session.transaction_count ?? "?"}`
             : "Not connected / unavailable"));
-          if (session && balances.has(name)) card.append(el("span", "session-balance", `Last returned balance: ${balances.get(name)}`));
+          const sessionJobs = jobs.filter(j => String(j.session) === name);
+          const selectedJob = sessionJobs.filter(j => j.step_id === currentScenario?.steps[selectedStep].id).at(-1);
+          const job = selectedJob || sessionJobs.at(-1);
+          if (job) {
+            card.dataset.jobId = job.id;
+            let balance;
+            for (const previous of sessionJobs.slice(0, sessionJobs.indexOf(job) + 1)) if (previous.status === "succeeded") {
+              for (const set of previous.result_sets || []) {
+                const index = set.columns.findIndex(c => /^balance$/i.test(c));
+                if (index >= 0 && set.rows?.length === 1) balance = set.rows[0][index];
+              }
+            }
+            if (balance !== undefined) {
+              const label = el("div", "session-balance", "Last returned balance");
+              label.append(el("strong", "", balance === null ? "NULL" : String(balance)));
+              card.append(label);
+            }
+            const step = findStep(job.step_id)?.step;
+            card.append(el("small", "session-step", `${selectedJob ? "Selected" : "Latest"}: ${step ? stepTitle(step) : job.title || job.step_id}`));
+            const output = el("div", "session-output");
+            const result = state?.active_demo === null && sessions.length === 0 ? { ...job, historical: true } : job;
+            output.append(jobPanel(result, true, true));
+            card.append(output);
+            const sql = job.sql || step?.sql;
+            if (sql) {
+              const detail = el("details", "session-sql");
+              detail.append(el("summary", "", "Executed SQL"), SqlSyntax.render(sql));
+              output.append(detail);
+            }
+          } else card.append(el("p", "empty", "No SQL run in this session for this walkthrough yet."));
           const cancel = el("button", "danger", "Cancel request");
+          cancel.hidden = !session?.busy;
           cancel.disabled = !connected || resetting || !session?.busy;
           cancel.onclick = async () => {
             if (!window.confirm(`Cancel the active request in ${sessionNames[name]}? Cancellation is not a guarantee of rollback. Inspect transaction count afterward or use End demo for explicit app-session rollback.`)) return;
@@ -829,6 +912,15 @@
             finally { lastSessions = ""; renderSessions(); }
           };
           card.append(cancel); $("sessions").append(card);
+          const view = views.get(name);
+          if (job && view?.jobId === job.id) {
+            for (const detail of card.querySelectorAll("details")) {
+              const open = view.details.get(detail.querySelector("summary")?.textContent);
+              if (open !== undefined) detail.open = open;
+            }
+            card.querySelector(".session-output").scrollTop = view.scroll;
+            [...card.querySelectorAll(".table-wrap")].forEach((wrap, i) => { wrap.scrollLeft = view.tables[i] || 0; });
+          }
         }
       }
       function activeWarning() {
@@ -898,6 +990,32 @@
         else $("end-demo").click();
       };
       $("result-session").onchange = () => { lastResults = ""; renderResults(); };
+      $("restart-demo").onclick = async () => {
+        if ($("restart-demo").disabled) return;
+        const scenario = currentScenario;
+        if (!window.confirm(`Reset demo ${scenario.id} — ${scenario.title}?\n\nUndo this walkthrough's known SQL changes, INCLUDING committed changes: restore its starting balances/default text, reverse its recorded update waves, and use any existing restoration tables before closing sessions. Restore its starting database options.\n\nNo new backups, baseline copies, or database recreation. If required execution history or restoration tables are missing, reset stops instead of guessing. Do not edit the lab data from SSMS or another app during reset.\n\nReturn to step 1 with progress cleared; retain execution history. Physical version-store/cleanup measurements and arbitrary edits outside the walkthrough are NOT reset.`)) return;
+        resetting = true; setConnected(connected); renderSessions();
+        $("scenario").disabled = true;
+        try {
+          await api("/api/restart", { scenario_id: scenario.id, confirmed: true });
+          pending.clear();
+          const ids = new Set(scenario.steps.map(s => s.id));
+          for (const job of [...history, ...(state?.jobs || [])]) if (ids.has(job.step_id)) job.archived = true;
+          writeLocal(HISTORY_KEY, JSON.stringify(history));
+          state = { ...state, active_demo: null, sessions: [] };
+          if (currentScenario?.id === scenario.id) selectStep(0);
+          $("error-banner").hidden = true;
+          $("completion-banner").textContent = `Demo ${scenario.id} reset — known SQL changes undone, starting settings restored, sessions closed. Start again at step 1.`;
+          $("completion-banner").hidden = false;
+          await poll();
+        } catch (error) {
+          report(`Reset demo ${scenario.id} did not complete: ${error.message}`);
+          await poll();
+        } finally {
+          resetting = false; $("scenario").disabled = false;
+          setConnected(connected); lastSessions = ""; renderSessions();
+        }
+      };
       $("end-demo").onclick = async () => {
         if (!connected || resetting) return;
         if (!window.confirm("End demo?\n\nCancel active work, explicitly roll back open transactions, and close ONLY this app’s SQL sessions.\n\nThis does NOT restore baseline database data, undo committed changes, or revert database options. Other users’ sessions are not reset. Run the appropriate setup steps manually to restore the lab.\n\nExecution history will be retained.")) return;

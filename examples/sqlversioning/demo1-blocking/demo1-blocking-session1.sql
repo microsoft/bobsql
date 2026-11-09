@@ -95,10 +95,15 @@ BEGIN TRAN;
     WHERE AccountId = 1;
     -- The balance is now inflated by ~$1M. But we haven't committed.
 
+SELECT N'Writer uncommitted balance' AS Observation, AccountId, Balance
+FROM dbo.Accounts WHERE AccountId = 1;
+
 -- >>> Go to Session 2: run the NOLOCK SELECT — it returns the dirty value!
 
 -- Actually, never mind — roll it back
 ROLLBACK;
+SELECT N'Writer balance after rollback' AS Observation, AccountId, Balance
+FROM dbo.Accounts WHERE AccountId = 1;
 GO
 
 -- >>> Go to Session 2: read the real value — no $999,999

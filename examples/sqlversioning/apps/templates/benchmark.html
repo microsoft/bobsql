@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Benchmark replay · SQL Versioning</title>
+  <link rel="stylesheet" href="/static/sql-syntax.css">
+  <script src="/static/sql-syntax.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #b0b7bc; color: #002244; font: 18px "Segoe UI", sans-serif; }
@@ -202,7 +204,7 @@
           const queryCell = node("td", name);
           const detail = document.createElement("details");
           detail.append(node("summary", "Expand SQL"), node("small", `Current repository source: ${workload.source}`),
-            node("pre", workload.sql));
+            SqlSyntax.render(workload.sql));
           queryCell.append(detail); row.append(queryCell);
           for (const value of [format(query.executions), format(query.threads),
             `${format(read ? share : 0)}% / ${format(read ? 0 : share)}%`,

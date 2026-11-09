@@ -1,0 +1,5 @@
+pre.sql-source { background: #dfe4e8; color: #122238; }
+.sql-keyword { color: #0000cc; }
+.sql-string { color: #a02020; }
+.sql-comment { color: #216d37; }
+.sql-variable, .sql-function, .sql-number { color: #7b267d; }
