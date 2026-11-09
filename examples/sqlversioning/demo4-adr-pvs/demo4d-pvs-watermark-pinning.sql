@@ -9,7 +9,7 @@
 --
 -- Prerequisites:
 --   1. demo0-setup.sql has been run
---   2. ADR enabled on texasrangerswillwinitthisyear (demo4c setup does this)
+--   2. ADR enabled on starswillwinthecup (demo4c setup does this)
 -- ============================================================================
 USE master;
 GO
@@ -17,17 +17,17 @@ GO
 -- ============================================================================
 -- SETUP: Ensure ADR + RCSI + SNAPSHOT are on
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = ON;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- Verify PVS is clean before starting
@@ -125,7 +125,7 @@ ORDER BY es.last_request_end_time;
 GO
 
 -- Force cleanup — it will try but can't reclaim pinned versions
-EXEC sys.sp_persistent_version_cleanup @dbname = N'texasrangerswillwinitthisyear';
+EXEC sys.sp_persistent_version_cleanup @dbname = N'starswillwinthecup';
 GO
 
 -- Check skip reasons — why did the cleaner skip pages?
@@ -176,7 +176,7 @@ FROM sys.dm_tran_active_snapshot_database_transactions;
 GO
 
 -- Force cleanup now that watermark is released
-EXEC sys.sp_persistent_version_cleanup @dbname = N'texasrangerswillwinitthisyear';
+EXEC sys.sp_persistent_version_cleanup @dbname = N'starswillwinthecup';
 GO
 
 WAITFOR DELAY '00:00:03';

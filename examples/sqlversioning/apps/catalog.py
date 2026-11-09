@@ -18,7 +18,7 @@ DEMO_FOLDERS = {
     "3": "demo3-version-store",
     "4": "demo4-adr-pvs",
 }
-PRIMARY = "texasrangerswillwinitthisyear"
+PRIMARY = "starswillwinthecup"
 EAGLES = "eaglesdontfly"
 COWBOYS = "howboutthemcowboys"
 
@@ -148,7 +148,7 @@ TEMPDB_SPACE = """
 SELECT DB_NAME(database_id) AS [Database], reserved_page_count AS VersionPages,
        reserved_space_kb AS VersionSpaceKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id IN (DB_ID(N'texasrangerswillwinitthisyear'),
+WHERE database_id IN (DB_ID(N'starswillwinthecup'),
                       DB_ID(N'eaglesdontfly'), DB_ID(N'howboutthemcowboys'));
 SELECT SUM(version_store_reserved_page_count) AS VersionStorePages,
        SUM(version_store_reserved_page_count) * 8 AS VersionStoreKB,
@@ -305,14 +305,27 @@ SELECT N'{"Writer uncommitted balance" if begin else "Writer committed balance"}
          "committed transaction, while the session 1 snapshot remains unchanged.")
 
 
+SETUP_INVENTORY_SQL = "\n".join(f"""
+IF DB_ID(N'{database}') IS NOT NULL
+BEGIN
+    SELECT N'{database}' AS DatabaseName, s.name AS SchemaName,
+           t.name AS TableName, SUM(p.rows) AS ApproximateRows
+    FROM [{database}].sys.tables t
+    JOIN [{database}].sys.schemas s ON s.schema_id = t.schema_id
+    JOIN [{database}].sys.partitions p ON p.object_id = t.object_id
+    WHERE p.index_id IN (0,1)
+    GROUP BY s.name, t.name ORDER BY s.name, t.name;
+END;
+""" for database in (PRIMARY, EAGLES, COWBOYS))
+
 S0 = _scenario("0", "Prepare the lab", "DESTRUCTIVE: setup drops and recreates "
                "ALL THREE databases and loads large tables. Obtain approval "
                "before selecting setup. Readiness does not execute setup.",
                ["demo0-setup/demo0-setup.sql"])
-_add(S0, "setup", "CONFIRM — drop/recreate all three lab databases", "admin",
-     _source("demo0-setup/demo0-setup.sql") + "\nGO\nUSE master;\n",
+_add(S0, "setup", "Run setup", "admin",
+     _source("demo0-setup/demo0-setup.sql") + "\nGO\nUSE master;\n" + SETUP_INVENTORY_SQL,
      "APPROVAL REQUIRED: End demo first. The embedded ORIGINAL setup drops "
-     "texasrangerswillwinitthisyear, eaglesdontfly and howboutthemcowboys, "
+     "starswillwinthecup, eaglesdontfly and howboutthemcowboys, "
      "terminates their users and reseeds all data. It can take substantial "
      "time/disk/log space. No setup runs at import or during readiness.",
      dangerous=True, requires_clean_sessions=True)
@@ -326,15 +339,7 @@ SELECT name, state_desc, is_read_committed_snapshot_on AS RCSI,
        is_accelerated_database_recovery_on AS ADR,
        is_optimized_locking_on AS OptimizedLocking
 FROM sys.databases WHERE name IN (N'{PRIMARY}', N'{EAGLES}', N'{COWBOYS}');
-IF DB_ID(N'{PRIMARY}') IS NOT NULL
-BEGIN
-    SELECT s.name AS SchemaName, t.name AS TableName, SUM(p.rows) AS ApproximateRows
-    FROM [{PRIMARY}].sys.tables t
-    JOIN [{PRIMARY}].sys.schemas s ON s.schema_id = t.schema_id
-    JOIN [{PRIMARY}].sys.partitions p ON p.object_id = t.object_id
-    WHERE p.index_id IN (0,1) GROUP BY s.name, t.name;
-END;
-""", "SQL Server 2025 (major 17), DBCC/DMV/database-alter permissions and "
+""" + SETUP_INVENTORY_SQL, "SQL Server 2025 (major 17), DBCC/DMV/database-alter permissions and "
      "all three online databases are prerequisites. Missing databases are "
      "reported without creating anything. Catalog row estimates are not counts "
      "of versions. This is not a substitute for tools/check-readiness.ps1.")

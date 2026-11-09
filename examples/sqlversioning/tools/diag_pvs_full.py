@@ -3,7 +3,7 @@ import pyodbc, re, struct
 
 conn = pyodbc.connect(
     'DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;'
-    'DATABASE=texasrangerswillwinitthisyear;Trusted_Connection=yes;'
+    'DATABASE=starswillwinthecup;Trusted_Connection=yes;'
     'TrustServerCertificate=yes'
 )
 cursor = conn.cursor()
@@ -17,7 +17,7 @@ fid, pid, sid = int(m.group(1)), int(m.group(2)), int(m.group(3))
 print(f"=== DATA PAGE: file={fid}, page={pid}, slot={sid} ===")
 
 # Step 2: DBCC PAGE on data page to get version pointer
-cursor.execute(f"DBCC PAGE('texasrangerswillwinitthisyear', {fid}, {pid}, 3) WITH TABLERESULTS")
+cursor.execute(f"DBCC PAGE('starswillwinthecup', {fid}, {pid}, 3) WITH TABLERESULTS")
 rows = cursor.fetchall()
 target = f"Slot {sid}"
 fields = {}
@@ -79,7 +79,7 @@ print(f"=== PVS PAGE: file={pvs_file}, page={pvs_page} ===")
 print(f"=== Target slot from version pointer: {pvs_target_slot} ===")
 print(f"{'='*70}")
 
-cursor.execute(f"DBCC PAGE('texasrangerswillwinitthisyear', {pvs_file}, {pvs_page}, 3) WITH TABLERESULTS")
+cursor.execute(f"DBCC PAGE('starswillwinthecup', {pvs_file}, {pvs_page}, 3) WITH TABLERESULTS")
 pvs_rows = cursor.fetchall()
 
 # Also dump page header info
@@ -302,7 +302,7 @@ if pvs_target_slot in slots:
         if rid_match:
             cf, cp, cs = int(rid_match.group(1)), int(rid_match.group(2)), int(rid_match.group(3))
             print(f"Following chain to file={cf}, page={cp}, slot={cs}")
-            cursor.execute(f"DBCC PAGE('texasrangerswillwinitthisyear', {cf}, {cp}, 3) WITH TABLERESULTS")
+            cursor.execute(f"DBCC PAGE('starswillwinthecup', {cf}, {cp}, 3) WITH TABLERESULTS")
             chain_rows = cursor.fetchall()
             print(f"Chain page returned {len(chain_rows)} rows")
     elif pminlen >= 54:

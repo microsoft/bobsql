@@ -4,7 +4,7 @@
 -- Run this when sp_persistent_version_cleanup or the background cleaner
 -- isn't reducing persistent_version_store_size_kb.
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ────────────────────────────────────────────────────────────────────────────

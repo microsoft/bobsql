@@ -5,15 +5,15 @@
 -- Load this in SSMS Session 1 (left window).
 -- Load demo2e-fk-scan-conflict-session2.sql in Session 2 (right window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- SETUP: Enable RCSI + Snapshot
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
 
 -- TALKING POINT: "Now here's the trap. Error 3960 triggered by FK

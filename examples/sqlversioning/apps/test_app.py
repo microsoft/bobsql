@@ -2,8 +2,8 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from app import DemoRunner, GO, SqlError, create_app, execute_sql
-from catalog import _balance
+from app import DATABASES, DemoRunner, GO, SqlError, create_app, execute_sql
+from catalog import COWBOYS, EAGLES, PRIMARY, _balance
 
 
 class CursorStub:
@@ -61,6 +61,38 @@ class ApiTests(unittest.TestCase):
         self.runner.run.assert_called_once_with("s1", True)
         self.assertEqual(self.client.post("/api/reset", json={"confirmed": True}).status_code, 200)
 
+    def test_benchmark_replay_reads_captures_without_sql(self):
+        self.assertEqual(self.client.get("/benchmark").status_code, 200)
+        result = self.client.get("/api/benchmark")
+        self.assertEqual(result.status_code, 200)
+        captures = result.json["captures"]
+        self.assertEqual(len(captures), 1)
+        self.assertEqual({c["benchmark"] for c in captures}, {"inventory"})
+        inventory = next(c for c in captures if c["benchmark"] == "inventory")
+        self.assertEqual(inventory["table_rows"], 200000)
+        self.assertEqual(inventory["configs"][0]["total_executions"], 5045)
+        for capture in captures:
+            self.assertEqual(len(capture["configs"]), 4)
+            self.assertTrue(capture["source"].endswith(".json"))
+            self.assertTrue(capture["timestamp"])
+            for config in capture["configs"]:
+                for name in config["queries"]:
+                    workload = capture["workloads"][name]
+                    self.assertTrue(workload["sql"].strip())
+                    self.assertTrue(workload["source"].endswith(".sql"))
+                    expected = "read" if name in ("check_availability", "category_report") else "write"
+                    self.assertEqual(workload["kind"], expected)
+        self.assertEqual(self.runner.mock_calls, [])
+
+    def test_team_logos_are_served_locally(self):
+        for team in ("dallas-stars", "philadelphia-eagles", "dallas-cowboys"):
+            with self.subTest(team=team):
+                response = self.client.get(f"/static/logos/{team}.png")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.mimetype, "image/png")
+                self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
+                response.close()
+
     def test_execution_failure_is_visible(self):
         self.runner.run.side_effect = SqlError("Connection failed", "")
         result = self.client.post("/api/run", json={"step_id": "s1"})
@@ -69,6 +101,9 @@ class ApiTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_monitor_database_names_match_catalog(self):
+        self.assertEqual(DATABASES, (PRIMARY, EAGLES, COWBOYS))
+
     def test_sql_observation_labels_escape_apostrophes(self):
         self.assertIn("N'Competitor''s committed balance'", _balance(label="Competitor's committed balance"))
 

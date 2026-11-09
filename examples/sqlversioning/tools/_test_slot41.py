@@ -1,10 +1,10 @@
 from mssql_python import connect as mssql_connect
 import re
 
-conn = mssql_connect("Server=localhost;Database=texasrangerswillwinitthisyear;Trusted_Connection=yes;Encrypt=no;TrustServerCertificate=yes")
+conn = mssql_connect("Server=localhost;Database=starswillwinthecup;Trusted_Connection=yes;Encrypt=no;TrustServerCertificate=yes")
 cursor = conn.cursor()
 cursor.execute("DBCC TRACEON(3604)")
-cursor.execute("DBCC PAGE(N'texasrangerswillwinitthisyear', 1, 352, 3) WITH TABLERESULTS")
+cursor.execute("DBCC PAGE(N'starswillwinthecup', 1, 352, 3) WITH TABLERESULTS")
 rows = cursor.fetchall()
 
 # Collect hex lines for Slot 41
@@ -58,7 +58,7 @@ cursor.execute("""
     SELECT transaction_sequence_num, version_sequence_num, 
            record_length_first_part_in_bytes, status
     FROM sys.dm_tran_version_store
-    WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear')
+    WHERE database_id = DB_ID(N'starswillwinthecup')
     ORDER BY transaction_sequence_num DESC
 """)
 for r in cursor.fetchall():

@@ -48,21 +48,29 @@ if ($null -eq $catalog) {
     if ($listener) {
         throw "Port $Port is occupied but the app is not responsive. Do not start a duplicate server; inspect the existing process."
     }
-    $python = (Get-Command python -CommandType Application -ErrorAction Stop).Source
+    $python = (Get-Command python -CommandType Application -ErrorAction Stop |
+        Select-Object -First 1).Source
     $appPath = Join-Path $PSScriptRoot 'app.py'
+    $logDirectory = Join-Path $env:LOCALAPPDATA 'bobsql\sqlversioning'
+    New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+    $stdoutPath = Join-Path $logDirectory "app-$Port.stdout.log"
+    $stderrPath = Join-Path $logDirectory "app-$Port.stderr.log"
     $process = Start-Process -FilePath $python -WorkingDirectory $PSScriptRoot `
-        -ArgumentList @('-u', "`"$appPath`"", '--server', $ServerName, '--port', $Port) -PassThru
+        -ArgumentList @('-u', "`"$appPath`"", '--server', $ServerName, '--port', $Port) `
+        -WindowStyle Hidden -RedirectStandardOutput $stdoutPath `
+        -RedirectStandardError $stderrPath -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
     do {
         Start-Sleep -Milliseconds 500
         $process.Refresh()
         if ($process.HasExited) {
-            throw "The app exited with code $($process.ExitCode). Check its console; install requirements only if dependencies are missing."
+            $startupError = Get-Content -LiteralPath $stderrPath -Tail 20 | Out-String
+            throw "The app exited with code $($process.ExitCode). Check '$stdoutPath' and '$stderrPath'; install requirements only if dependencies are missing.`n$startupError"
         }
         $catalog = Get-AppCatalog
     } while ($null -eq $catalog -and [DateTime]::UtcNow -lt $deadline)
     if ($null -eq $catalog) {
-        throw "App process $($process.Id) started but did not become ready. Inspect its console before retrying."
+        throw "App process $($process.Id) started but did not become ready. Inspect '$stdoutPath' and '$stderrPath' before retrying."
     }
 }
 Confirm-AppCatalog $catalog
@@ -88,5 +96,6 @@ if (-not $NoBrowser) {
 }
 Write-Output "SQL versioning app ready: $baseUrl"
 if ($process) {
-    Write-Output "Backend PID: $($process.Id). Keep its console open; no inactivity expiry."
+    Write-Output "Backend PID: $($process.Id). Running in the background; no inactivity expiry."
+    Write-Output "Logs: $stdoutPath and $stderrPath"
 }

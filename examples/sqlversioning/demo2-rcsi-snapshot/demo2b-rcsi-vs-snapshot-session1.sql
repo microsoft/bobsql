@@ -5,13 +5,13 @@
 -- Load this in SSMS Session 1 (left window).
 -- Load demo2b-rcsi-vs-snapshot-session2.sql in Session 2 (right window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- Enable RCSI and Snapshot Isolation
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
 
 -- TALKING POINT: "RCSI gives you a fresh snapshot per statement. Snapshot 

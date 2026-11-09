@@ -92,19 +92,28 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(setup["session"], "admin")
         self.assertTrue(setup["dangerous"])
         self.assertTrue(setup["requires_clean_sessions"])
-        self.assertIn("CONFIRM", setup["title"])
+        self.assertEqual(setup["title"], "Run setup")
         self.assertIn("APPROVAL REQUIRED", setup["explanation"])
         source = (catalog.ROOT / catalog.DEMO_FOLDERS["0"] / "demo0-setup.sql").read_text(
             encoding="utf-8-sig")
         self.assertTrue(setup["sql"].startswith(source.strip()))
         for database in (catalog.PRIMARY, catalog.EAGLES, catalog.COWBOYS):
             self.assertIn(f"DROP DATABASE {database};", setup["sql"])
-        self.assertTrue(setup["sql"].endswith("USE master;"))
+            self.assertIn(f"SELECT N'{database}' AS DatabaseName", setup["sql"])
+            self.assertIn(f"FROM [{database}].sys.tables", setup["sql"])
+        self.assertTrue(setup["sql"].endswith(catalog.SETUP_INVENTORY_SQL.strip()))
         self.assertFalse(readiness.get("dangerous", False))
         self.assertFalse(readiness.get("requires_clean_sessions", False))
         self.assertNotRegex(readiness["sql"], r"\b(?:ALTER|DROP|CREATE|INSERT|UPDATE|DELETE)\b")
         self.assertIn("IF DB_ID", readiness["sql"])
         self.assertIn("ProductMajorVersion", readiness["sql"])
+
+    def test_primary_database_name_is_consistent_across_demo_files(self):
+        self.assertEqual(catalog.PRIMARY, "starswillwinthecup")
+        for path in catalog.ROOT.rglob("*"):
+            if path.is_file() and path.suffix in {".sql", ".py", ".md", ".ps1", ".html", ".json"}:
+                with self.subTest(path=path.relative_to(catalog.ROOT)):
+                    self.assertNotIn("texasrangers" + "willwin", path.read_text(encoding="utf-8-sig").lower())
 
     def test_configuration_only_requires_clean_sessions_and_stays_master(self):
         for step in self.steps.values():

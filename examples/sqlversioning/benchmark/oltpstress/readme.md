@@ -12,4 +12,5 @@ SQL, and workload JSON before running
 The scripts create four lab databases and run write-heavy traffic. Confirm
 instance names, available storage, concurrency, and duration first. Keep
 starting conditions comparable and remove only the databases owned by the lab
-when finished. [results](results/readme.md) contains captured example runs.
+when finished. Previous captured results have been removed pending new testing;
+the setup and workload code is retained.
