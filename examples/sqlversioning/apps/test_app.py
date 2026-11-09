@@ -93,11 +93,45 @@ class ApiTests(unittest.TestCase):
                 self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
                 response.close()
 
+    def test_sql_syntax_assets_are_local_and_shared_by_both_pages(self):
+        for asset in ("sql-syntax.js", "sql-syntax.css"):
+            response = self.client.get(f"/static/{asset}")
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data)
+            response.close()
+            for page in ("/demo/1", "/benchmark"):
+                self.assertIn(f"/static/{asset}", self.client.get(page).get_data(as_text=True))
+        self.assertEqual(self.runner.mock_calls, [])
+
     def test_execution_failure_is_visible(self):
         self.runner.run.side_effect = SqlError("Connection failed", "")
         result = self.client.post("/api/run", json={"step_id": "s1"})
         self.assertEqual(result.status_code, 500)
         self.assertIn("Connection failed", result.json["error"])
+
+    def test_dirty_writer_returns_balance_without_ending_transaction(self):
+        catalog = self.client.get("/api/catalog").json
+        demo = next(d for d in catalog["demos"] if d["id"] == "1")
+        step = demo["scenarios"][0]["steps"][7]
+        self.assertEqual(step["id"], "1-dirty-writer")
+        self.assertEqual(step["session"], "1")
+        self.assertRegex(step["sql"], r"(?s)BEGIN TRAN;.*UPDATE dbo.Accounts.*999999\.00.*"
+                         r"SELECT N'Writer uncommitted balance' AS Observation, AccountId, Balance\s+"
+                         r"FROM dbo.Accounts WHERE AccountId = 1;")
+        self.assertNotRegex(step["sql"], r"\b(?:COMMIT|ROLLBACK|NOLOCK)\b")
+        self.runner.run.assert_not_called()
+
+    def test_dirty_rollback_returns_restored_writer_balance(self):
+        catalog = self.client.get("/api/catalog").json
+        demo = next(d for d in catalog["demos"] if d["id"] == "1")
+        step = demo["scenarios"][0]["steps"][9]
+        self.assertEqual(step["id"], "1-dirty-rollback")
+        self.assertEqual(step["session"], "1")
+        self.assertRegex(step["sql"], r"(?s)IF @@TRANCOUNT > 0 ROLLBACK;.*"
+                         r"SET TRANSACTION ISOLATION LEVEL READ COMMITTED;.*"
+                         r"SELECT N'Writer balance after rollback' AS Observation, AccountId, Balance\s+"
+                         r"FROM dbo.Accounts WHERE AccountId = 1;")
+        self.runner.run.assert_not_called()
 
 
 class RunnerTests(unittest.TestCase):

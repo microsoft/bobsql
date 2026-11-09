@@ -7,6 +7,11 @@ first execution controls visible without scrolling on typical laptop screens.
 Demo 1-4 show one step at a time with its exact SQL batch always visible.
 Detailed monitoring, prerequisites, and earlier results expand on demand;
 destructive steps still require confirmation.
+SQL uses locally served SSMS-style syntax colours: blue keywords/types,
+red strings, green comments, and purple variables/functions/numbers. The same
+renderer covers setup, walkthrough steps, executed SQL history, and benchmark
+workload SQL. Highlighting preserves the exact source text and does not change
+what executes. No CDN or additional package is needed.
 Template changes appear on browser refresh without restarting SQL
 sessions or enabling Flask's process reloader.
 SQL runs on your local SQL Server 2025 instance using your Windows account
@@ -71,7 +76,8 @@ these diagnostic demos assume SQL Server sysadmin.
    own panels rather than sending you down a list of steps.
    **Previous**, **Next**, and the step picker only change the displayed step;
    they never execute SQL or wait for a running query. The selected step's
-   actual result appears beside it. Saved results are labeled as previous
+   actual result appears in its session pane on the right. Admin-query results
+   stay with the SQL step on the left. Saved results are labeled as previous
    evidence, not current database state.
    The current step has a navy highlight. Completed steps turn grey, receive
    a check mark in the step picker, and their **Run** button becomes disabled
@@ -84,14 +90,21 @@ these diagnostic demos assume SQL Server sysadmin.
    the new run. Saved results from a previous backend are not completion.
    Demo 1 separates preparation, **Reader waits**, **NOLOCK reads dirty data**,
    and cleanup. Writer/Reader labels make the session handoffs explicit.
-   Session cards show the last single-row balance returned by this scenario
-   on the current backend, not a simulated or continuously sampled balance.
+   The right side compares **Session 1** and **Session 2** side by side, with
+   no Admin column. Each pane retains its executed statement and actual result
+   while you work in the other session. Selecting an executed step shows that
+   step's result in its session; the other pane keeps its latest executed step.
+   Live connection/transaction state is labeled separately from result evidence.
+   Balances are the last single-row values returned up to the displayed execution,
+   not simulated or continuously sampled balances. A blocked pane is highlighted
+   only when the live DMV sample identifies it as blocked. SQL/messages remain
+   expandable and result tables scroll inside each pane.
 3. Sessions 1 and 2 are independent, persistent SQL connections. Explicit
    transactions remain open across clicks. A blocked reader does not freeze
    the browser: advance the writer's commit step to release it.
-4. Session state and blocking remain visible. Detailed DMV monitoring and
-   earlier results/balance comparisons are expandable to keep the current SQL
-   and result in view. Actual query results, error 3960, and DBCC PAGE output
+4. Both sessions' state, results, and blocking remain visible. Detailed DMV
+   monitoring is expandable; earlier results/balance comparisons are in a
+   full-width expander below the walkthrough. Actual query results, error 3960, and DBCC PAGE output
    are separate from explanatory text. Result tables display at most
    1,000 rows. Version cleanup timing and internal page formats vary by build.
 5. **End demo sessions** before switching demos or running database
@@ -103,6 +116,38 @@ these diagnostic demos assume SQL Server sysadmin.
    you can run the next demo's configuration. Cleanup SQL alone does not
    close the app connections. The header's **End demo** remains available
    for early exit or cancellation.
+
+### Resetting a walkthrough
+
+Each Demo 1-4 page has **Reset demo** for its selected subdemo (for example
+**Reset demo 2b**). Confirm it to undo that walkthrough's known SQL changes,
+close its connections, clear completed-step progress, and return to step 1.
+Earlier execution history is retained. Run the steps manually to present again.
+**End demo** remains connection cleanup only; it does not undo committed changes.
+Demo 0 still uses its separate, destructive **Run setup** action.
+
+Reset uses explicit demo-specific SQL, not new backups, snapshots, or database
+recreation. It restores the demo's defined starting balances and default text,
+reverses recorded committed increment waves (including intentional repeats and
+partial presentations), removes the FK fix index for 2e, and restores the
+selected subdemo's starting ADR/RCSI/SNAPSHOT/optimized-locking settings.
+This is a reset to the demo's defined starting state, not restoration of
+arbitrary values from before a presentation. Physical page layout, version-store
+sizes, cleaner timing, timestamps, and arbitrary SSMS changes are not rewound.
+
+The FK/ghost/recovery demos reuse their existing session-local restoration
+tables before closing those sessions. Wait for a busy restoration session to
+finish before resetting; do not close it first. If required tables were lost,
+execution history is unavailable after a backend restart, another walkthrough
+ran afterward, or a failed/cancelled committed write is ambiguous, reset stops
+with an error instead of guessing. Use the original restoration steps or
+explicitly approved Demo 0 when needed. Other SQL connections using the affected
+databases must be closed; Reset demo does not kill other users' sessions.
+The app's in-memory execution ledger is required for counter-based reversals;
+browser-saved history is evidence only and is never trusted to modify SQL data.
+If data restoration succeeds but restoring settings fails, retry Reset demo:
+the app remembers the completed data reversal and does not apply it twice.
+No new step can run until that incomplete reset is finished.
 
 End demo does **not** undo committed updates, restore isolation/ADR options,
 or recreate tables. Use each scenario's explicit restoration steps. Some
@@ -186,6 +231,7 @@ The app serves them locally and needs no external image requests at runtime.
 
 ```powershell
 python -m unittest discover -v
+node --test test_sql_syntax.cjs
 ```
 
 The unit tests do not alter SQL Server. Live rehearsals do change the three lab

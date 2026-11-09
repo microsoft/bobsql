@@ -19,6 +19,7 @@ from flask import Flask, jsonify, render_template, request
 from mssql_python import connect, Error as SqlError
 
 from catalog import DEMOS
+from reset_demo import SCENARIOS, configuration, data_sql, databases, restoration_session
 
 LOG = logging.getLogger(__name__)
 DATABASES = ("starswillwinthecup", "eaglesdontfly", "howboutthemcowboys")
@@ -76,6 +77,8 @@ class DemoRunner:
         self.jobs: list[dict] = []
         self.active_demo: str | None = None
         self.resetting = False
+        self.restart_data_done: set[str] = set()
+        self.scenarios = SCENARIOS
         self.steps = {
             step["id"]: (demo["id"], step)
             for demo in DEMOS for scenario in demo["scenarios"] for step in scenario["steps"]
@@ -118,8 +121,25 @@ class DemoRunner:
         with self.lock:
             if self.resetting:
                 raise ValueError("Session cleanup is still in progress.")
+            if self.restart_data_done:
+                raise ValueError("A Reset demo is incomplete. Retry it before running another step.")
             if self.active_demo not in (None, demo_id):
                 raise ValueError("End the current demo before switching demo pages.")
+            scenario = next((s for s in self.scenarios.values()
+                             if any(item["id"] == step_id for item in s["steps"])), None)
+            if scenario:
+                previous = self.jobs[-1] if self.jobs else None
+                if (self.active_demo is not None and previous and
+                        previous.get("scenario_id") != scenario["id"]):
+                    raise ValueError("End the active walkthrough before switching subdemos.")
+                jobs = [j for j in self.jobs if j.get("scenario_id") == scenario["id"] and not j.get("archived")]
+                pending_restore = restoration_session(scenario["id"], jobs)
+                prep = {"2d": "insert", "2e": "fk-reset", "3c": "fk-safe-reset",
+                        "4e": "backup-deletes"}.get(scenario["id"])
+                if pending_restore and (step_id == f"{scenario['id']}-{prep}" or
+                                        step_id in ("4e-wave-a", "4e-wave-b")):
+                    raise ValueError("Finish the pending restoration or Reset demo before repeating this step. "
+                                     "Its original restoration tables must not be overwritten.")
             admin = self.sessions.get("admin")
             if admin and admin["busy"] and admin.get("configuring"):
                 raise ValueError("Wait for database configuration to finish before running another step.")
@@ -146,6 +166,12 @@ class DemoRunner:
                 "elapsed_ms": 0, "result_sets": [], "messages": [], "error": None,
                 "_start": time.monotonic(),
             }
+            if scenario:
+                job["scenario_id"] = scenario["id"]
+                if step_id == scenario["steps"][0]["id"]:
+                    for previous in self.jobs:
+                        if previous.get("scenario_id") != scenario["id"]:
+                            previous["archived"] = True
             self.active_demo = demo_id
             self.jobs.append(job)
             session["busy"] = True
@@ -248,24 +274,123 @@ class DemoRunner:
             self.resetting = True
             sessions = list(self.sessions.values())
         try:
-            for session in sessions:
-                if session["busy"]:
-                    session["cancel_requested"] = True
-                    self._kill_owned(session)
-                    session["thread"].join(timeout=15)
-                    if session["busy"]:
-                        raise RuntimeError("SQL cancellation is still pending; retry End demo.")
-                with self.lock:
-                    if self.sessions.get(session["name"]) is not session:
-                        continue
-                if not session["cancel_requested"]:
-                    execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;")
-                session["connection"].close()
-                with self.lock:
-                    self.sessions.pop(session["name"], None)
-            with self.lock:
-                self.active_demo = None
+            self._close_sessions(sessions)
         finally:
+            with self.lock:
+                self.resetting = False
+
+    def _close_sessions(self, sessions: list[dict]) -> None:
+        for session in sessions:
+            if session["busy"]:
+                session["cancel_requested"] = True
+                self._kill_owned(session)
+                session["thread"].join(timeout=15)
+                if session["busy"]:
+                    raise RuntimeError("SQL cancellation is still pending; retry session cleanup.")
+            with self.lock:
+                if self.sessions.get(session["name"]) is not session:
+                    continue
+            if not session["cancel_requested"]:
+                execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;")
+            session["connection"].close()
+            with self.lock:
+                self.sessions.pop(session["name"], None)
+        with self.lock:
+            self.active_demo = None
+
+    def restart(self, scenario_id: str) -> None:
+        with self.lock:
+            scenario = self.scenarios.get(scenario_id)
+            if not scenario:
+                raise ValueError("Unknown reset walkthrough. Demo 0 must use its confirmed setup action.")
+            demo_id = next(demo["id"] for demo in DEMOS if scenario in demo["scenarios"])
+            if self.active_demo not in (None, demo_id):
+                raise ValueError("A different demo is active. Finish it before resetting this walkthrough.")
+            if self.resetting:
+                raise ValueError("Session cleanup or Reset demo is already in progress.")
+            if self.restart_data_done and scenario_id not in self.restart_data_done:
+                raise ValueError("Retry the incomplete Reset demo before resetting another walkthrough.")
+            jobs = [j for j in self.jobs if j.get("scenario_id") == scenario_id and not j.get("archived")]
+            latest = self.jobs[-1] if self.jobs else None
+            if latest and latest.get("scenario_id") != scenario_id:
+                raise ValueError("Another walkthrough ran after this one. Reset that walkthrough first; "
+                                 "older changes cannot be safely reversed out of order.")
+            owner = None if scenario_id in self.restart_data_done else restoration_session(scenario_id, jobs)
+            sql = data_sql(scenario_id, jobs)
+            if owner and (owner not in self.sessions or self.sessions[owner]["busy"]):
+                raise ValueError(f"Reset needs the existing restoration tables in Session {owner}. "
+                                 "Wait for its request to finish and do not close it. "
+                                 "If that session is already gone, use approved setup.")
+            if any(s["busy"] and s.get("configuring") for s in self.sessions.values()):
+                raise ValueError("Wait for configuration to finish before Reset demo.")
+            self.resetting = True
+            sessions = list(self.sessions.values())
+        control = None
+        own_control = False
+        try:
+            control = self.sessions[owner]["connection"] if owner else self.connection()
+            own_control = not owner
+            names = ", ".join(f"N'{name}'" for name in databases(scenario_id))
+            execute_sql(control, f"""
+USE master;
+IF EXISTS (SELECT 1 FROM sys.dm_exec_sessions s WHERE s.is_user_process = 1
+  AND s.session_id <> @@SPID AND
+  (s.context_info IS NULL OR s.context_info <> 0x{self.context_hex}) AND
+  (s.database_id IN (SELECT database_id FROM sys.databases WHERE name IN ({names}))
+   OR EXISTS (SELECT 1 FROM sys.dm_tran_locks l
+      WHERE l.request_session_id = s.session_id AND l.resource_database_id IN
+        (SELECT database_id FROM sys.databases WHERE name IN ({names})))))
+    THROW 50000, 'Other SQL sessions are using the lab databases. Close them and retry Reset demo.', 1;
+""")
+            if scenario_id not in self.restart_data_done:
+                for session in sessions:
+                    if session["busy"]:
+                        session["cancel_requested"] = True
+                        self._kill_owned(session)
+                        session["thread"].join(timeout=15)
+                        if session["busy"]:
+                            raise RuntimeError("Cancellation is still pending. Retry Reset demo.")
+                    if not session["cancel_requested"]:
+                        execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;")
+                # Cancellation may have changed a job's outcome; never infer a committed wave.
+                sql = data_sql(scenario_id, jobs)
+                if owner:
+                    names = {
+                        "2d": ["#FkInserted"], "2e": ["#FkOriginalItems"],
+                        "3c": ["#GhostAccounts", "#GhostOrders", "#GhostItems"],
+                        "4e": ["#RecoveryDeleted"],
+                    }[scenario_id]
+                    checks = " OR ".join(f"OBJECT_ID(N'tempdb..{name}') IS NULL" for name in names)
+                    execute_sql(control, f"IF {checks} THROW 50000, 'Required restoration tables are missing; reset stopped.', 1;")
+                execute_sql(control, sql)
+                self.restart_data_done.add(scenario_id)
+            self._close_sessions(sessions)
+            if own_control:
+                control.close()
+            control = None
+            own_control = False
+            control = self.connection()
+            own_control = True
+            names = ", ".join(f"N'{name}'" for name in databases(scenario_id))
+            execute_sql(control, f"""
+USE master;
+IF EXISTS (SELECT 1 FROM sys.dm_exec_sessions s WHERE s.is_user_process = 1
+  AND s.session_id <> @@SPID AND
+  (s.database_id IN (SELECT database_id FROM sys.databases WHERE name IN ({names}))
+   OR EXISTS (SELECT 1 FROM sys.dm_tran_locks l
+      WHERE l.request_session_id = s.session_id AND l.resource_database_id IN
+        (SELECT database_id FROM sys.databases WHERE name IN ({names})))))
+    THROW 50000, 'Other SQL sessions are using the lab databases. Close them and retry Reset demo.', 1;
+""")
+            execute_sql(control, configuration(scenario_id))
+            with self.lock:
+                for job in self.jobs:
+                    if job.get("scenario_id") == scenario_id:
+                        job["archived"] = True
+                self.restart_data_done.discard(scenario_id)
+        finally:
+            if control is not None and own_control:
+                control.close()
             with self.lock:
                 self.resetting = False
 
@@ -326,7 +451,9 @@ FROM sys.dm_tran_active_snapshot_database_transactions a;
                     item["elapsed_ms"] = round((time.monotonic() - job["_start"]) * 1000)
                 jobs.append(item)
             return {"active_demo": self.active_demo, "sessions": sessions,
-                    "jobs": jobs, "monitor": monitor}
+                    "jobs": jobs, "monitor": monitor,
+                    "resetting": self.resetting,
+                    "incomplete_resets": sorted(self.restart_data_done)}
 
 
 def create_app(runner: DemoRunner | None = None) -> Flask:
@@ -426,6 +553,15 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
         if not isinstance(body, dict) or body.get("session") not in ("admin", "1", "2"):
             return jsonify(error="Invalid session."), 400
         runner.cancel(body["session"])
+        return jsonify(ok=True)
+
+    @app.post("/api/restart")
+    def restart():
+        body = request.get_json()
+        if (not isinstance(body, dict) or body.get("confirmed") is not True
+                or not isinstance(body.get("scenario_id"), str)):
+            return jsonify(error="Confirm the selected walkthrough's data/settings reset."), 400
+        runner.restart(body["scenario_id"])
         return jsonify(ok=True)
 
     @app.errorhandler(ValueError)

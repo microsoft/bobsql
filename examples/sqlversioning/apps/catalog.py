@@ -378,11 +378,20 @@ USE [{PRIMARY}];
 BEGIN TRAN;
 UPDATE dbo.Accounts SET Balance = Balance + 999999.00,
     LastUpdated = SYSUTCDATETIME() WHERE AccountId = 1;
+SELECT N'Writer uncommitted balance' AS Observation, AccountId, Balance
+FROM dbo.Accounts WHERE AccountId = 1;
 """, "The uncommitted value is 1000199.00. Keep the transaction open.")
 _read(S1, "nolock", "NOLOCK dirty balance", "2", 1, hint="WITH (NOLOCK)",
       explanation="Run BEFORE rollback: NOLOCK may return 1000199.00 even "
       "though no transaction will commit that value. It is not a safe fix.")
-_release(S1, "dirty-rollback", "1", rollback=True)
+_add(S1, "dirty-rollback", "Rollback and restore READ COMMITTED", "1", f"""
+USE [{PRIMARY}];
+IF @@TRANCOUNT > 0 ROLLBACK;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SELECT N'Writer balance after rollback' AS Observation, AccountId, Balance
+FROM dbo.Accounts WHERE AccountId = 1;
+""", "Roll back the dirty change and return the restored balance of 200 "
+         "from the writer's connection.")
 _read(S1, "clean", "Clean balance after rollback (200)", "2", 1)
 _cleanup(S1)
 
@@ -963,6 +972,7 @@ _add(S4E, "recovery-log", "Read existing recovery log evidence (no crash)", "adm
      "read; an empty result is valid. The commented kill/restart experiment "
      "is intentionally not executable in this web catalog.")
 _cleanup(S4E)
+
 
 DEMOS = [
     dict(id="0", title="Setup", folder=DEMO_FOLDERS["0"], description="Approved destructive setup and read-only readiness.",
