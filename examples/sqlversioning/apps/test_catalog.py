@@ -13,6 +13,156 @@ SPEC.loader.exec_module(catalog)
 
 
 class CatalogTests(unittest.TestCase):
+    def test_2c_rereads_snapshot_before_conflict_without_rcsi(self):
+        steps = {step["id"]: step for step in catalog.S2C["steps"]}
+        self.assertIn("READ_COMMITTED_SNAPSHOT OFF", steps["2c-configure"]["sql"])
+        self.assertIn("ALLOW_SNAPSHOT_ISOLATION ON", steps["2c-configure"]["sql"])
+        self.assertIn("SET TRANSACTION ISOLATION LEVEL SNAPSHOT;", steps["2c-snapshot"]["sql"])
+        self.assertIn("AccountId = 100", steps["2c-snapshot"]["sql"])
+        reread = steps["2c-snapshot-second"]
+        self.assertEqual(reread["session"], "1")
+        self.assertIn("SELECT", reread["sql"])
+        self.assertIn("AccountId = 100", reread["sql"])
+        self.assertNotRegex(reread["sql"], r"\b(?:COMMIT|ROLLBACK|SET TRANSACTION)\b")
+        self.assertIn("still 100", reread["title"])
+        self.assertEqual(steps["2c-conflict"]["expected_error"], 3960)
+        identifiers = list(steps)
+        for before, after in (("2c-snapshot", "2c-competitor"),
+                              ("2c-competitor", "2c-snapshot-second"),
+                              ("2c-snapshot-second", "2c-conflict")):
+            self.assertLess(identifiers.index(before), identifiers.index(after))
+
+    def test_demo1_balance_reset_uses_default_isolation(self):
+        reset = catalog.S1["steps"][1]
+        self.assertNotIn("SET TRANSACTION ISOLATION LEVEL", reset["sql"])
+        self.assertIn("IF @@TRANCOUNT > 0 ROLLBACK;", reset["sql"])
+        self.assertIn("UPDATE dbo.Accounts SET Balance = 100.00 WHERE AccountId = 1;", reset["sql"])
+        snapshot_reset = next(step for step in catalog.S2B["steps"]
+                              if step["id"] == "2b-snapshot-reset")
+        self.assertIn("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;", snapshot_reset["sql"])
+
+    def test_4a_only_demonstrates_inrow_versions_and_locking_reads(self):
+        steps = catalog.S4A["steps"]
+        self.assertEqual(len(steps), 10)
+        self.assertEqual(sum(bool(step.get("requires_clean_sessions")) for step in steps), 1)
+        self.assertIn("READ_COMMITTED_SNAPSHOT OFF", steps[0]["sql"])
+        self.assertIn("ALLOW_SNAPSHOT_ISOLATION OFF", steps[0]["sql"])
+        self.assertEqual(steps[3]["id"], "4a-adr-only-page")
+        self.assertEqual(steps[4]["id"], "4a-adr-only-records")
+        self.assertIn("no off-row data expected", steps[4]["title"])
+        self.assertTrue(all("ISOLATION LEVEL SNAPSHOT" not in step["sql"] for step in steps))
+        self.assertNotIn("4a-versioned-reads", [step["id"] for step in steps])
+        self.assertIn("Balance <> 100.00", steps[1]["sql"])
+        self.assertNotIn("SET TRANSACTION ISOLATION LEVEL", steps[2]["sql"])
+        self.assertIn("BEGIN TRAN;", steps[2]["sql"])
+        self.assertIn("UPDATE dbo.Accounts SET Balance = 200.00", steps[2]["sql"])
+
+    def test_4b_uses_rcsi_with_a_held_wide_writer_and_admin_pvs(self):
+        steps = {step["id"]: step for step in catalog.S4B["steps"]}
+        self.assertIn("READ_COMMITTED_SNAPSHOT ON", steps["4b-configure"]["sql"])
+        self.assertIn("ALLOW_SNAPSHOT_ISOLATION OFF", steps["4b-configure"]["sql"])
+        writer = steps["4b-wide-update"]
+        self.assertNotIn("SET TRANSACTION ISOLATION LEVEL", writer["sql"])
+        self.assertIn("BEGIN TRAN;", writer["sql"])
+        self.assertNotRegex(writer["sql"], r"\b(?:COMMIT|ROLLBACK)\b")
+        self.assertIn("ComplianceNotes =", writer["sql"])
+        self.assertIn("999.99", writer["sql"])
+        for key in ("4b-offrow-records", "4b-offrow-size"):
+            self.assertEqual(steps[key]["session"], "admin")
+            self.assertIn("USE master;", steps[key]["sql"])
+            self.assertIn(f"[{catalog.PRIMARY}].sys.partitions", steps[key]["sql"])
+            self.assertTrue(steps[key]["repeatable"])
+        reader = steps["4b-held"]
+        self.assertEqual(reader["session"], "1")
+        self.assertNotRegex(reader["sql"], r"\b(?:BEGIN TRAN|NOLOCK|READCOMMITTEDLOCK)\b")
+        self.assertIn("dbo.SavingsAccounts", reader["sql"])
+        self.assertEqual(steps["4b-release"]["session"], "2")
+        self.assertIn("COMMIT", steps["4b-release"]["sql"])
+        identifiers = list(steps)
+        self.assertLess(identifiers.index("4b-wide-update"), identifiers.index("4b-held"))
+        self.assertLess(identifiers.index("4b-held"), identifiers.index("4b-release"))
+        self.assertLess(identifiers.index("4b-release"), identifiers.index("4b-latest"))
+        self.assertTrue(all("ISOLATION LEVEL SNAPSHOT" not in step["sql"]
+                            for step in steps.values()))
+
+    def test_4c_only_demonstrates_cross_database_snapshot_retention(self):
+        steps = {step["id"]: step for step in catalog.S4C["steps"]}
+        self.assertIn("ISOLATION LEVEL SNAPSHOT", steps["4c-snapshot"]["sql"])
+        self.assertIn(f"USE [{catalog.PRIMARY}]", steps["4c-snapshot"]["sql"])
+        self.assertIn(f"USE [{catalog.EAGLES}]", steps["4c-other-db-update"]["sql"])
+        self.assertEqual(steps["4c-snapshot"]["session"], "1")
+        self.assertEqual(steps["4c-other-db-update"]["session"], "2")
+        self.assertIn("4c-pinned-cleanup", steps)
+        self.assertIn("4c-released-cleanup", steps)
+        self.assertIn("4c-drained", steps)
+        self.assertNotIn("4c-generate", steps)
+        self.assertNotIn("4c-flush-adr-off", steps)
+
+    def test_pvs_diagnostics_are_repeatable_and_explain_empty_offrow_results(self):
+        steps = {step["id"]: step for step in catalog.S4A["steps"]}
+        records = steps["4a-adr-only-records"]
+        self.assertEqual(records["session"], "admin")
+        self.assertTrue(records["repeatable"])
+        self.assertIn("Empty results alone", records["explanation"])
+        self.assertIn("in-row", records["explanation"])
+        self.assertFalse(steps["4a-adr-only-writer"].get("repeatable", False))
+
+    def test_tempdb_measurements_are_repeatable_and_label_allocated_pages(self):
+        steps = [step for demo in catalog.DEMOS for scenario in demo["scenarios"]
+                 for step in scenario["steps"] if "VersionStorePages" in step["sql"]]
+        self.assertTrue(steps)
+        for step in steps:
+            self.assertTrue(step["repeatable"])
+            self.assertIn("AS TotalPagesInTempdb", step["sql"])
+            self.assertNotRegex(step["sql"], r"\bAS TotalPages\b")
+            self.assertFalse(step.get("dangerous", False))
+        for demo in catalog.DEMOS:
+            for scenario in demo["scenarios"]:
+                for step in scenario["steps"]:
+                    if step.get("dangerous"):
+                        self.assertFalse(step.get("repeatable", False))
+
+    def test_victim_waves_run_in_one_step_with_separate_autocommits(self):
+        steps = {step["id"]: step for step in catalog.S3B["steps"]}
+        self.assertNotIn("3b-wave-1", steps)
+        self.assertNotIn("3b-measure-5", steps)
+        wave = steps["3b-waves"]
+        self.assertEqual(wave["session"], "2")
+        self.assertTrue(wave["dangerous"])
+        self.assertIn("IF @@TRANCOUNT <> 0", wave["sql"])
+        self.assertIn("SET IMPLICIT_TRANSACTIONS OFF;", wave["sql"])
+        self.assertIn("WHILE @wave < 10", wave["sql"])
+        self.assertIn("UPDATE dbo.GameStats SET Yards = Yards + 1;", wave["sql"])
+        self.assertNotIn("BEGIN TRAN", wave["sql"])
+        self.assertIn("CommittedUpdateWaves", wave["sql"])
+        self.assertIn("SET @rowsUpdated += @@ROWCOUNT;", wave["sql"])
+        self.assertLess(wave["sql"].index("SET @rowsUpdated += @@ROWCOUNT;"),
+                        wave["sql"].index("SET @wave += 1;"))
+        for column in ("AvgRowsUpdatedPerWave", "TotalRowUpdates", "AvgPhysicalRowBytes"):
+            self.assertIn(f"AS {column}", wave["sql"])
+        self.assertIn("avg_record_size_in_bytes) * record_count", wave["sql"])
+        self.assertIn("index_id IN (0,1) AND index_level = 0", wave["sql"])
+        self.assertIn("alloc_unit_type_desc = N'IN_ROW_DATA'", wave["sql"])
+        self.assertIn("3b-measure-10", steps)
+
+    def test_version_chain_preparation_does_not_version_an_unchanged_balance(self):
+        steps = {step["id"]: step for step in catalog.S3A["steps"]}
+        self.assertIn(
+            "UPDATE dbo.Accounts SET Balance = 100.00 WHERE AccountId = 42 AND Balance <> 100.00;",
+            steps["3a-reset"]["sql"],
+        )
+        self.assertIn("SELECT N'Starting committed balance'", steps["3a-reset"]["sql"])
+        self.assertIn("UPDATE dbo.Accounts SET Balance = 200.00", steps["3a-rcsi-writer"]["sql"])
+        self.assertIn("BEGIN TRAN;", steps["3a-rcsi-writer"]["sql"])
+        self.assertNotIn("AND Balance <>", catalog.S2A["steps"][1]["sql"])
+
+    def test_rcsi_walkthrough_only_prepares_account_one(self):
+        steps = catalog.S2A["steps"]
+        self.assertNotIn("2a-other-baselines", [step["id"] for step in steps])
+        self.assertEqual([step["id"] for step in steps[:3]],
+                         ["2a-configure", "2a-reset", "2a-writer"])
+        self.assertNotIn("100,200", "\n".join(step["sql"] for step in steps))
+
     def setUp(self):
         self.scenarios = {
             scenario["id"]: scenario
@@ -92,19 +242,28 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(setup["session"], "admin")
         self.assertTrue(setup["dangerous"])
         self.assertTrue(setup["requires_clean_sessions"])
-        self.assertIn("CONFIRM", setup["title"])
+        self.assertEqual(setup["title"], "Run setup")
         self.assertIn("APPROVAL REQUIRED", setup["explanation"])
         source = (catalog.ROOT / catalog.DEMO_FOLDERS["0"] / "demo0-setup.sql").read_text(
             encoding="utf-8-sig")
         self.assertTrue(setup["sql"].startswith(source.strip()))
         for database in (catalog.PRIMARY, catalog.EAGLES, catalog.COWBOYS):
             self.assertIn(f"DROP DATABASE {database};", setup["sql"])
-        self.assertTrue(setup["sql"].endswith("USE master;"))
+            self.assertIn(f"SELECT N'{database}' AS DatabaseName", setup["sql"])
+            self.assertIn(f"FROM [{database}].sys.tables", setup["sql"])
+        self.assertTrue(setup["sql"].endswith(catalog.SETUP_INVENTORY_SQL.strip()))
         self.assertFalse(readiness.get("dangerous", False))
         self.assertFalse(readiness.get("requires_clean_sessions", False))
         self.assertNotRegex(readiness["sql"], r"\b(?:ALTER|DROP|CREATE|INSERT|UPDATE|DELETE)\b")
         self.assertIn("IF DB_ID", readiness["sql"])
         self.assertIn("ProductMajorVersion", readiness["sql"])
+
+    def test_primary_database_name_is_consistent_across_demo_files(self):
+        self.assertEqual(catalog.PRIMARY, "starswillwinthecup")
+        for path in catalog.ROOT.rglob("*"):
+            if path.is_file() and path.suffix in {".sql", ".py", ".md", ".ps1", ".html", ".json"}:
+                with self.subTest(path=path.relative_to(catalog.ROOT)):
+                    self.assertNotIn("texasrangers" + "willwin", path.read_text(encoding="utf-8-sig").lower())
 
     def test_configuration_only_requires_clean_sessions_and_stays_master(self):
         for step in self.steps.values():
@@ -199,6 +358,10 @@ class CatalogTests(unittest.TestCase):
             self.assertTrue(pages, scenario_id)
             for step in pages:
                 self.assertEqual(step["session"], "admin")
+                self.assertEqual(step["viewer"]["kind"], "adr" if scenario_id.startswith("4") else "tempdb")
+                self.assertTrue(step["viewer"]["database"])
+                self.assertTrue(step["viewer"]["table_name"])
+                self.assertTrue(step["viewer"]["find_row"].isdigit())
                 self.assertNotIn("BEGIN TRAN", step["sql"])
                 self.assertIn("fn_PhysLocCracker", step["sql"])
                 self.assertIn("WITH TABLERESULTS", step["sql"])
@@ -207,7 +370,7 @@ class CatalogTests(unittest.TestCase):
         for key in ("3a-hops-before", "3a-hops-after"):
             self.assertIn("max_version_chain_traversed", self.steps[key]["sql"])
             self.assertIn("WHERE session_id = @@SPID", self.steps[key]["sql"])
-        self.assertIn("prev_row_in_chain", self.steps["4a-records-2"]["sql"])
+        self.assertIn("prev_row_in_chain", self.steps["4a-adr-only-records"]["sql"])
         self.assertIn("row_version", self.steps["4b-offrow-records"]["sql"])
         for step in self.steps.values():
             self.assertNotRegex(step["sql"], r"SELECT\s+[123]\s+AS\s+(?:Chain|Hops)")

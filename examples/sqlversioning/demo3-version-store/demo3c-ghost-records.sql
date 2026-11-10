@@ -5,20 +5,20 @@
 -- Two separate cleanup processes. Neither waits for the other.
 -- Self-contained: only requires demo0 (database + tables + data).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- SETUP: Enable RCSI + Snapshot, ensure ADR and OL are OFF (tempdb versioning)
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET OPTIMIZED_LOCKING = OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET OPTIMIZED_LOCKING = OFF;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = OFF;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 -- TALKING POINT: "When you DELETE a row under versioning, TWO things happen.
@@ -34,7 +34,7 @@ SELECT
     version_ghost_record_count,
     record_count
 FROM sys.dm_db_index_physical_stats(
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     OBJECT_ID(N'dbo.Accounts'), 
     1, NULL, 'DETAILED')
 WHERE index_level = 0;
@@ -56,7 +56,7 @@ SELECT
     ghost_record_count,
     version_ghost_record_count
 FROM sys.dm_db_index_physical_stats(
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     OBJECT_ID(N'dbo.Accounts'), 
     1, NULL, 'DETAILED')
 WHERE index_level = 0;
@@ -67,7 +67,7 @@ SELECT
     reserved_page_count  AS VersionPages,
     reserved_space_kb    AS VersionSpaceKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "See both numbers? Ghost records on the data page — those 
@@ -90,7 +90,7 @@ SELECT
     ghost_record_count,
     version_ghost_record_count
 FROM sys.dm_db_index_physical_stats(
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     OBJECT_ID(N'dbo.Accounts'), 
     1, NULL, 'DETAILED')
 WHERE index_level = 0;
@@ -101,7 +101,7 @@ SELECT
     reserved_page_count  AS VersionPages,
     reserved_space_kb    AS VersionSpaceKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Re-seed the deleted rows for later demos

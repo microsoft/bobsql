@@ -12,7 +12,7 @@ One-time setup script that creates all databases and seed data for the session.
 
 | Database | Purpose |
 |----------|---------|
-| `texasrangerswillwinitthisyear` | Primary demo database — Accounts, Orders, BigTable, BenchAccounts |
+| `starswillwinthecup` | Primary demo database — Accounts, Orders, BigTable, BenchAccounts |
 | `eaglesdontfly` | Cross-database version store / PVS isolation tests |
 | `howboutthemcowboys` | Victim OLTP database for cross-DB version bloat demos |
 

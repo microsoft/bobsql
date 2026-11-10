@@ -10,18 +10,18 @@
 --   2. Flask page viewer running: python demos/dbcc_page_viewer.py
 --   3. Browser open to http://localhost:5050
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- SETUP: Enable required isolation levels
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 -- ============================================================================
@@ -90,7 +90,7 @@ SELECT
     record_length_first_part_in_bytes AS RecordBytes1st,
     record_image_first_part
 FROM sys.dm_tran_version_store
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 -- ^^^ Empty — cleaner removed it.
 GO
 
@@ -164,7 +164,7 @@ SELECT
     reserved_page_count  AS VersionPages,
     reserved_space_kb    AS VersionSpaceKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Who's holding the watermark?

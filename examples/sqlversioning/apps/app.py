@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import importlib.util
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
+from html.parser import HTMLParser
 import logging
+from pathlib import Path
 import re
 import threading
 import time
@@ -17,9 +21,10 @@ from flask import Flask, jsonify, render_template, request
 from mssql_python import connect, Error as SqlError
 
 from catalog import DEMOS
+from reset_demo import SCENARIOS, configuration, data_sql, databases, restoration_session
 
 LOG = logging.getLogger(__name__)
-DATABASES = ("texasrangerswillwinitthisyear", "eaglesdontfly", "howboutthemcowboys")
+DATABASES = ("starswillwinthecup", "eaglesdontfly", "howboutthemcowboys")
 GO = re.compile(r"^\s*GO\s*(?:--.*)?$", re.IGNORECASE | re.MULTILINE)
 ROW_LIMIT = 1000
 
@@ -65,6 +70,79 @@ def execute_sql(connection: Any, sql: str) -> tuple[list[dict], list[str]]:
     return results, messages
 
 
+class _SummaryTables(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tables: list[list[list[str]]] = []
+        self.rows: list[list[str]] = []
+        self.cells: list[str] = []
+        self.text: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            self.rows = []
+        elif tag == "tr":
+            self.cells = []
+        elif tag == "td":
+            self.text = []
+
+    def handle_data(self, data):
+        if self.text is not None:
+            self.text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "td" and self.text is not None:
+            self.cells.append("".join(self.text).strip())
+            self.text = None
+        elif tag == "tr" and self.cells:
+            self.rows.append(self.cells)
+        elif tag == "table":
+            self.tables.append(self.rows)
+
+
+def parse_inventory_summary(report: str) -> dict:
+    parser = _SummaryTables()
+    parser.feed(report)
+    if len(parser.tables) != 3 or any(len(table) != 4 for table in parser.tables):
+        raise ValueError("Inventory summary must contain four configurations in three tables.")
+    duration = re.search(r"(\d+) sec", report)
+    products = re.search(r"(\d+)K products", report)
+    readers = re.search(r"Reader Latency \(check-availability, (\d+) threads\)", report)
+    writers = re.search(r"Writer Latency \(warehouse restock, (\d+) threads\)", report)
+    if duration is None or products is None or readers is None or writers is None:
+        raise ValueError("Inventory summary workload metadata is missing.")
+    configs = []
+    databases = ("inventory_baseline", "inventory_rcsi", "inventory_adr_rcsi", "inventory_adr_rcsi_ol")
+    names = ("Baseline", "RCSI", "ADR + RCSI", "ADR + RCSI + OL")
+    for total, read, write, database in zip(*parser.tables, databases):
+        if (len(total) != 5 or len(read) != 3 or len(write) != 3 or
+                total[0] != read[0] or total[0] != write[0] or total[0] != names[len(configs)]):
+            raise ValueError("Inventory summary configuration rows do not match.")
+        configs.append({
+            "name": total[0], "database": database,
+            "total_executions": int(total[1].replace(",", "")),
+            "avg_latency_ms": float(total[2]), "deadlocks": int(total[3]),
+            "queries": {
+                "check_availability": {
+                    "executions": int(read[1].replace(",", "")),
+                    "threads": int(readers[1]), "avg_elapsed_ms": float(read[2]),
+                },
+                "warehouse_restock": {
+                    "executions": int(write[1].replace(",", "")),
+                    "threads": int(writers[1]), "avg_elapsed_ms": float(write[2]),
+                },
+            },
+        })
+    return {
+        "benchmark": "inventory", "timestamp": None,
+        "table_rows": int(products[1]) * 1000, "duration_seconds": int(duration[1]),
+        "description": "Slide summary: warehouse restock, order fulfillment and check availability. "
+                       f"Reported duration: {duration[1]} seconds; {products[1]}K products. Exact runtime and the full worker "
+                       "mix are not reported. Latencies are for the two named queries, not pooled averages.",
+        "configs": configs,
+    }
+
+
 class DemoRunner:
     def __init__(self, server: str = "localhost"):
         self.server = server
@@ -74,6 +152,8 @@ class DemoRunner:
         self.jobs: list[dict] = []
         self.active_demo: str | None = None
         self.resetting = False
+        self.restart_data_done: set[str] = set()
+        self.scenarios = SCENARIOS
         self.steps = {
             step["id"]: (demo["id"], step)
             for demo in DEMOS for scenario in demo["scenarios"] for step in scenario["steps"]
@@ -116,8 +196,25 @@ class DemoRunner:
         with self.lock:
             if self.resetting:
                 raise ValueError("Session cleanup is still in progress.")
+            if self.restart_data_done:
+                raise ValueError("A Reset demo is incomplete. Retry it before running another step.")
             if self.active_demo not in (None, demo_id):
                 raise ValueError("End the current demo before switching demo pages.")
+            scenario = next((s for s in self.scenarios.values()
+                             if any(item["id"] == step_id for item in s["steps"])), None)
+            if scenario:
+                previous = self.jobs[-1] if self.jobs else None
+                if (self.active_demo is not None and previous and
+                        previous.get("scenario_id") != scenario["id"]):
+                    raise ValueError("End the active walkthrough before switching subdemos.")
+                jobs = [j for j in self.jobs if j.get("scenario_id") == scenario["id"] and not j.get("archived")]
+                pending_restore = restoration_session(scenario["id"], jobs)
+                prep = {"2d": "insert", "2e": "fk-reset", "3c": "fk-safe-reset",
+                        "4e": "backup-deletes"}.get(scenario["id"])
+                if pending_restore and (step_id == f"{scenario['id']}-{prep}" or
+                                        step_id in ("4e-wave-a", "4e-wave-b")):
+                    raise ValueError("Finish the pending restoration or Reset demo before repeating this step. "
+                                     "Its original restoration tables must not be overwritten.")
             admin = self.sessions.get("admin")
             if admin and admin["busy"] and admin.get("configuring"):
                 raise ValueError("Wait for database configuration to finish before running another step.")
@@ -144,6 +241,12 @@ class DemoRunner:
                 "elapsed_ms": 0, "result_sets": [], "messages": [], "error": None,
                 "_start": time.monotonic(),
             }
+            if scenario:
+                job["scenario_id"] = scenario["id"]
+                if step_id == scenario["steps"][0]["id"]:
+                    for previous in self.jobs:
+                        if previous.get("scenario_id") != scenario["id"]:
+                            previous["archived"] = True
             self.active_demo = demo_id
             self.jobs.append(job)
             session["busy"] = True
@@ -246,24 +349,123 @@ class DemoRunner:
             self.resetting = True
             sessions = list(self.sessions.values())
         try:
-            for session in sessions:
-                if session["busy"]:
-                    session["cancel_requested"] = True
-                    self._kill_owned(session)
-                    session["thread"].join(timeout=15)
-                    if session["busy"]:
-                        raise RuntimeError("SQL cancellation is still pending; retry End demo.")
-                with self.lock:
-                    if self.sessions.get(session["name"]) is not session:
-                        continue
-                if not session["cancel_requested"]:
-                    execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;")
-                session["connection"].close()
-                with self.lock:
-                    self.sessions.pop(session["name"], None)
-            with self.lock:
-                self.active_demo = None
+            self._close_sessions(sessions)
         finally:
+            with self.lock:
+                self.resetting = False
+
+    def _close_sessions(self, sessions: list[dict]) -> None:
+        for session in sessions:
+            if session["busy"]:
+                session["cancel_requested"] = True
+                self._kill_owned(session)
+                session["thread"].join(timeout=15)
+                if session["busy"]:
+                    raise RuntimeError("SQL cancellation is still pending; retry session cleanup.")
+            with self.lock:
+                if self.sessions.get(session["name"]) is not session:
+                    continue
+            if not session["cancel_requested"]:
+                execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;\nUSE master;")
+            session["connection"].close()
+            with self.lock:
+                self.sessions.pop(session["name"], None)
+        with self.lock:
+            self.active_demo = None
+
+    def _check_reset_connections(self, control: Any, scenario_id: str) -> None:
+        names = ", ".join(f"N'{name}'" for name in databases(scenario_id))
+        sets, _ = execute_sql(control, f"""
+USE master;
+SELECT s.session_id, s.program_name, DB_NAME(s.database_id) AS database_name
+FROM sys.dm_exec_sessions s
+WHERE s.is_user_process = 1 AND s.session_id <> @@SPID
+  AND (s.context_info IS NULL OR s.context_info <> 0x{self.context_hex})
+  AND (s.database_id IN (SELECT database_id FROM sys.databases WHERE name IN ({names}))
+   OR EXISTS (SELECT 1 FROM sys.dm_tran_locks l
+      WHERE l.request_session_id = s.session_id AND l.resource_database_id IN
+        (SELECT database_id FROM sys.databases WHERE name IN ({names}))));
+""")
+        others = sets[0]["rows"]
+        if others:
+            details = "; ".join(f"SPID {row[0]} ({row[1] or 'unknown client'}, "
+                                f"database {row[2] or 'unknown'})" for row in others[:5])
+            raise ValueError(f"Other SQL connections are using the lab databases: {details}. "
+                             "Disconnect those connections and retry Reset demo. "
+                             "No outside connections were closed.")
+
+    def restart(self, scenario_id: str) -> None:
+        with self.lock:
+            scenario = self.scenarios.get(scenario_id)
+            if not scenario:
+                raise ValueError("Unknown reset walkthrough. Demo 0 must use its confirmed setup action.")
+            demo_id = next(demo["id"] for demo in DEMOS if scenario in demo["scenarios"])
+            if self.active_demo not in (None, demo_id):
+                raise ValueError("A different demo is active. Finish it before resetting this walkthrough.")
+            if self.resetting:
+                raise ValueError("Session cleanup or Reset demo is already in progress.")
+            if self.restart_data_done and scenario_id not in self.restart_data_done:
+                raise ValueError("Retry the incomplete Reset demo before resetting another walkthrough.")
+            jobs = [j for j in self.jobs if j.get("scenario_id") == scenario_id and not j.get("archived")]
+            latest = self.jobs[-1] if self.jobs else None
+            if latest and latest.get("scenario_id") != scenario_id:
+                raise ValueError("Another walkthrough ran after this one. Reset that walkthrough first; "
+                                 "older changes cannot be safely reversed out of order.")
+            owner = None if scenario_id in self.restart_data_done else restoration_session(scenario_id, jobs)
+            sql = data_sql(scenario_id, jobs)
+            if owner and (owner not in self.sessions or self.sessions[owner]["busy"]):
+                raise ValueError(f"Reset needs the existing restoration tables in Session {owner}. "
+                                 "Wait for its request to finish and do not close it. "
+                                 "If that session is already gone, use approved setup.")
+            if any(s["busy"] and s.get("configuring") for s in self.sessions.values()):
+                raise ValueError("Wait for configuration to finish before Reset demo.")
+            self.resetting = True
+            sessions = list(self.sessions.values())
+        control = None
+        own_control = False
+        try:
+            control = self.sessions[owner]["connection"] if owner else self.connection()
+            own_control = not owner
+            self._check_reset_connections(control, scenario_id)
+            if scenario_id not in self.restart_data_done:
+                for session in sessions:
+                    if session["busy"]:
+                        session["cancel_requested"] = True
+                        self._kill_owned(session)
+                        session["thread"].join(timeout=15)
+                        if session["busy"]:
+                            raise RuntimeError("Cancellation is still pending. Retry Reset demo.")
+                    if not session["cancel_requested"]:
+                        execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;")
+                # Cancellation may have changed a job's outcome; never infer a committed wave.
+                sql = data_sql(scenario_id, jobs)
+                if owner:
+                    names = {
+                        "2d": ["#FkInserted"], "2e": ["#FkOriginalItems"],
+                        "3c": ["#GhostAccounts", "#GhostOrders", "#GhostItems"],
+                        "4e": ["#RecoveryDeleted"],
+                    }[scenario_id]
+                    checks = " OR ".join(f"OBJECT_ID(N'tempdb..{name}') IS NULL" for name in names)
+                    execute_sql(control, f"IF {checks} THROW 50000, 'Required restoration tables are missing; reset stopped.', 1;")
+                execute_sql(control, sql)
+                self.restart_data_done.add(scenario_id)
+            self._close_sessions(sessions)
+            if own_control:
+                control.close()
+            control = None
+            own_control = False
+            control = self.connection()
+            own_control = True
+            self._check_reset_connections(control, scenario_id)
+            execute_sql(control, configuration(scenario_id))
+            with self.lock:
+                for job in self.jobs:
+                    if job.get("scenario_id") == scenario_id:
+                        job["archived"] = True
+                self.restart_data_done.discard(scenario_id)
+        finally:
+            if control is not None and own_control:
+                control.close()
             with self.lock:
                 self.resetting = False
 
@@ -324,7 +526,9 @@ FROM sys.dm_tran_active_snapshot_database_transactions a;
                     item["elapsed_ms"] = round((time.monotonic() - job["_start"]) * 1000)
                 jobs.append(item)
             return {"active_demo": self.active_demo, "sessions": sessions,
-                    "jobs": jobs, "monitor": monitor}
+                    "jobs": jobs, "monitor": monitor,
+                    "resetting": self.resetting,
+                    "incomplete_resets": sorted(self.restart_data_done)}
 
 
 def create_app(runner: DemoRunner | None = None) -> Flask:
@@ -332,6 +536,35 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     runner = runner or DemoRunner()
     app.config["RUNNER"] = runner
+    app.config["VIEWER_SERVER"] = runner.server
+
+    def viewer_connection(database: str) -> Any:
+        if database not in DATABASES:
+            raise ValueError("Choose one of the three lab databases.")
+        if runner.resetting:
+            raise ValueError("Reset demo is in progress. Retry View Page when it finishes.")
+        connection = runner.connection()
+        try:
+            execute_sql(connection, f"USE [{database}];")
+        except SqlError:
+            connection.close()
+            raise
+        return connection
+
+    app.config["VIEWER_CONNECTION"] = viewer_connection
+    viewers = {}
+    root = Path(__file__).resolve().parent.parent
+    for kind, source in (
+        ("tempdb", root / "demo3-version-store" / "dbcc_page_viewer.py"),
+        ("adr", root / "demo4-adr-pvs" / "dbcc_page_viewer_adr.py"),
+    ):
+        spec = importlib.util.spec_from_file_location(f"page_viewer_{kind}", source)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Cannot load page viewer: {source}")
+        viewer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(viewer)
+        viewers[kind] = viewer
+    app.config["PAGE_VIEWERS"] = viewers
 
     @app.before_request
     def local_only():
@@ -340,11 +573,11 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
         if request.host.split(":")[0] not in ("localhost", "127.0.0.1"):
             return jsonify(error="Invalid local host."), 403
         if request.method == "POST":
-            if not request.is_json:
-                return jsonify(error="A JSON request is required."), 415
             origin = request.headers.get("Origin")
             if origin and origin != request.host_url.rstrip("/"):
                 return jsonify(error="Cross-origin execution is not allowed."), 403
+            if request.endpoint != "page_viewer" and not request.is_json:
+                return jsonify(error="A JSON request is required."), 415
 
     @app.after_request
     def response_headers(response):
@@ -363,6 +596,48 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
     @app.get("/api/catalog")
     def catalog():
         return jsonify(demos=DEMOS, server=runner.server)
+
+    @app.route("/page-viewer/<kind>", methods=["GET", "POST"])
+    def page_viewer(kind):
+        if kind not in viewers:
+            return jsonify(error="Unknown page viewer."), 404
+        return viewers[kind].index()
+
+    @app.get("/benchmark")
+    def benchmark():
+        return render_template("benchmark.html")
+
+    @app.get("/api/benchmark")
+    def benchmark_results():
+        root = Path(__file__).resolve().parent.parent / "benchmark"
+        captures = []
+        for source in (
+            "inventory/results/inventory-results.html",
+        ):
+            path = root / source
+            data = parse_inventory_summary(path.read_text(encoding="utf-8-sig"))
+            suite = data["benchmark"]
+            workloads = {}
+            for name in data["configs"][0]["queries"]:
+                script = root / suite / f"workload-{name.replace('_', '-')}.sql"
+                workloads[name] = {
+                    "sql": script.read_text(encoding="utf-8-sig"),
+                    "source": script.relative_to(root).as_posix(),
+                    "kind": "read" if suite == "inventory" and name in (
+                        "check_availability", "category_report"
+                    ) else "write",
+                }
+            captures.append({
+                "source": source,
+                "benchmark": data["benchmark"],
+                "timestamp": data["timestamp"],
+                "table_rows": data["table_rows"],
+                "description": data["description"],
+                "duration_seconds": data["duration_seconds"],
+                "configs": data["configs"],
+                "workloads": workloads,
+            })
+        return jsonify(captures=captures)
 
     @app.get("/api/state")
     def state():
@@ -389,6 +664,15 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
         if not isinstance(body, dict) or body.get("session") not in ("admin", "1", "2"):
             return jsonify(error="Invalid session."), 400
         runner.cancel(body["session"])
+        return jsonify(ok=True)
+
+    @app.post("/api/restart")
+    def restart():
+        body = request.get_json()
+        if (not isinstance(body, dict) or body.get("confirmed") is not True
+                or not isinstance(body.get("scenario_id"), str)):
+            return jsonify(error="Confirm the selected walkthrough's data/settings reset."), 400
+        runner.restart(body["scenario_id"])
         return jsonify(ok=True)
 
     @app.errorhandler(ValueError)

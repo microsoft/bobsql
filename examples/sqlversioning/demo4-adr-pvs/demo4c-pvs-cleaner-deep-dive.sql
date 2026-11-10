@@ -19,17 +19,17 @@ GO
 -- ============================================================================
 -- SETUP: ADR + RCSI + SNAPSHOT
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = ON;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
@@ -135,13 +135,13 @@ GO
 -- to mark all pre-allocated pages as full and evict the cache.
 USE master;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = OFF;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = OFF;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- Confirm PVS is now truly empty
@@ -170,13 +170,13 @@ GO
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 USE master;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = ON;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- Confirm PVS is now truly empty
@@ -196,10 +196,10 @@ ALTER DATABASE eaglesdontfly SET MULTI_USER;
 GO
 
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
--- SESSION 1 — Step 2: Open snapshot in texasrangerswillwinitthisyear
+-- SESSION 1 — Step 2: Open snapshot in starswillwinthecup
 --                      This pins the INSTANCE-WIDE XTS watermark
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 SET TRANSACTION ISOLATION LEVEL SNAPSHOT;
 BEGIN TRAN;
@@ -207,7 +207,7 @@ BEGIN TRAN;
     -- Snapshot is now established — global XTS floor is pinned
 GO
 
--- TALKING POINT: "I've opened a snapshot in texasrangerswillwinitthisyear.
+-- TALKING POINT: "I've opened a snapshot in starswillwinthecup.
 -- This pins the instance-wide XTS watermark. Now switch to session 2 —
 -- we'll generate versions in eaglesdontfly (a completely different database)
 -- and try to clean them up."

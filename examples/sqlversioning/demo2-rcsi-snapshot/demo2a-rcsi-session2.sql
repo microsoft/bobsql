@@ -5,7 +5,7 @@
 -- Load this in SSMS Session 2 (right window).
 -- Load demo2a-rcsi-session1.sql in Session 1 (left window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
@@ -30,7 +30,7 @@ SELECT
     reserved_page_count  AS VersionPages,
     reserved_space_kb    AS VersionSpaceKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- ============================================================================

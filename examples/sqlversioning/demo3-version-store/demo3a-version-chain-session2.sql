@@ -5,7 +5,7 @@
 -- Load this in SSMS Session 2 (right window).
 -- Load demo3a-version-chain-session1.sql in Session 1 (left window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
@@ -34,7 +34,7 @@ SELECT
     record_length_first_part_in_bytes AS RecordBytes1st,
     record_image_first_part
 FROM sys.dm_tran_version_store
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- >>> Go to Session 1: read under RCSI — sees the old Balance.
@@ -85,7 +85,7 @@ SELECT
     record_length_first_part_in_bytes AS RecordBytes1st,
     record_image_first_part
 FROM sys.dm_tran_version_store
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear')
+WHERE database_id = DB_ID(N'starswillwinthecup')
 ORDER BY transaction_sequence_num DESC;
 GO
 

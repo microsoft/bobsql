@@ -29,7 +29,7 @@
 [CmdletBinding()]
 param(
     [string]$ServerName = 'localhost',
-    [string]$MainDatabase = 'texasrangerswillwinitthisyear',
+    [string]$MainDatabase = 'starswillwinthecup',
     [string]$SqlsimPath = 'C:\bwsql\sqlsimtools\sqlsim\build\x64\Release\sqlsim.exe',
     [switch]$OutputJson
 )

@@ -7,7 +7,7 @@ from dbcc_page_viewer_adr import (
     parse_version_from_hex, read_pvs_record
 )
 
-DATABASE = 'texasrangerswillwinitthisyear'
+DATABASE = 'starswillwinthecup'
 
 conn = get_connection('localhost', DATABASE, 'windows')
 cursor = conn.cursor()

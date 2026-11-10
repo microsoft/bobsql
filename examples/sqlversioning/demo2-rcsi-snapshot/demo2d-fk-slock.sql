@@ -4,13 +4,13 @@
 -- Even with RCSI on, FK validation takes S locks. Surprise!
 -- Self-contained: only requires demo0 (database + tables + data).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- SETUP: Enable RCSI
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
 GO
 
 -- TALKING POINT: "People enable RCSI and expect zero shared locks. Then
@@ -28,7 +28,7 @@ SELECT
     resource_description,
     request_mode
 FROM sys.dm_tran_locks
-WHERE resource_database_id = DB_ID(N'texasrangerswillwinitthisyear')
+WHERE resource_database_id = DB_ID(N'starswillwinthecup')
   AND request_mode = N'S'
   AND resource_type = N'KEY';
 GO

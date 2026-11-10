@@ -3,7 +3,7 @@
 -- ============================================================================
 -- Run this in a SEPARATE query window from demo4c-pvs-cleaner-deep-dive.sql
 -- 
--- Session 1 (demo4c): Opens snapshot in texasrangerswillwinitthisyear to pin
+-- Session 1 (demo4c): Opens snapshot in starswillwinthecup to pin
 --                      the instance-wide XTS watermark
 -- Session 2 (this script): Generates versions in eaglesdontfly, shows
 --                           cleanup is BLOCKED by the other DB's snapshot,
@@ -17,7 +17,7 @@
 -- Step 1: Generate versions in eaglesdontfly (different database entirely)
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 USE eaglesdontfly;
-UPDATE dbo.ReportData SET Score = Score + 1, Notes = 'Instance-wide XTS watermark test. Snapshot is open in texasrangerswillwinitthisyear — not this database. Cleanup should be BLOCKED because the XTS floor is instance-wide. Scouting report revision: Film review complete for weeks 1 through 12. Defensive coordinator recommends man coverage on third down. Offensive line grading shows improvement at right tackle. Practice squad callups pending for cornerback depth.';
+UPDATE dbo.ReportData SET Score = Score + 1, Notes = 'Instance-wide XTS watermark test. Snapshot is open in starswillwinthecup — not this database. Cleanup should be BLOCKED because the XTS floor is instance-wide. Scouting report revision: Film review complete for weeks 1 through 12. Defensive coordinator recommends man coverage on third down. Offensive line grading shows improvement at right tackle. Practice squad callups pending for cornerback depth.';
 GO
 
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -58,7 +58,7 @@ WHERE database_id = DB_ID(N'eaglesdontfly');
 GO
 
 -- TALKING POINT: "Skipped_MinUsefulXts is nonzero — that's the instance-wide
--- XTS floor set by our snapshot in texasrangerswillwinitthisyear. Notice
+-- XTS floor set by our snapshot in starswillwinthecup. Notice
 -- Skipped_OldestSnapshot is 0 — there's no snapshot in eaglesdontfly.
 -- The cleaner is blocked by a DIFFERENT database's snapshot."
 
@@ -82,7 +82,7 @@ SELECT
     persistent_version_store_size_kb AS PVS_Size_KB
 FROM sys.dm_tran_persistent_version_store_stats
 WHERE database_id IN (
-    DB_ID(N'texasrangerswillwinitthisyear'),
+    DB_ID(N'starswillwinthecup'),
     DB_ID(N'eaglesdontfly')
 );
 GO

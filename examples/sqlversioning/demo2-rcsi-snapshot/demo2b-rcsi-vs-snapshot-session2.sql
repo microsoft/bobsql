@@ -5,7 +5,7 @@
 -- Load this in SSMS Session 2 (right window).
 -- Load demo2b-rcsi-vs-snapshot-session1.sql in Session 1 (left window).
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================

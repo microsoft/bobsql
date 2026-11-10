@@ -12,7 +12,7 @@
 --   2. ADR page viewer running: python demos/dbcc_page_viewer_adr.py
 --   3. Browser open to http://localhost:5051
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
@@ -21,20 +21,20 @@ GO
 -- ADR always generates PVS versions for recovery (rollback/crash).
 -- RCSI controls whether READERS can use those versions.
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
 -- Start with ADR ON but RCSI OFF — versions are generated but readers still lock
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT OFF;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = ON;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT OFF;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 -- Confirm state: ADR ON, RCSI OFF
 SELECT name, 
     is_read_committed_snapshot_on AS RCSI,
     is_accelerated_database_recovery_on AS ADR
-FROM sys.databases WHERE name = N'texasrangerswillwinitthisyear';
+FROM sys.databases WHERE name = N'starswillwinthecup';
 GO
 
 -- Baseline: PVS should be clean, tempdb version store should be empty
@@ -42,13 +42,13 @@ SELECT
     DB_NAME(database_id) AS [Database],
     reserved_space_kb AS TempDB_VersionStoreKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 
 SELECT 
     persistent_version_store_size_kb AS PVS_Size_KB,
     online_index_version_store_size_kb AS OnlineIdx_PVS_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "ADR is ON but RCSI is OFF. Here's the key insight:
@@ -83,19 +83,19 @@ GO
 -- ============================================================================
 -- Now enable RCSI + SNAPSHOT — readers can use the PVS versions
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 SELECT name, 
     is_read_committed_snapshot_on AS RCSI,
     is_accelerated_database_recovery_on AS ADR,
     snapshot_isolation_state_desc AS SnapshotIso
-FROM sys.databases WHERE name = N'texasrangerswillwinitthisyear';
+FROM sys.databases WHERE name = N'starswillwinthecup';
 GO
 
 -- TALKING POINT: "Now RCSI and SNAPSHOT isolation are both ON. ADR was
@@ -169,7 +169,7 @@ GO
 SELECT 
     persistent_version_store_size_kb AS PVS_Size_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 -- ^^^ Non-zero — the evicted versions are off-row PVS records.
 GO
 
@@ -198,7 +198,7 @@ SELECT
     aborted_version_cleaner_start_time AS LastCleanerStart,
     aborted_version_cleaner_end_time AS LastCleanerEnd
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "PVS is still non-zero — the versions are there. But
@@ -212,7 +212,7 @@ SELECT
     aborted_version_cleaner_start_time AS LastCleanerStart,
     aborted_version_cleaner_end_time AS LastCleanerEnd
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- If PVS is still non-zero, something is pinning versions. Find out who:

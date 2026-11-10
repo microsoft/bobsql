@@ -2,7 +2,7 @@
 from mssql_python import connect as mssql_connect
 import re, struct
 
-conn = mssql_connect('Server=localhost;Database=texasrangerswillwinitthisyear;Trusted_Connection=yes;Encrypt=no')
+conn = mssql_connect('Server=localhost;Database=starswillwinthecup;Trusted_Connection=yes;Encrypt=no')
 cur = conn.cursor()
 
 # Current row values
@@ -144,6 +144,6 @@ def chase_pvs(cur, db, fid, pid, slot, depth=0):
         except Exception as e:
             print(f"{prefix}Chain parse error: {e}")
 
-chase_pvs(cur, 'texasrangerswillwinitthisyear', pvs_file, pvs_page, pvs_slot)
+chase_pvs(cur, 'starswillwinthecup', pvs_file, pvs_page, pvs_slot)
 
 conn.close()

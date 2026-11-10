@@ -4,20 +4,20 @@
 --
 -- Large transaction rollback: traditional vs ADR. Then PVS Cleaner live.
 -- ============================================================================
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 GO
 
 -- ============================================================================
 -- ENSURE REQUIRED STATE: RCSI ON, Snapshot ON, ADR OFF (we enable it in Step 2)
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET OPTIMIZED_LOCKING = OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = OFF;
-ALTER DATABASE texasrangerswillwinitthisyear SET READ_COMMITTED_SNAPSHOT ON;
-ALTER DATABASE texasrangerswillwinitthisyear SET ALLOW_SNAPSHOT_ISOLATION ON;
+ALTER DATABASE starswillwinthecup SET OPTIMIZED_LOCKING = OFF;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = OFF;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
-ALTER DATABASE texasrangerswillwinitthisyear SET MULTI_USER;
+ALTER DATABASE starswillwinthecup SET MULTI_USER;
 GO
 
 -- Verify version stores are clean before starting
@@ -26,12 +26,12 @@ SELECT
     DB_NAME(database_id) AS [Database],
     reserved_space_kb AS TempDB_VersionStoreKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 
 SELECT 
     persistent_version_store_size_kb AS PVS_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 -- Both should be 0 or near 0. PVS query may return no rows if ADR was never enabled — that's fine.
 GO
 
@@ -43,7 +43,7 @@ GO
 SELECT name, 
     is_read_committed_snapshot_on AS RCSI,
     is_accelerated_database_recovery_on AS ADR
-FROM sys.databases WHERE name = N'texasrangerswillwinitthisyear';
+FROM sys.databases WHERE name = N'starswillwinthecup';
 GO
 
 -- Start a large UPDATE, then cancel/rollback — time it
@@ -72,11 +72,11 @@ GO
 -- ============================================================================
 -- STEP 2: Enable ADR
 -- ============================================================================
-ALTER DATABASE texasrangerswillwinitthisyear SET ACCELERATED_DATABASE_RECOVERY = ON;
+ALTER DATABASE starswillwinthecup SET ACCELERATED_DATABASE_RECOVERY = ON;
 GO
 
 SELECT name, is_accelerated_database_recovery_on AS ADR
-FROM sys.databases WHERE name = N'texasrangerswillwinitthisyear';
+FROM sys.databases WHERE name = N'starswillwinthecup';
 -- ADR = 1
 GO
 
@@ -113,7 +113,7 @@ SELECT
     aborted_version_cleaner_start_time AS LastCleanerStart,
     aborted_version_cleaner_end_time AS LastCleanerEnd
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "Versions are in PVS — in our user database. Not tempdb.
@@ -124,7 +124,7 @@ SELECT
     DB_NAME(database_id) AS [Database],
     reserved_space_kb AS TempDB_VersionKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- ============================================================================
@@ -145,7 +145,7 @@ GO
 -- ║  SESSION 2 — Generate versions while snapshot is held                   ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 -- Run in Session 2:
-USE texasrangerswillwinitthisyear;
+USE starswillwinthecup;
 UPDATE dbo.BigTable SET Val = Val + 1 WHERE Id <= 100000;
 GO
 UPDATE dbo.BigTable SET Val = Val + 1 WHERE Id BETWEEN 100001 AND 200000;
@@ -156,7 +156,7 @@ SELECT
     persistent_version_store_size_kb AS PVS_Size_KB,
     current_aborted_transaction_count AS AbortedTxnCount
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Who's blocking cleanup?
@@ -181,7 +181,7 @@ GO
 -- Wait for the background cleaner (could take up to 60 seconds)
 -- Or force it:
 PRINT N'Forcing PVS cleanup...';
-EXEC sys.sp_persistent_version_cleanup @dbname = N'texasrangerswillwinitthisyear';
+EXEC sys.sp_persistent_version_cleanup @dbname = N'starswillwinthecup';
 GO
 
 -- Check PVS after cleanup:
@@ -191,7 +191,7 @@ SELECT
     aborted_version_cleaner_start_time AS LastCleanerStart,
     aborted_version_cleaner_end_time AS LastCleanerEnd
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "PVS drained. The cleaner reclaimed the space. In production
@@ -212,7 +212,7 @@ SELECT
     ghost_record_count,
     version_ghost_record_count
 FROM sys.dm_db_index_physical_stats(
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     OBJECT_ID(N'dbo.BigTable'), 
     1, NULL, 'DETAILED')
 WHERE index_level = 0;
@@ -221,7 +221,7 @@ GO
 SELECT 
     persistent_version_store_size_kb AS PVS_Before_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Step 2: Start snapshot, DELETE rows
@@ -240,7 +240,7 @@ SELECT
     ghost_record_count,
     version_ghost_record_count
 FROM sys.dm_db_index_physical_stats(
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     OBJECT_ID(N'dbo.BigTable'), 
     1, NULL, 'DETAILED')
 WHERE index_level = 0;
@@ -249,7 +249,7 @@ GO
 SELECT 
     persistent_version_store_size_kb AS PVS_After_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Confirm tempdb version store is NOT being used:
@@ -257,7 +257,7 @@ SELECT
     DB_NAME(database_id) AS [Database],
     reserved_space_kb AS TempDB_VersionKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- TALKING POINT: "Ghost records: still on the data page — same as before.
@@ -288,7 +288,7 @@ COMMIT;
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 GO
 
-EXEC sys.sp_persistent_version_cleanup @dbname = N'texasrangerswillwinitthisyear';
+EXEC sys.sp_persistent_version_cleanup @dbname = N'starswillwinthecup';
 GO
 
 -- Re-check after cleanup
@@ -296,7 +296,7 @@ SELECT
     OBJECT_NAME(object_id) AS TableName,
     ghost_record_count
 FROM sys.dm_db_index_physical_stats(
-    DB_ID(N'texasrangerswillwinitthisyear'), 
+    DB_ID(N'starswillwinthecup'),
     OBJECT_ID(N'dbo.BigTable'), 
     1, NULL, 'DETAILED')
 WHERE index_level = 0;
@@ -305,7 +305,7 @@ GO
 SELECT 
     persistent_version_store_size_kb AS PVS_After_Cleanup_KB
 FROM sys.dm_tran_persistent_version_store_stats
-WHERE database_id = DB_ID(N'texasrangerswillwinitthisyear');
+WHERE database_id = DB_ID(N'starswillwinthecup');
 GO
 
 -- Re-seed deleted BigTable rows
@@ -330,13 +330,13 @@ BEGIN TRAN;
     
 -- After restart, time the recovery:
 -- Check the SQL Server error log for:
---   "Recovery of database 'texasrangerswillwinitthisyear' (xx) is yy% complete"
+--   "Recovery of database 'starswillwinthecup' (xx) is yy% complete"
 --   "Recovery completed" 
 -- With ADR the Undo phase should be near-instant regardless of transaction size
 */
 
 -- Instead, show the recovery time from the error log of a previous demo:
-EXEC sys.xp_readerrorlog 0, 1, N'texasrangerswillwinitthisyear', N'Recovery';
+EXEC sys.xp_readerrorlog 0, 1, N'starswillwinthecup', N'Recovery';
 GO
 
 -- ============================================================================

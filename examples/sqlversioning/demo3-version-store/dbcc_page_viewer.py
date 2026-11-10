@@ -9,8 +9,9 @@ Usage:
 Enter: server, database, file_id, page_id
 Shows formatted page contents with version information highlighted.
 """
-from flask import Flask, render_template_string, request
+from flask import Flask, current_app, render_template_string, request
 from mssql_python import connect as mssql_connect
+from html import escape
 import re
 
 app = Flask(__name__)
@@ -118,6 +119,14 @@ HTML_TEMPLATE = """
             padding: 15px; margin-top: 20px;
         }
         .version-store-box h2 { color: #643cc8; font-size: 16px; margin-bottom: 10px; }
+        .chain-summary { background: #e8eef5; border: 2px solid #002244; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .chain-summary h2 { color: #002244; font-size: 18px; margin-bottom: 12px; }
+        .chain-graphic { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+        .chain-node { background: white; border: 2px solid #002244; border-radius: 8px; padding: 12px; min-width: 150px; }
+        .chain-node strong, .chain-node small { display: block; margin: 4px 0; }
+        .chain-count { font-size: 30px; color: #002244; font-weight: bold; }
+        .chain-arrow { color: #002244; font-size: 28px; }
+        .chain-summary p { font-size: 12px; margin-top: 12px; }
         .vs-record {
             background: white; border: 1px solid #643cc8; border-radius: 8px;
             padding: 10px; margin-bottom: 8px;
@@ -140,7 +149,7 @@ HTML_TEMPLATE = """
         </div>
         <div class="form-group">
             <label>Database</label>
-            <input name="database" value="{{ database or 'texasrangerswillwinitthisyear' }}" style="width:250px">
+            <input name="database" value="{{ database or 'starswillwinthecup' }}" style="width:250px">
         </div>
         <div class="form-group">
             <label>Auth</label>
@@ -158,7 +167,14 @@ HTML_TEMPLATE = """
             <input name="page_id" value="{{ page_id or '' }}" style="width:100px" placeholder="e.g. 320">
         </div>
         <div class="form-group">
-            <label>Find Row (AccountId)</label>
+            <label>Table</label>
+            <select name="table_name">
+                <option value="Accounts" {{ 'selected' if table_name == 'Accounts' else '' }}>Accounts</option>
+                <option value="GameStats" {{ 'selected' if table_name == 'GameStats' else '' }}>GameStats</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Find Row (AccountId / GameId)</label>
             <input name="find_row" value="{{ find_row or '42' }}" style="width:120px" placeholder="e.g. 42">
         </div>
         <button type="submit">View Page</button>
@@ -178,17 +194,24 @@ HTML_TEMPLATE = """
 """
 
 def get_connection(server, database, auth):
+    factory = current_app.config.get("VIEWER_CONNECTION")
+    if factory is not None:
+        return factory(database)
     parts = [f"Server={server}", f"Database={database}", "Encrypt=no", "TrustServerCertificate=yes"]
     if auth != 'sql':
         parts.append("Trusted_Connection=yes")
-    return mssql_connect(";".join(parts))
+    conn = mssql_connect(";".join(parts))
+    conn.autocommit = True
+    return conn
 
-def find_page_for_row(cursor, database, table_filter):
+def find_page_for_row(cursor, database, table_filter, table_name="Accounts"):
     """Find the page for a specific AccountId using only DBCC PAGE — no SELECT on the user table."""
     # Get data pages from system metadata — no locks on user table
-    cursor.execute("""
+    keys = {"Accounts": "AccountId", "GameStats": "GameId"}
+    key = keys[table_name]
+    cursor.execute(f"""
         SELECT allocated_page_file_id, allocated_page_page_id
-        FROM sys.dm_db_database_page_allocations(DB_ID(), OBJECT_ID('dbo.Accounts'), NULL, NULL, 'DETAILED')
+        FROM sys.dm_db_database_page_allocations(DB_ID(), OBJECT_ID('dbo.{table_name}'), NULL, NULL, 'DETAILED')
         WHERE page_type_desc = 'DATA_PAGE'
         ORDER BY allocated_page_page_id
     """)
@@ -202,7 +225,7 @@ def find_page_for_row(cursor, database, table_filter):
             parent = str(r[0]) if r[0] else ""
             field = str(r[2]) if r[2] else ""
             value = str(r[3]) if r[3] else ""
-            if field == "AccountId" and value == str(int(table_filter)):
+            if field == key and value == str(int(table_filter)):
                 slot_match = re.search(r'Slot (\d+)', parent)
                 if slot_match:
                     sid = int(slot_match.group(1))
@@ -239,6 +262,63 @@ def get_version_store(cursor, database):
     rows = cursor.fetchall()
     columns = [desc[0] for desc in cursor.description]
     return columns, rows
+
+
+def format_gamestats_summary(cursor, rows, slot_id, game_id):
+    """Show the selected row's pointer and a server-side count, not inferred links."""
+    fields = {}
+    hex_lines = []
+    length = 0
+    for row in rows:
+        parent, _, field, value = row
+        match = re.search(r'Slot (\d+)\b', str(parent))
+        if not match or int(match[1]) != slot_id:
+            continue
+        size = re.search(r'Length (\d+)', str(parent))
+        if size:
+            length = int(size[1])
+        if field:
+            fields[str(field)] = str(value)
+        elif re.match(r'[0-9a-fA-F]{10,}:', str(value)):
+            hex_lines.append(str(value))
+    if fields.get('GameId') != str(int(game_id)):
+        raise ValueError("The selected page slot no longer contains this GameId. Retry View Page.")
+    pointer = parse_version_from_hex(hex_lines, length)
+    if pointer and pointer.get('pointer_pvs'):
+        raise ValueError("This GameStats summary requires tempdb versioning, not ADR/PVS.")
+    cursor.execute(f"""
+SELECT COUNT_BIG(*) AS RetainedVersionsForRow
+FROM sys.dm_tran_version_store v
+WHERE v.database_id = DB_ID()
+  AND v.rowset_id IN (
+      SELECT hobt_id FROM sys.partitions
+      WHERE object_id = OBJECT_ID(N'dbo.GameStats') AND index_id IN (0,1))
+  AND SUBSTRING(v.record_image_first_part, 5, 4)
+      = REVERSE(CONVERT(binary(4), CONVERT(int, {int(game_id)})));
+""")
+    count = int(cursor.fetchone()[0])
+    cursor.fetchall()
+    target = '<strong>No version pointer decoded</strong>'
+    if pointer and all(key in pointer for key in ('pointer_file', 'pointer_page', 'pointer_slot')):
+        target = (
+            '<strong>Newest-version pointer</strong><small>tempdb</small>'
+            f'<small>File {escape(pointer["pointer_file"])} / page {escape(pointer["pointer_page"])}'
+            f' / slot {escape(pointer["pointer_slot"])}</small>'
+        )
+    return (
+        '<section class="chain-summary" aria-label="Selected row version summary">'
+        '<h2>Selected row and retained versions</h2><div class="chain-graphic">'
+        f'<div class="chain-node"><strong>Current GameId {int(game_id)}</strong>'
+        f'<small>Yards: {escape(fields.get("Yards", "not returned"))}</small></div>'
+        '<span class="chain-arrow" aria-label="Decoded version pointer">&#8594;</span>'
+        f'<div class="chain-node">{target}</div>'
+        f'<div class="chain-node"><span class="chain-count">{count}</span>'
+        '<strong>retained versions for this row</strong></div></div>'
+        '<p>The address is decoded from this row. The count matches GameId in retained '
+        'GameStats before-images, not all database versions or the number of updates. '
+        'It is not a verified pointer-walk length. Cleanup can change the evidence between reads.</p>'
+        '</section>'
+    )
 
 
 def decode_version_record(image_bytes):
@@ -524,7 +604,7 @@ def format_page_output(columns, rows, highlight_slot=None):
         parts.append('</div>')
 
         # Hide internal engine fields that add noise for the audience
-        hide_fields = {'Filler', 'KeyHashValue'}
+        hide_fields = {'Filler', 'Padding', 'KeyHashValue'}
         parts.append('<div class="field-grid">')
         for fname, fval in sd["fields"].items():
             if fname in hide_fields:
@@ -605,18 +685,23 @@ def format_page_output(columns, rows, highlight_slot=None):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     ctx = {
-        'server': request.form.get('server', 'localhost'),
-        'database': request.form.get('database', 'texasrangerswillwinitthisyear'),
-        'auth': request.form.get('auth', 'trusted'),
-        'file_id': request.form.get('file_id', '1'),
-        'page_id': request.form.get('page_id', ''),
-        'find_row': request.form.get('find_row', ''),
+        'server': current_app.config.get('VIEWER_SERVER', request.values.get('server', 'localhost')),
+        'database': request.values.get('database', 'starswillwinthecup'),
+        'auth': request.values.get('auth', 'trusted'),
+        'table_name': request.values.get('table_name', 'Accounts'),
+        'file_id': request.values.get('file_id', '1'),
+        'page_id': request.values.get('page_id', ''),
+        'find_row': request.values.get('find_row', '42'),
         'page_data': None,
         'error': None,
     }
     
     if request.method == 'POST':
+        conn = None
+        cursor = None
         try:
+            if ctx['table_name'] not in ('Accounts', 'GameStats'):
+                raise ValueError("Choose Accounts or GameStats.")
             conn = get_connection(ctx['server'], ctx['database'], ctx['auth'])
             cursor = conn.cursor()
             
@@ -624,13 +709,13 @@ def index():
             
             # If find_row is specified, look up the page
             if ctx['find_row']:
-                fid, pid, sid, aid, bal = find_page_for_row(cursor, ctx['database'], ctx['find_row'])
+                fid, pid, sid, aid, bal = find_page_for_row(cursor, ctx['database'], ctx['find_row'], ctx['table_name'])
                 if pid:
                     ctx['file_id'] = str(fid)
                     ctx['page_id'] = str(pid)
                     highlight_slot = sid
                 else:
-                    ctx['error'] = f"Could not find AccountId {ctx['find_row']} on any data page."
+                    ctx['error'] = f"Could not find row {ctx['find_row']} in dbo.{ctx['table_name']} on any data page."
             
             if ctx['page_id']:
                 # Get DBCC PAGE results
@@ -640,7 +725,17 @@ def index():
                 html, row_xsn = format_page_output(columns, rows, highlight_slot)
                 
                 # Get version store
-                vs_cols, vs_rows = get_version_store(cursor, ctx['database'])
+                vs_rows = []
+                if ctx['table_name'] == 'Accounts':
+                    vs_cols, vs_rows = get_version_store(cursor, ctx['database'])
+                else:
+                    if highlight_slot is not None:
+                        html += format_gamestats_summary(
+                            cursor, rows, highlight_slot, ctx['find_row'])
+                    else:
+                        html += '<div class="version-store-box">'
+                        html += '<p>Enter a GameId in Find Row to display its version-pointer '
+                        html += 'graphic and retained-version count below the page details.</p></div>'
                 if vs_rows:
                     # Bridge arrow from row's version tag XSN to the version store chain
                     if row_xsn:
@@ -661,7 +756,7 @@ def index():
                         status = vr[3]          # status (0=single, 1=split)
                         image = vr[4]           # record_image_first_part (bytes)
                         
-                        decoded = decode_version_record(image) if image else None
+                        decoded = decode_version_record(image) if image and ctx['table_name'] == 'Accounts' else None
                         
                         html += '<div class="vs-record">'
                         
@@ -720,12 +815,12 @@ def index():
                             html += '</div>'
                     
                     # End of chain marker
-                    last_decoded = decode_version_record(vs_rows[-1][4]) if vs_rows[-1][4] else None
+                    last_decoded = decode_version_record(vs_rows[-1][4]) if vs_rows[-1][4] and ctx['table_name'] == 'Accounts' else None
                     if last_decoded and not last_decoded['has_version_tag']:
                         html += '<div style="text-align:center;font-size:13px;color:#10780e;font-weight:bold;margin-top:4px;">— End of Version Chain —</div>'
                     
                     html += '</div>'
-                else:
+                elif ctx['table_name'] == 'Accounts':
                     # No version store records — show ghost pointer message if row has a version tag
                     if row_xsn:
                         html += '<div class="xsn-callout" style="border-color:#999;color:#666;background:linear-gradient(135deg,#f5f5f5,#eee);">'
@@ -739,9 +834,16 @@ def index():
                 if not ctx['error']:
                     ctx['error'] = "Enter a Page ID or AccountId to find."
                 
-            conn.close()
         except Exception as e:
             ctx['error'] = str(e)
+        finally:
+            if conn is not None:
+                try:
+                    if cursor is not None:
+                        cursor.close()
+                    conn.cursor().execute("USE master;")
+                finally:
+                    conn.close()
     
     return render_template_string(HTML_TEMPLATE, **ctx)
 

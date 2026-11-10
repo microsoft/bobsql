@@ -18,7 +18,7 @@ DEMO_FOLDERS = {
     "3": "demo3-version-store",
     "4": "demo4-adr-pvs",
 }
-PRIMARY = "texasrangerswillwinitthisyear"
+PRIMARY = "starswillwinthecup"
 EAGLES = "eaglesdontfly"
 COWBOYS = "howboutthemcowboys"
 
@@ -80,12 +80,14 @@ FROM sys.databases WHERE name = N'{db}';
          dangerous=True, requires_clean_sessions=True)
 
 
-def _reset(scenario, account=42, value="100.00", table="Accounts", key="reset"):
+def _reset(scenario, account=42, value="100.00", table="Accounts", key="reset",
+           skip_unchanged=False, reset_isolation=True):
+    predicate = f" AND Balance <> {value}" if skip_unchanged else ""
     _add(scenario, key, "Reset the starting balance", "1", f"""
 USE [{PRIMARY}];
 IF @@TRANCOUNT > 0 ROLLBACK;
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
-UPDATE dbo.{table} SET Balance = {value} WHERE AccountId = {account};
+{'SET TRANSACTION ISOLATION LEVEL READ COMMITTED;' if reset_isolation else ''}
+UPDATE dbo.{table} SET Balance = {value} WHERE AccountId = {account}{predicate};
 SELECT N'Starting committed balance' AS Observation, AccountId, Balance
 FROM dbo.{table} WHERE AccountId = {account};
 """, "Destructive lab reset, not a production operation. Run only after "
@@ -148,11 +150,11 @@ TEMPDB_SPACE = """
 SELECT DB_NAME(database_id) AS [Database], reserved_page_count AS VersionPages,
        reserved_space_kb AS VersionSpaceKB
 FROM sys.dm_tran_version_store_space_usage
-WHERE database_id IN (DB_ID(N'texasrangerswillwinitthisyear'),
+WHERE database_id IN (DB_ID(N'starswillwinthecup'),
                       DB_ID(N'eaglesdontfly'), DB_ID(N'howboutthemcowboys'));
 SELECT SUM(version_store_reserved_page_count) AS VersionStorePages,
        SUM(version_store_reserved_page_count) * 8 AS VersionStoreKB,
-       SUM(total_page_count) AS TotalPages
+       SUM(total_page_count) AS TotalPagesInTempdb
 FROM tempdb.sys.dm_db_file_space_usage;
 """
 ACTIVE = """
@@ -181,12 +183,14 @@ def _tempdb(scenario, key="versions", title="Measure tempdb versions and snapsho
          "Read-only monitoring on an autocommit admin connection. Values are "
          "live measurements, not promised counts. Freed tempdb pages do not "
          "imply that the physical files shrink. Re-run after a presenter-paced "
-         "pause to observe asynchronous cleanup; other workloads may retain versions.")
+         "pause to observe asynchronous cleanup; other workloads may retain versions.",
+         repeatable=True)
 
 
-def _pvs_sql(db=PRIMARY, records=True):
+def _pvs_sql(db=PRIMARY, records=True, admin=False):
+    source = f"[{db}]." if admin else ""
     sql = f"""
-USE [{db}];
+USE {'master' if admin else f'[{db}]'};
 SELECT DB_NAME(database_id) AS [Database],
        persistent_version_store_size_kb AS PVS_Size_KB,
        online_index_version_store_size_kb AS OnlineIndexPVS_KB,
@@ -196,44 +200,51 @@ SELECT DB_NAME(database_id) AS [Database],
        offrow_version_cleaner_end_time AS OffRowCleanerEnd,
        aborted_version_cleaner_start_time AS AbortedCleanerStart,
        aborted_version_cleaner_end_time AS AbortedCleanerEnd
-FROM sys.dm_tran_persistent_version_store_stats WHERE database_id = DB_ID();
+FROM sys.dm_tran_persistent_version_store_stats WHERE database_id = DB_ID(N'{db}');
 """
     if records:
-        sql += """
-SELECT COALESCE(OBJECT_NAME(p.object_id), N'(system)') AS TableName,
+        sql += f"""
+SELECT COALESCE(OBJECT_NAME(p.object_id, DB_ID(N'{db}')), N'(system)') AS TableName,
        COUNT_BIG(*) AS ObservedOffRowRecords
-FROM sys.dm_tran_persistent_version_store pvs
-LEFT JOIN sys.partitions p ON pvs.rowset_id = p.hobt_id
+FROM {source}sys.dm_tran_persistent_version_store pvs
+LEFT JOIN {source}sys.partitions p ON pvs.rowset_id = p.hobt_id
 GROUP BY p.object_id;
 """
     return sql
 
 
-def _pvs(scenario, key, title="Measure PVS and cleaner timestamps", db=PRIMARY):
-    _add(scenario, key, title, "2", _pvs_sql(db),
-         "Session 2 must have no explicit transaction: the monitor uses "
-         "autocommit so it does not pin cleanup. PVS DMV rows are off-row "
+def _pvs(scenario, key, title="Measure PVS and cleaner timestamps", db=PRIMARY,
+         session="2"):
+    _add(scenario, key, title, session, _pvs_sql(db, admin=session == "admin"),
+         "Use a separate autocommit monitor, not a held writer or reader "
+         "transaction, so monitoring does not pin cleanup. PVS DMV rows are off-row "
          "records only; in-row versions are not counted here. Actual sizes, "
-         "counts and timestamps depend on page layout and asynchronous cleanup.")
+         "counts and timestamps depend on page layout and asynchronous cleanup.",
+         repeatable=True)
 
 
-def _pvs_records(scenario, key, table="Accounts"):
-    _add(scenario, key, "Inspect actual off-row version links", "2", f"""
-USE [{PRIMARY}];
+def _pvs_records(scenario, key, table="Accounts", session="2"):
+    source = f"[{PRIMARY}]." if session == "admin" else ""
+    _add(scenario, key, "Inspect actual off-row version links", session, f"""
+USE {'master' if session == 'admin' else f'[{PRIMARY}]'};
 SELECT pvs.xdes_ts_push AS PushTS, pvs.xdes_ts_tran AS TranTS,
        pvs.seq_num AS SeqNum, pvs.min_len AS MinLen, pvs.rowset_id AS RowsetId,
        pvs.prev_row_in_chain AS PrevRowInChain, pvs.row_version AS RowVersion
-FROM sys.dm_tran_persistent_version_store pvs
+FROM {source}sys.dm_tran_persistent_version_store pvs
 WHERE pvs.rowset_id IN
-    (SELECT hobt_id FROM sys.partitions
-     WHERE object_id = OBJECT_ID(N'dbo.{table}') AND index_id IN (0,1));
-""", "Inspect the returned raw row_version and prev_row_in_chain values, as "
+    (SELECT hobt_id FROM {source}sys.partitions
+     WHERE object_id = OBJECT_ID(N'{PRIMARY}.dbo.{table}') AND index_id IN (0,1));
+""", "This DMV lists off-row versions only; zero rows can be normal when "
+         "ADR stores versions in-row. Use the page viewer to inspect the row's "
+         "version tag and in-row evidence. Inspect returned raw row_version "
+         "and prev_row_in_chain values, as "
          "in the source scripts. Do not label an intended update count as a "
-         "measured chain length. A database-wide PVS count is not this row's chain.")
+         "measured chain length. A database-wide PVS count is not this row's chain.",
+         repeatable=True)
 
 
 def _page(scenario, key, table="Accounts", db=PRIMARY, account=42):
-    _add(scenario, key, f"DBCC PAGE — {table} row {account}", "admin", f"""
+    _add(scenario, key, f"Page viewer — {table} row {account}", "admin", f"""
 USE master;
 DECLARE @db int = DB_ID(N'{db}'), @file int, @page int, @slot int;
 SELECT @file = loc.file_id, @page = loc.page_id, @slot = loc.slot_id
@@ -248,15 +259,14 @@ BEGIN
     DBCC PAGE(@db, @file, @page, 3) WITH TABLERESULTS;
     DBCC TRACEOFF(3604);
 END;
-""", "Explicit page evidence replacing the original script's View Page cues "
-         "(no viewer required). NOLOCK locates the physical current row even "
-         "during an uncommitted update; this is NOT a consistent balance read. "
-         "Inspect this slot's version tag, XSN/pointer and in-row diff if present. "
-         "For ADR compare an in-row marker (often slot -4) with an off-row "
-         "pointer and the separate PVS DMV link evidence. For tempdb compare "
-         "the tag with sys.dm_tran_version_store raw before-images. DBCC PAGE "
-         "does not itself report a measured chain-hop count. Pointer layouts "
-         "and output vary by build; the API may truncate this page at 1000 rows.")
+""", "Open the formatted page viewer in a new tab, then click View Page. "
+         "The database, table and row are prefilled. Inspect the highlighted "
+         "version tag, XSN and pointer; return here and click Next to continue. "
+         "Opening the viewer does not run SQL or close the demo sessions. "
+         "Use View Page again to refresh the evidence after each update. "
+         "Internal page formats and cleanup timing vary by build.",
+         viewer=dict(kind="adr" if scenario["id"].startswith("4") else "tempdb",
+                     database=db, table_name=table, find_row=str(account)))
 
 
 def _force_cleanup(scenario, key, db=PRIMARY):
@@ -290,11 +300,12 @@ ORDER BY last_request_end_time;
          "per-database-isolation claim is not assumed: 4c tests instance-wide XTS.")
 
 
-def _write_balance(scenario, key, value, account=42, session="2", begin=False):
+def _write_balance(scenario, key, value, account=42, session="2", begin=False,
+                   reset_isolation=True):
     _add(scenario, key, f"{'Hold uncommitted' if begin else 'Commit'} balance {value}",
          session, f"""
 USE [{PRIMARY}];
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+{'SET TRANSACTION ISOLATION LEVEL READ COMMITTED;' if reset_isolation else ''}
 {'BEGIN TRAN;' if begin else ''}
 UPDATE dbo.Accounts SET Balance = {value}, LastUpdated = SYSUTCDATETIME()
 WHERE AccountId = {account};
@@ -305,14 +316,27 @@ SELECT N'{"Writer uncommitted balance" if begin else "Writer committed balance"}
          "committed transaction, while the session 1 snapshot remains unchanged.")
 
 
+SETUP_INVENTORY_SQL = "\n".join(f"""
+IF DB_ID(N'{database}') IS NOT NULL
+BEGIN
+    SELECT N'{database}' AS DatabaseName, s.name AS SchemaName,
+           t.name AS TableName, SUM(p.rows) AS ApproximateRows
+    FROM [{database}].sys.tables t
+    JOIN [{database}].sys.schemas s ON s.schema_id = t.schema_id
+    JOIN [{database}].sys.partitions p ON p.object_id = t.object_id
+    WHERE p.index_id IN (0,1)
+    GROUP BY s.name, t.name ORDER BY s.name, t.name;
+END;
+""" for database in (PRIMARY, EAGLES, COWBOYS))
+
 S0 = _scenario("0", "Prepare the lab", "DESTRUCTIVE: setup drops and recreates "
                "ALL THREE databases and loads large tables. Obtain approval "
                "before selecting setup. Readiness does not execute setup.",
                ["demo0-setup/demo0-setup.sql"])
-_add(S0, "setup", "CONFIRM — drop/recreate all three lab databases", "admin",
-     _source("demo0-setup/demo0-setup.sql") + "\nGO\nUSE master;\n",
+_add(S0, "setup", "Run setup", "admin",
+     _source("demo0-setup/demo0-setup.sql") + "\nGO\nUSE master;\n" + SETUP_INVENTORY_SQL,
      "APPROVAL REQUIRED: End demo first. The embedded ORIGINAL setup drops "
-     "texasrangerswillwinitthisyear, eaglesdontfly and howboutthemcowboys, "
+     "starswillwinthecup, eaglesdontfly and howboutthemcowboys, "
      "terminates their users and reseeds all data. It can take substantial "
      "time/disk/log space. No setup runs at import or during readiness.",
      dangerous=True, requires_clean_sessions=True)
@@ -326,15 +350,7 @@ SELECT name, state_desc, is_read_committed_snapshot_on AS RCSI,
        is_accelerated_database_recovery_on AS ADR,
        is_optimized_locking_on AS OptimizedLocking
 FROM sys.databases WHERE name IN (N'{PRIMARY}', N'{EAGLES}', N'{COWBOYS}');
-IF DB_ID(N'{PRIMARY}') IS NOT NULL
-BEGIN
-    SELECT s.name AS SchemaName, t.name AS TableName, SUM(p.rows) AS ApproximateRows
-    FROM [{PRIMARY}].sys.tables t
-    JOIN [{PRIMARY}].sys.schemas s ON s.schema_id = t.schema_id
-    JOIN [{PRIMARY}].sys.partitions p ON p.object_id = t.object_id
-    WHERE p.index_id IN (0,1) GROUP BY s.name, t.name;
-END;
-""", "SQL Server 2025 (major 17), DBCC/DMV/database-alter permissions and "
+""" + SETUP_INVENTORY_SQL, "SQL Server 2025 (major 17), DBCC/DMV/database-alter permissions and "
      "all three online databases are prerequisites. Missing databases are "
      "reported without creating anything. Catalog row estimates are not counts "
      "of versions. This is not a substitute for tools/check-readiness.ps1.")
@@ -343,7 +359,7 @@ S1 = _scenario("1", "Blocking and dirty reads", "Locking READ COMMITTED blocks; 
                "NOLOCK can expose a value that is later rolled back.",
                ["demo1-blocking/demo1-blocking-session1.sql", "demo1-blocking/demo1-blocking-session2.sql"])
 _config(S1, rcsi=False, snapshot=False)
-_reset(S1, 1)
+_reset(S1, 1, reset_isolation=False)
 _add(S1, "writer", "Hold writer X lock (100 → 200)", "1", f"""
 USE [{PRIMARY}];
 BEGIN TRAN;
@@ -373,11 +389,20 @@ USE [{PRIMARY}];
 BEGIN TRAN;
 UPDATE dbo.Accounts SET Balance = Balance + 999999.00,
     LastUpdated = SYSUTCDATETIME() WHERE AccountId = 1;
+SELECT N'Writer uncommitted balance' AS Observation, AccountId, Balance
+FROM dbo.Accounts WHERE AccountId = 1;
 """, "The uncommitted value is 1000199.00. Keep the transaction open.")
 _read(S1, "nolock", "NOLOCK dirty balance", "2", 1, hint="WITH (NOLOCK)",
       explanation="Run BEFORE rollback: NOLOCK may return 1000199.00 even "
       "though no transaction will commit that value. It is not a safe fix.")
-_release(S1, "dirty-rollback", "1", rollback=True)
+_add(S1, "dirty-rollback", "Rollback and restore READ COMMITTED", "1", f"""
+USE [{PRIMARY}];
+IF @@TRANCOUNT > 0 ROLLBACK;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SELECT N'Writer balance after rollback' AS Observation, AccountId, Balance
+FROM dbo.Accounts WHERE AccountId = 1;
+""", "Roll back the dirty change and return the restored balance of 200 "
+         "from the writer's connection.")
 _read(S1, "clean", "Clean balance after rollback (200)", "2", 1)
 _cleanup(S1)
 
@@ -387,10 +412,6 @@ S2A = _scenario("2a", "RCSI reads without waiting", "Compare RCSI with the "
                 ["demo2-rcsi-snapshot/demo2a-rcsi-session1.sql", "demo2-rcsi-snapshot/demo2a-rcsi-session2.sql"])
 _config(S2A)
 _reset(S2A, 1)
-_add(S2A, "other-baselines", "Reset source demo's other sampled accounts", "1", f"""
-USE [{PRIMARY}];
-UPDATE dbo.Accounts SET Balance = 100.00 WHERE AccountId IN (100,200);
-""", "Original 2a also resets accounts 100 and 200; no open transaction.", dangerous=True)
 _write_balance(S2A, "writer", "Balance + 500.00", 1, session="1", begin=True)
 _read(S2A, "rcsi", "RCSI committed before-image (100)", "2", 1,
       explanation="READ COMMITTED uses statement versions: the writer's "
@@ -433,10 +454,14 @@ S2C = _scenario("2c", "Snapshot update conflict", "Error 3960 means retry the "
                 "whole transaction, not silently retry its UPDATE.",
                 ["demo2-rcsi-snapshot/demo2c-snapshot-conflict-session1.sql",
                  "demo2-rcsi-snapshot/demo2c-snapshot-conflict-session2.sql"])
-_config(S2C)
+_config(S2C, rcsi=False)
 _reset(S2C, 100)
 _snapshot(S2C, account=100)
 _write_balance(S2C, "competitor", "Balance + 999.00", 100)
+_read(S2C, "snapshot-second", "Snapshot reread — still 100 after writer commits 1099",
+      account=100, explanation="Session 2 committed 1099, but session 1 still reads "
+      "100 from its original snapshot. The next UPDATE cannot modify the row "
+      "changed since that snapshot was established.")
 _add(S2C, "conflict", "Expected error 3960 — stale snapshot UPDATE", "1", f"""
 USE [{PRIMARY}];
 UPDATE dbo.Accounts SET Balance = Balance + 50.00 WHERE AccountId = 100;
@@ -556,7 +581,7 @@ S3A = _scenario("3a", "Inside a tempdb version chain", "Present both RCSI's "
                 ["demo3-version-store/demo3a-version-chain-session1.sql",
                  "demo3-version-store/demo3a-version-chain-session2.sql"])
 _config(S3A)
-_reset(S3A)
+_reset(S3A, skip_unchanged=True)
 _page(S3A, "baseline-page")
 _read(S3A, "baseline", "RCSI baseline (100)")
 _write_balance(S3A, "rcsi-writer", "200.00", begin=True)
@@ -604,14 +629,39 @@ _config(S3B, "configure-victim", db=COWBOYS)
 _tempdb(S3B, "baseline")
 _snapshot(S3B, db=EAGLES,
           query="SELECT TOP 1 Category, SuperBowlChances FROM dbo.ReportData;")
-for number in range(1, 11):
-    _add(S3B, f"wave-{number}", f"Victim committed update wave {number}", "2",
-         f"USE [{COWBOYS}];\nUPDATE dbo.GameStats SET Yards = Yards + 1;",
-         "One original full-table UPDATE, one autocommit transaction. Wide "
-         "GameStats rows can consume substantial tempdb. This wave count is "
-         "presenter intent, not a measured version-chain length.", dangerous=True)
-    if number in (5, 10):
-        _tempdb(S3B, f"measure-{number}")
+_add(S3B, "waves", "Run ten committed update waves", "2", f"""
+USE [{COWBOYS}];
+IF @@TRANCOUNT <> 0
+    THROW 50000, 'Finish the existing writer transaction before running waves.', 1;
+SET IMPLICIT_TRANSACTIONS OFF;
+DECLARE @wave int = 0;
+DECLARE @rowsUpdated bigint = 0;
+WHILE @wave < 10
+BEGIN
+    UPDATE dbo.GameStats SET Yards = Yards + 1;
+    SET @rowsUpdated += @@ROWCOUNT;
+    SET @wave += 1;
+END;
+SELECT @wave AS CommittedUpdateWaves,
+       @rowsUpdated / NULLIF(@wave, 0) AS AvgRowsUpdatedPerWave,
+       @rowsUpdated AS TotalRowUpdates,
+       CAST(SUM(CONVERT(float, avg_record_size_in_bytes) * record_count)
+            / NULLIF(SUM(CONVERT(bigint, record_count)), 0)
+            AS decimal(10,1)) AS AvgPhysicalRowBytes
+FROM sys.dm_db_index_physical_stats(DB_ID(), OBJECT_ID(N'dbo.GameStats'),
+                                   NULL, NULL, 'DETAILED')
+WHERE index_id IN (0,1) AND index_level = 0
+  AND alloc_unit_type_desc = N'IN_ROW_DATA';
+""", "One click runs ten full-table UPDATEs, each committed separately on "
+     "this autocommit session. Each wave updates 5,000 roughly 7 KB rows: "
+     "ten waves can retain about 50,000 before-images, roughly 350 MB plus "
+     "overhead, while the other database's snapshot pins cleanup. The result "
+     "counts actual affected rows across all waves (not distinct rows) and "
+     "measures average physical row bytes after the updates, not version-store "
+     "allocation or before-image size. The returned "
+     "wave count is not a measured chain length. If interrupted, committed "
+     "progress is uncertain; reset stops rather than guessing.", dangerous=True)
+_tempdb(S3B, "measure-10")
 _page(S3B, "victim-page", "GameStats", COWBOYS, 1)
 _release(S3B)
 _tempdb(S3B, "released", "Pause, then measure cleanup after culprit commits")
@@ -705,26 +755,33 @@ DROP TABLE #GhostAccounts;
      dangerous=True)
 _cleanup(S3C)
 
-S4A = _scenario("4a", "ADR: blocking, in-row diff, off-row promotion",
-                "Beat 0 proves ADR alone does not enable versioned reads. "
-                "After writer rollback AND End demo, enable RCSI/SNAPSHOT "
-                "and inspect each of three committed updates.",
+S4A = _scenario("4a", "In-row version — reader blocks without RCSI",
+                "ADR ON, RCSI OFF, Snapshot OFF. A narrow Accounts update "
+                "demonstrates in-row versioning: inspect the actual page, "
+                "compare the empty off-row PVS records, then show a blocked "
+                "READ COMMITTED reader. Roll back the writer to release it.",
                 ["demo4-adr-pvs/demo4a-adr-versioning-session1.sql",
                  "demo4-adr-pvs/demo4a-adr-versioning-session2.sql"])
 _config(S4A, "adr-only", adr=True, rcsi=False, snapshot=False)
-_reset(S4A)
-_write_balance(S4A, "adr-only-writer", "200.00", begin=True)
-_pvs_records(S4A, "adr-only-records")
-# The held writer must not be used for monitoring; use an admin cross-database
-# catalog view instead of creating a transaction on the reader connection.
-S4A["steps"][-1]["session"] = "admin"
-S4A["steps"][-1]["sql"] = S4A["steps"][-1]["sql"].replace(
-    f"USE [{PRIMARY}];", "USE master;"
-).replace("sys.dm_tran_persistent_version_store pvs",
-          f"[{PRIMARY}].sys.dm_tran_persistent_version_store pvs").replace(
-    "FROM sys.partitions", f"FROM [{PRIMARY}].sys.partitions").replace(
-    "OBJECT_ID(N'dbo.Accounts')", f"OBJECT_ID(N'{PRIMARY}.dbo.Accounts')")
+_reset(S4A, skip_unchanged=True)
+_write_balance(S4A, "adr-only-writer", "200.00", begin=True, reset_isolation=False)
 _page(S4A, "adr-only-page")
+S4A["steps"][-1].update(
+    title="Inspect the in-row version on the Accounts page",
+    explanation="Click View Page and inspect the actual in-row diff/version "
+                "evidence for Account 42 while the writer holds 200. This is "
+                "recovery versioning, not permission for readers to bypass locks. "
+                "Prior versions and available page space can affect placement.",
+)
+_pvs_records(S4A, "adr-only-records", session="admin")
+S4A["steps"][-1].update(
+    title="Compare PVS records — no off-row data expected",
+    explanation="The off-row PVS DMV should return no Accounts records for "
+                "this in-row example. The version is in the data row instead; "
+                "verify that in the preceding page viewer. Empty results alone "
+                "do not prove in-row storage; prior retained off-row records "
+                "may still appear until cleanup.",
+)
 _read(S4A, "adr-only-blocked", "ADR without RCSI — start blocked read asynchronously",
       explanation="Start asynchronously on session 1. ADR generates recovery "
       "versions but READ COMMITTED still takes S locks. Next rollback the writer "
@@ -732,77 +789,57 @@ _read(S4A, "adr-only-blocked", "ADR without RCSI — start blocked read asynchro
 _release(S4A, "adr-only-rollback", "2", rollback=True)
 _read(S4A, "adr-only-after", "After rollback — original 100",
       explanation="Wait for the blocked read to finish. The writer's 200 was "
-      "rolled back. NOW click End demo to close both connections before Beat 1.")
-_config(S4A, "versioned-reads", adr=True)
-_reset(S4A, key="beat1-reset")
-_snapshot(S4A)
-for number, value in enumerate(("200.00", "300.00", "400.00"), 1):
-    _write_balance(S4A, f"update-{number}", value)
-    _page(S4A, f"page-{number}")
-    _pvs_records(S4A, f"records-{number}")
-    _pvs(S4A, f"size-{number}")
-_read(S4A, "held", "Snapshot before-image remains 100",
-      explanation="Compare with original baseline; PVS rows and page tags "
-      "prove storage independently of the frozen SQL balance. An in-row diff "
-      "may be promoted off-row as later writers build history; actual layout "
-      "depends on build, prior versions, diff size and page space.")
-_release(S4A)
-_read(S4A, "latest", "Outside snapshot — latest committed 400")
-_pvs(S4A, "cleaner", "Pause, then measure background cleaner")
-_tempdb(S4A, "locations", "Compare tempdb and active snapshot holders")
+      "rolled back, so the reader returns 100. This completes the proof: "
+      "in-row ADR versions exist, but without RCSI the reader blocks.")
 _cleanup(S4A)
 
-S4B = _scenario("4b", "Wide update goes directly off-row", "Self-contained "
-                "SavingsAccounts wide-column before-image; does not require "
-                "4a. Reset ComplianceNotes before repeating so the wide "
-                "UPDATE is actually a change.",
+S4B = _scenario("4b", "Off-row version — RCSI reader does not block",
+                "ADR ON, RCSI ON, Snapshot OFF. Hold a wide SavingsAccounts "
+                "update open, inspect its off-row version and PVS stats, and "
+                "read the original 100 without blocking. Commit the writer "
+                "and read 999.99. The wide update drives off-row placement; "
+                "RCSI independently controls nonblocking reads.",
                 ["demo4-adr-pvs/demo4b-adr-offrow-versioning-session1.sql",
                  "demo4-adr-pvs/demo4b-adr-offrow-versioning-session2.sql"])
-_config(S4B, adr=True)
+_config(S4B, adr=True, snapshot=False)
 _reset(S4B, table="SavingsAccounts")
 _add(S4B, "wide-reset", "Reset ComplianceNotes to its original default", "1", f"""
 USE [{PRIMARY}];
 UPDATE dbo.SavingsAccounts SET ComplianceNotes = DEFAULT WHERE AccountId = 42;
 """, "Critical for repeatability: the next wide-column literal must differ "
      "from the old image, not be a no-op on a previous run.", dangerous=True)
-_page(S4B, "baseline-page", "SavingsAccounts")
-_snapshot(S4B, table="SavingsAccounts")
-_add(S4B, "wide-update", "Commit the original wide-column UPDATE", "2",
-     f"USE [{PRIMARY}];\n" + _statement(
+_add(S4B, "wide-update", "Hold the wide update open — balance 999.99", "2",
+     f"USE [{PRIMARY}];\nBEGIN TRAN;\n" + _statement(
          "demo4-adr-pvs/demo4b-adr-offrow-versioning-session2.sql",
-         "UPDATE dbo.SavingsAccounts"),
-     "Original Balance=999.99 and ComplianceNotes literal. Changing the wide "
-     "column creates a larger before-image; inspect rather than assume placement.")
+         "UPDATE dbo.SavingsAccounts") + "\n" +
+     _balance(label="Writer uncommitted balance", table="SavingsAccounts"),
+     "Leave the writer transaction OPEN. Changing the wide ComplianceNotes "
+     "column creates a large before-image intended to go off-row. Inspect "
+     "the actual page/PVS evidence; RCSI itself does not force placement.",
+     dangerous=True)
 _page(S4B, "offrow-page", "SavingsAccounts")
-_pvs_records(S4B, "offrow-records", "SavingsAccounts")
-_pvs(S4B, "offrow-size")
-_read(S4B, "held", "Snapshot Savings balance remains 100", table="SavingsAccounts")
-_release(S4B)
-_read(S4B, "latest", "Latest Savings balance (999.99)", table="SavingsAccounts")
-_tempdb(S4B, "tempdb")
-_force_cleanup(S4B, "cleanup-request")
-_pvs(S4B, "after-cleanup")
+_pvs_records(S4B, "offrow-records", "SavingsAccounts", session="admin")
+_pvs(S4B, "offrow-size", "Measure PVS while the wide writer is open", session="admin")
+_read(S4B, "held", "RCSI reader returns 100 — no blocking", table="SavingsAccounts",
+      explanation="Run on session 1 while session 2 still holds 999.99 "
+                  "uncommitted. READ COMMITTED uses RCSI and returns the "
+                  "committed before-image 100 without waiting. No Snapshot "
+                  "transaction or NOLOCK hint is used.")
+_release(S4B, session="2")
+_read(S4B, "latest", "After commit — RCSI reader returns 999.99", table="SavingsAccounts",
+      explanation="This new READ COMMITTED statement sees the writer's "
+                  "committed 999.99. RCSI takes a fresh snapshot per statement.")
 _cleanup(S4B)
 
-S4C = _scenario("4c", "PVS cleaner and instance-wide XTS",
-                "Observe asynchronous cleanup, explicitly flush ADR cached "
-                "pages with clean-session ADR OFF/ON transitions, then prove "
-                "cross-database watermark pinning with two sessions.",
+S4C = _scenario("4c", "Snapshot holds up cleanup across databases",
+                "Hold a Snapshot transaction in starswillwinthecup while "
+                "committing updates in eaglesdontfly. Compare retained PVS "
+                "records and cleanup evidence before and after releasing the "
+                "snapshot: the cleanup horizon is instance-wide even though "
+                "PVS storage is per database.",
                 ["demo4-adr-pvs/demo4c-pvs-cleaner-deep-dive.sql",
                  "demo4-adr-pvs/demo4c-session2.sql"])
 _config(S4C, adr=True)
-_pvs(S4C, "baseline")
-_add(S4C, "generate", "Commit original 100K wide-row update", "2",
-     f"USE [{PRIMARY}];\n" + _statement(
-         "demo4-adr-pvs/demo4c-pvs-cleaner-deep-dive.sql", "UPDATE dbo.BigTable"),
-     "A large committed UPDATE with no held snapshot. PVS may drain before "
-     "inspection. The intended 100K updates are not measured version records.",
-     dangerous=True)
-_pvs(S4C, "after-update")
-_pvs(S4C, "background", "Pause, then remeasure background cleanup")
-_config(S4C, "flush-adr-off", adr=False)
-_pvs(S4C, "flushed", "Observe residual records after ADR OFF")
-_config(S4C, "restore-adr-on", adr=True)
 _config(S4C, "configure-eagles", db=EAGLES, adr=True)
 _snapshot(S4C, query="SELECT TOP 1 Id FROM dbo.BigTable;")
 _add(S4C, "other-db-update", "Commit original ReportData update in eaglesdontfly",
@@ -958,6 +995,7 @@ _add(S4E, "recovery-log", "Read existing recovery log evidence (no crash)", "adm
      "read; an empty result is valid. The commented kill/restart experiment "
      "is intentionally not executable in this web catalog.")
 _cleanup(S4E)
+
 
 DEMOS = [
     dict(id="0", title="Setup", folder=DEMO_FOLDERS["0"], description="Approved destructive setup and read-only readiness.",

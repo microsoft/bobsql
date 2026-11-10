@@ -3,7 +3,7 @@ import pyodbc, re, struct
 
 conn = pyodbc.connect(
     'DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;'
-    'DATABASE=texasrangerswillwinitthisyear;Trusted_Connection=yes;'
+    'DATABASE=starswillwinthecup;Trusted_Connection=yes;'
     'TrustServerCertificate=yes'
 )
 cursor = conn.cursor()
@@ -22,7 +22,7 @@ file_id, page_id, slot_id = int(m.group(1)), int(m.group(2)), int(m.group(3))
 print(f"Data page: file={file_id}, page={page_id}, slot={slot_id}")
 
 # Step 2: DBCC PAGE the data page, find version pointer
-cursor.execute(f"DBCC PAGE('texasrangerswillwinitthisyear', {file_id}, {page_id}, 3) WITH TABLERESULTS")
+cursor.execute(f"DBCC PAGE('starswillwinthecup', {file_id}, {page_id}, 3) WITH TABLERESULTS")
 rows = cursor.fetchall()
 
 target_slot = f"Slot {slot_id}"
@@ -76,7 +76,7 @@ print(f"\n{'='*60}")
 print(f"Scanning PVS page: file={pvs_file}, page={pvs_page}")
 print(f"{'='*60}")
 
-cursor.execute(f"DBCC PAGE('texasrangerswillwinitthisyear', {pvs_file}, {pvs_page}, 3) WITH TABLERESULTS")
+cursor.execute(f"DBCC PAGE('starswillwinthecup', {pvs_file}, {pvs_page}, 3) WITH TABLERESULTS")
 pvs_rows = cursor.fetchall()
 
 # Group by slot
