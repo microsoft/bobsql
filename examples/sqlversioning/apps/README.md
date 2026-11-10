@@ -5,7 +5,7 @@ Presentation sizing is always on; there is no alternate mode or sizing toggle.
 The Cowboys silver background and compact headings keep demo cards and the
 first execution controls visible without scrolling on typical laptop screens.
 Demo 1-4 show one step at a time with its exact SQL batch always visible.
-Detailed monitoring, prerequisites, and earlier results expand on demand;
+Prerequisites and earlier results expand on demand;
 destructive steps still require confirmation.
 SQL uses locally served SSMS-style syntax colours: blue keywords/types,
 red strings, green comments, and purple variables/functions/numbers. The same
@@ -69,15 +69,33 @@ these diagnostic demos assume SQL Server sysadmin.
    No separate readiness step is needed.
    The database cards use locally served Dallas Stars, Philadelphia Eagles,
    and Dallas Cowboys logos, not generic symbols.
-2. Select a demo and sub-demo. Only one step is visible, with its session,
+2. Select a demo and sub-demo. Opening or refreshing a demo starts at its first
+   subdemo (2a, 3a, or 4a), not a previously remembered selection. Selecting a
+   subdemo never runs SQL or resets active sessions.
+   Only one step is visible, with its session,
    explanation, **Run** button, and exact SQL batch, as in an SSMS query window.
+   Page-inspection steps instead have **Open page viewer**, not raw DBCC PAGE
+   SQL or results. The existing formatted Demo 3 and ADR viewers open in a new
+   tab on the same backend, with database, table and row prefilled. Click
+   **View Page** there to inspect or refresh the evidence, then return and
+   use **Next**. Opening the tab alone does not run SQL; viewer diagnostics
+   use separate autocommit connections and leave demo sessions untouched.
+   No separate viewer process or port is required.
    A short explanation stays visible; full instructions and safety details
    remain under **Prerequisites & safety**. Long SQL/results scroll inside their
    own panels rather than sending you down a list of steps.
    **Previous**, **Next**, and the step picker only change the displayed step;
    they never execute SQL or wait for a running query. The selected step's
    actual result appears in its session pane on the right. Admin-query results
-   stay with the SQL step on the left. Saved results are labeled as previous
+   stay in a collapsed **Admin result** expander below the SQL on the left.
+   Admin steps have a wider SQL column; expand results when needed instead of
+   reserving code space for old output. Expanded Admin results, tables, and
+   messages grow down the page without vertical height limits; scroll the web
+   page to read long results. Opening results does not shrink the SQL pane.
+   Admin table headers and values stay on one line; wide tables scroll
+   horizontally instead of wrapping column names. Configuration guidance reports whether
+   app sessions are open: **End demo** is needed only if they are still open.
+   Saved results are labeled as previous
    evidence, not current database state.
    The current step has a navy highlight. Completed steps turn grey, receive
    a check mark in the step picker, and their **Run** button becomes disabled
@@ -102,9 +120,10 @@ these diagnostic demos assume SQL Server sysadmin.
 3. Sessions 1 and 2 are independent, persistent SQL connections. Explicit
    transactions remain open across clicks. A blocked reader does not freeze
    the browser: advance the writer's commit step to release it.
-4. Both sessions' state, results, and blocking remain visible. Detailed DMV
-   monitoring is expandable; earlier results/balance comparisons are in a
-   full-width expander below the walkthrough. Actual query results, error 3960, and DBCC PAGE output
+4. Both sessions' state, results, and blocking remain visible. Background DMV
+   monitoring powers those live indicators; detailed measurements appear only
+   in the numbered Admin steps. Earlier results/balance comparisons are in a
+   full-width expander below the walkthrough. Actual query results, error 3960, and formatted page evidence
    are separate from explanatory text. Result tables display at most
    1,000 rows. Version cleanup timing and internal page formats vary by build.
 5. **End demo sessions** before switching demos or running database
@@ -143,6 +162,13 @@ ran afterward, or a failed/cancelled committed write is ambiguous, reset stops
 with an error instead of guessing. Use the original restoration steps or
 explicitly approved Demo 0 when needed. Other SQL connections using the affected
 databases must be closed; Reset demo does not kill other users' sessions.
+Both reset connection checks exclude connections tagged as owned by this app,
+including concurrent monitoring and embedded page viewers. Viewer diagnostics
+use the runner's ownership-tagged autocommit connections and switch back to
+master before closing, so pooled viewer connections do not keep a lab database
+in use. A genuinely outside connection is reported
+with its SPID, client name, and current database so it can be disconnected
+without guessing which session caused the refusal.
 The app's in-memory execution ledger is required for counter-based reversals;
 browser-saved history is evidence only and is never trusted to modify SQL data.
 If data restoration succeeds but restoring settings fails, retry Reset demo:

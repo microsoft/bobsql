@@ -42,6 +42,117 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(result.status_code, 403)
         self.runner.run.assert_not_called()
 
+    def test_page_viewers_open_prefilled_without_sql(self):
+        viewers = self.client.application.config["PAGE_VIEWERS"]
+        for kind, table, database in (
+            ("tempdb", "Accounts", PRIMARY),
+            ("tempdb", "GameStats", COWBOYS),
+            ("adr", "SavingsAccounts", PRIMARY),
+        ):
+            with self.subTest(kind=kind, table=table), patch.object(viewers[kind], "get_connection") as connect:
+                response = self.client.get(f"/page-viewer/{kind}", query_string={
+                    "database": database, "table_name": table, "find_row": "1",
+                })
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                self.assertIn(f'value="{database}"', html)
+                self.assertIn(f'value="{table}" selected', html)
+                self.assertIn('name="find_row" value="1"', html)
+                self.assertIn("View Page", html)
+                connect.assert_not_called()
+        self.assertEqual(self.runner.mock_calls, [])
+        self.assertEqual(self.client.get("/page-viewer/missing").status_code, 404)
+
+    def test_page_viewer_form_rejects_cross_origin_execution(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
+        with patch.object(viewer, "get_connection") as connect:
+            response = self.client.post("/page-viewer/tempdb", data={"find_row": "42"},
+                                        headers={"Origin": "https://example.com"})
+            self.assertEqual(response.status_code, 403)
+            connect.assert_not_called()
+
+    def test_page_viewers_reuse_formatters_and_close_diagnostic_connections(self):
+        viewers = self.client.application.config["PAGE_VIEWERS"]
+        for kind in ("tempdb", "adr"):
+            viewer = viewers[kind]
+            connection = Mock()
+            page = (["ParentObject", "Object", "Field", "VALUE"], []) if kind == "tempdb" else []
+            found = (1, 123, 0, 42, 100) if kind == "tempdb" else (1, 123, 0)
+            with self.subTest(kind=kind), \
+                    patch.object(viewer, "get_connection", return_value=connection), \
+                    patch.object(viewer, "find_page_for_row", return_value=found) as find, \
+                    patch.object(viewer, "run_dbcc_page", return_value=page), \
+                    patch.object(viewer, "format_page_output", return_value=("<b>Formatted evidence</b>", None)) as formatter:
+                if kind == "tempdb":
+                    with patch.object(viewer, "get_version_store", return_value=([], [])):
+                        response = self.client.post(f"/page-viewer/{kind}", data={"find_row": "42"})
+                else:
+                    response = self.client.post(f"/page-viewer/{kind}", data={"find_row": "42"})
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("<b>Formatted evidence</b>", response.get_data(as_text=True))
+                formatter.assert_called_once()
+                find.assert_called_once_with(connection.cursor.return_value, PRIMARY, "42", "Accounts")
+                connection.close.assert_called_once()
+                connection.cursor.return_value.execute.assert_called_with("USE master;")
+        self.assertEqual(self.runner.mock_calls, [])
+
+    def test_page_viewer_errors_are_visible_and_connections_close(self):
+        for kind, viewer in self.client.application.config["PAGE_VIEWERS"].items():
+            connection = Mock()
+            with self.subTest(kind=kind), \
+                    patch.object(viewer, "get_connection", return_value=connection), \
+                    patch.object(viewer, "find_page_for_row", side_effect=SqlError("Page lookup failed", "")):
+                response = self.client.post(f"/page-viewer/{kind}", data={"find_row": "42"})
+                self.assertIn("Page lookup failed", response.get_data(as_text=True))
+                connection.close.assert_called_once()
+                connection.cursor.return_value.execute.assert_called_with("USE master;")
+
+    def test_tempdb_viewer_connection_is_autocommit(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
+        with viewer.app.app_context(), patch.object(viewer, "mssql_connect") as connect:
+            connection = viewer.get_connection("localhost", PRIMARY, "trusted")
+            self.assertIs(connection, connect.return_value)
+            self.assertTrue(connection.autocommit)
+
+    def test_embedded_viewers_use_owned_runner_connections(self):
+        app = self.client.application
+        self.runner.resetting = False
+        connection = self.runner.connection.return_value
+        for kind, viewer in app.config["PAGE_VIEWERS"].items():
+            with self.subTest(kind=kind), app.app_context(), \
+                    patch.object(viewer, "mssql_connect") as direct_connect, \
+                    patch("app.execute_sql") as sql:
+                self.assertIs(viewer.get_connection("localhost", PRIMARY, "trusted"), connection)
+                sql.assert_called_once_with(connection, f"USE [{PRIMARY}];")
+                direct_connect.assert_not_called()
+        self.assertEqual(self.runner.connection.call_count, 2)
+
+    def test_viewer_connection_validation_precedes_opening(self):
+        app = self.client.application
+        factory = app.config["VIEWER_CONNECTION"]
+        self.runner.resetting = False
+        with self.assertRaisesRegex(ValueError, "lab databases"):
+            factory("outside_database")
+        self.runner.resetting = True
+        with self.assertRaisesRegex(ValueError, "Reset demo is in progress"):
+            factory(PRIMARY)
+        self.runner.connection.assert_not_called()
+
+    def test_viewer_database_selection_failure_closes_owned_connection(self):
+        self.runner.resetting = False
+        with patch("app.execute_sql", side_effect=SqlError("Database unavailable", "")):
+            with self.assertRaises(SqlError):
+                self.client.application.config["VIEWER_CONNECTION"](PRIMARY)
+        self.runner.connection.return_value.close.assert_called_once()
+
+    def test_tempdb_viewer_finds_gamestats_by_game_id(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
+        cursor = Mock()
+        cursor.fetchall.side_effect = [[(1, 123)], [("Slot 0", "", "GameId", "1")]]
+        result = viewer.find_page_for_row(cursor, COWBOYS, "1", "GameStats")
+        self.assertEqual(result[:4], (1, 123, 0, 1))
+        self.assertIn("dbo.GameStats", cursor.execute.call_args_list[0].args[0])
+
     def test_rejects_non_json_and_untrusted_host(self):
         self.assertEqual(self.client.post("/api/reset", data="confirmed=true").status_code, 415)
         self.assertEqual(self.client.get("/api/catalog", headers={"Host": "evil.test"}).status_code, 403)

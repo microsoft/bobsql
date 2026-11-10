@@ -10,7 +10,7 @@ Enter: server, database, file_id, page_id (or Find Row by AccountId)
 Shows formatted page contents with ADR version info highlighted.
 Runs on port 5051 so it can coexist with the tempdb page viewer on 5050.
 """
-from flask import Flask, render_template_string, request
+from flask import Flask, current_app, render_template_string, request
 from mssql_python import connect as mssql_connect
 import re
 
@@ -200,6 +200,9 @@ HTML_TEMPLATE = """
 
 
 def get_connection(server, database, auth):
+    factory = current_app.config.get("VIEWER_CONNECTION")
+    if factory is not None:
+        return factory(database)
     parts = [f"Server={server}", f"Database={database}", "Encrypt=no", "TrustServerCertificate=yes"]
     if auth != 'sql':
         parts.append("Trusted_Connection=yes")
@@ -1333,19 +1336,22 @@ def format_page_output(rows, highlight_slot=None, cursor=None, database=None):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     ctx = {
-        'server': request.form.get('server', 'localhost'),
-        'database': request.form.get('database', 'starswillwinthecup'),
-        'auth': request.form.get('auth', 'trusted'),
-        'table_name': request.form.get('table_name', 'Accounts'),
-        'file_id': request.form.get('file_id', '1'),
-        'page_id': request.form.get('page_id', ''),
-        'find_row': request.form.get('find_row', '42'),
+        'server': current_app.config.get('VIEWER_SERVER', request.values.get('server', 'localhost')),
+        'database': request.values.get('database', 'starswillwinthecup'),
+        'auth': request.values.get('auth', 'trusted'),
+        'table_name': request.values.get('table_name', 'Accounts'),
+        'file_id': request.values.get('file_id', '1'),
+        'page_id': request.values.get('page_id', ''),
+        'find_row': request.values.get('find_row', '42'),
         'page_data': None,
         'error': None,
     }
 
     if request.method == 'POST':
+        conn = None
         try:
+            if ctx['table_name'] not in ('Accounts', 'SavingsAccounts'):
+                raise ValueError("Choose Accounts or SavingsAccounts.")
             conn = get_connection(ctx['server'], ctx['database'], ctx['auth'])
             cursor = conn.cursor()
             highlight_slot = None
@@ -1370,9 +1376,14 @@ def index():
                 if not ctx['error']:
                     ctx['error'] = "Enter a Page ID or AccountId to find."
 
-            conn.close()
         except Exception as e:
             ctx['error'] = str(e)
+        finally:
+            if conn is not None:
+                try:
+                    conn.cursor().execute("USE master;")
+                finally:
+                    conn.close()
 
     return render_template_string(HTML_TEMPLATE, **ctx)
 

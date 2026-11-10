@@ -9,7 +9,7 @@ Usage:
 Enter: server, database, file_id, page_id
 Shows formatted page contents with version information highlighted.
 """
-from flask import Flask, render_template_string, request
+from flask import Flask, current_app, render_template_string, request
 from mssql_python import connect as mssql_connect
 import re
 
@@ -158,7 +158,14 @@ HTML_TEMPLATE = """
             <input name="page_id" value="{{ page_id or '' }}" style="width:100px" placeholder="e.g. 320">
         </div>
         <div class="form-group">
-            <label>Find Row (AccountId)</label>
+            <label>Table</label>
+            <select name="table_name">
+                <option value="Accounts" {{ 'selected' if table_name == 'Accounts' else '' }}>Accounts</option>
+                <option value="GameStats" {{ 'selected' if table_name == 'GameStats' else '' }}>GameStats</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Find Row (AccountId / GameId)</label>
             <input name="find_row" value="{{ find_row or '42' }}" style="width:120px" placeholder="e.g. 42">
         </div>
         <button type="submit">View Page</button>
@@ -178,17 +185,24 @@ HTML_TEMPLATE = """
 """
 
 def get_connection(server, database, auth):
+    factory = current_app.config.get("VIEWER_CONNECTION")
+    if factory is not None:
+        return factory(database)
     parts = [f"Server={server}", f"Database={database}", "Encrypt=no", "TrustServerCertificate=yes"]
     if auth != 'sql':
         parts.append("Trusted_Connection=yes")
-    return mssql_connect(";".join(parts))
+    conn = mssql_connect(";".join(parts))
+    conn.autocommit = True
+    return conn
 
-def find_page_for_row(cursor, database, table_filter):
+def find_page_for_row(cursor, database, table_filter, table_name="Accounts"):
     """Find the page for a specific AccountId using only DBCC PAGE — no SELECT on the user table."""
     # Get data pages from system metadata — no locks on user table
-    cursor.execute("""
+    keys = {"Accounts": "AccountId", "GameStats": "GameId"}
+    key = keys[table_name]
+    cursor.execute(f"""
         SELECT allocated_page_file_id, allocated_page_page_id
-        FROM sys.dm_db_database_page_allocations(DB_ID(), OBJECT_ID('dbo.Accounts'), NULL, NULL, 'DETAILED')
+        FROM sys.dm_db_database_page_allocations(DB_ID(), OBJECT_ID('dbo.{table_name}'), NULL, NULL, 'DETAILED')
         WHERE page_type_desc = 'DATA_PAGE'
         ORDER BY allocated_page_page_id
     """)
@@ -202,7 +216,7 @@ def find_page_for_row(cursor, database, table_filter):
             parent = str(r[0]) if r[0] else ""
             field = str(r[2]) if r[2] else ""
             value = str(r[3]) if r[3] else ""
-            if field == "AccountId" and value == str(int(table_filter)):
+            if field == key and value == str(int(table_filter)):
                 slot_match = re.search(r'Slot (\d+)', parent)
                 if slot_match:
                     sid = int(slot_match.group(1))
@@ -605,18 +619,22 @@ def format_page_output(columns, rows, highlight_slot=None):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     ctx = {
-        'server': request.form.get('server', 'localhost'),
-        'database': request.form.get('database', 'starswillwinthecup'),
-        'auth': request.form.get('auth', 'trusted'),
-        'file_id': request.form.get('file_id', '1'),
-        'page_id': request.form.get('page_id', ''),
-        'find_row': request.form.get('find_row', ''),
+        'server': current_app.config.get('VIEWER_SERVER', request.values.get('server', 'localhost')),
+        'database': request.values.get('database', 'starswillwinthecup'),
+        'auth': request.values.get('auth', 'trusted'),
+        'table_name': request.values.get('table_name', 'Accounts'),
+        'file_id': request.values.get('file_id', '1'),
+        'page_id': request.values.get('page_id', ''),
+        'find_row': request.values.get('find_row', '42'),
         'page_data': None,
         'error': None,
     }
     
     if request.method == 'POST':
+        conn = None
         try:
+            if ctx['table_name'] not in ('Accounts', 'GameStats'):
+                raise ValueError("Choose Accounts or GameStats.")
             conn = get_connection(ctx['server'], ctx['database'], ctx['auth'])
             cursor = conn.cursor()
             
@@ -624,13 +642,13 @@ def index():
             
             # If find_row is specified, look up the page
             if ctx['find_row']:
-                fid, pid, sid, aid, bal = find_page_for_row(cursor, ctx['database'], ctx['find_row'])
+                fid, pid, sid, aid, bal = find_page_for_row(cursor, ctx['database'], ctx['find_row'], ctx['table_name'])
                 if pid:
                     ctx['file_id'] = str(fid)
                     ctx['page_id'] = str(pid)
                     highlight_slot = sid
                 else:
-                    ctx['error'] = f"Could not find AccountId {ctx['find_row']} on any data page."
+                    ctx['error'] = f"Could not find row {ctx['find_row']} in dbo.{ctx['table_name']} on any data page."
             
             if ctx['page_id']:
                 # Get DBCC PAGE results
@@ -661,7 +679,7 @@ def index():
                         status = vr[3]          # status (0=single, 1=split)
                         image = vr[4]           # record_image_first_part (bytes)
                         
-                        decoded = decode_version_record(image) if image else None
+                        decoded = decode_version_record(image) if image and ctx['table_name'] == 'Accounts' else None
                         
                         html += '<div class="vs-record">'
                         
@@ -720,7 +738,7 @@ def index():
                             html += '</div>'
                     
                     # End of chain marker
-                    last_decoded = decode_version_record(vs_rows[-1][4]) if vs_rows[-1][4] else None
+                    last_decoded = decode_version_record(vs_rows[-1][4]) if vs_rows[-1][4] and ctx['table_name'] == 'Accounts' else None
                     if last_decoded and not last_decoded['has_version_tag']:
                         html += '<div style="text-align:center;font-size:13px;color:#10780e;font-weight:bold;margin-top:4px;">— End of Version Chain —</div>'
                     
@@ -739,9 +757,14 @@ def index():
                 if not ctx['error']:
                     ctx['error'] = "Enter a Page ID or AccountId to find."
                 
-            conn.close()
         except Exception as e:
             ctx['error'] = str(e)
+        finally:
+            if conn is not None:
+                try:
+                    conn.cursor().execute("USE master;")
+                finally:
+                    conn.close()
     
     return render_template_string(HTML_TEMPLATE, **ctx)
 

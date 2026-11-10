@@ -233,7 +233,7 @@ WHERE pvs.rowset_id IN
 
 
 def _page(scenario, key, table="Accounts", db=PRIMARY, account=42):
-    _add(scenario, key, f"DBCC PAGE — {table} row {account}", "admin", f"""
+    _add(scenario, key, f"Page viewer — {table} row {account}", "admin", f"""
 USE master;
 DECLARE @db int = DB_ID(N'{db}'), @file int, @page int, @slot int;
 SELECT @file = loc.file_id, @page = loc.page_id, @slot = loc.slot_id
@@ -248,15 +248,14 @@ BEGIN
     DBCC PAGE(@db, @file, @page, 3) WITH TABLERESULTS;
     DBCC TRACEOFF(3604);
 END;
-""", "Explicit page evidence replacing the original script's View Page cues "
-         "(no viewer required). NOLOCK locates the physical current row even "
-         "during an uncommitted update; this is NOT a consistent balance read. "
-         "Inspect this slot's version tag, XSN/pointer and in-row diff if present. "
-         "For ADR compare an in-row marker (often slot -4) with an off-row "
-         "pointer and the separate PVS DMV link evidence. For tempdb compare "
-         "the tag with sys.dm_tran_version_store raw before-images. DBCC PAGE "
-         "does not itself report a measured chain-hop count. Pointer layouts "
-         "and output vary by build; the API may truncate this page at 1000 rows.")
+""", "Open the formatted page viewer in a new tab, then click View Page. "
+         "The database, table and row are prefilled. Inspect the highlighted "
+         "version tag, XSN and pointer; return here and click Next to continue. "
+         "Opening the viewer does not run SQL or close the demo sessions. "
+         "Use View Page again to refresh the evidence after each update. "
+         "Internal page formats and cleanup timing vary by build.",
+         viewer=dict(kind="adr" if scenario["id"].startswith("4") else "tempdb",
+                     database=db, table_name=table, find_row=str(account)))
 
 
 def _force_cleanup(scenario, key, db=PRIMARY):
@@ -401,10 +400,6 @@ S2A = _scenario("2a", "RCSI reads without waiting", "Compare RCSI with the "
                 ["demo2-rcsi-snapshot/demo2a-rcsi-session1.sql", "demo2-rcsi-snapshot/demo2a-rcsi-session2.sql"])
 _config(S2A)
 _reset(S2A, 1)
-_add(S2A, "other-baselines", "Reset source demo's other sampled accounts", "1", f"""
-USE [{PRIMARY}];
-UPDATE dbo.Accounts SET Balance = 100.00 WHERE AccountId IN (100,200);
-""", "Original 2a also resets accounts 100 and 200; no open transaction.", dangerous=True)
 _write_balance(S2A, "writer", "Balance + 500.00", 1, session="1", begin=True)
 _read(S2A, "rcsi", "RCSI committed before-image (100)", "2", 1,
       explanation="READ COMMITTED uses statement versions: the writer's "

@@ -13,6 +13,13 @@ SPEC.loader.exec_module(catalog)
 
 
 class CatalogTests(unittest.TestCase):
+    def test_rcsi_walkthrough_only_prepares_account_one(self):
+        steps = catalog.S2A["steps"]
+        self.assertNotIn("2a-other-baselines", [step["id"] for step in steps])
+        self.assertEqual([step["id"] for step in steps[:3]],
+                         ["2a-configure", "2a-reset", "2a-writer"])
+        self.assertNotIn("100,200", "\n".join(step["sql"] for step in steps))
+
     def setUp(self):
         self.scenarios = {
             scenario["id"]: scenario
@@ -208,6 +215,10 @@ class CatalogTests(unittest.TestCase):
             self.assertTrue(pages, scenario_id)
             for step in pages:
                 self.assertEqual(step["session"], "admin")
+                self.assertEqual(step["viewer"]["kind"], "adr" if scenario_id.startswith("4") else "tempdb")
+                self.assertTrue(step["viewer"]["database"])
+                self.assertTrue(step["viewer"]["table_name"])
+                self.assertTrue(step["viewer"]["find_row"].isdigit())
                 self.assertNotIn("BEGIN TRAN", step["sql"])
                 self.assertIn("fn_PhysLocCracker", step["sql"])
                 self.assertIn("WITH TABLERESULTS", step["sql"])
