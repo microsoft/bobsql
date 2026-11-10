@@ -24,7 +24,7 @@ class ResetSqlTests(unittest.TestCase):
                 self.assertIn("snapshot_isolation_state", configuration(scenario))
 
     def test_fixed_starting_balances(self):
-        for scenario, predicate, value in (("1", "1", "100.00"), ("2a", "1, 100, 200", "100.00"),
+        for scenario, predicate, value in (("1", "1", "100.00"), ("2a", "1", "100.00"),
                                             ("2b", "200", "1000.00"), ("2c", "100", "100.00"),
                                             ("3a", "42", "100.00"), ("4a", "42", "100.00")):
             sql = data_sql(scenario, [])
@@ -144,7 +144,7 @@ class ResetRunnerTests(unittest.TestCase):
         runner = DemoRunner()
         runner.jobs = [job("1", "configure"), job("1", "dirty-writer")]
         connection = Mock()
-        with patch.object(runner, "connection", return_value=connection), patch("app.execute_sql") as sql:
+        with patch.object(runner, "connection", return_value=connection), patch("app.execute_sql", return_value=([{"rows": []}], [])) as sql:
             runner.restart("1")
         self.assertEqual(len(runner.jobs), 2)
         self.assertTrue(all(j["archived"] for j in runner.jobs))
@@ -160,13 +160,13 @@ class ResetRunnerTests(unittest.TestCase):
             def execute(_connection, sql):
                 if "ALTER DATABASE" in sql:
                     raise SqlError("Configuration failed", "")
-                return [], []
+                return [{"rows": []}], []
             with patch("app.execute_sql", side_effect=execute):
                 with self.assertRaises(SqlError):
                     runner.restart("3b")
             self.assertIn("3b", runner.restart_data_done)
             self.assertFalse(runner.jobs[0].get("archived", False))
-            with patch("app.execute_sql") as sql:
+            with patch("app.execute_sql", return_value=([{"rows": []}], [])) as sql:
                 runner.restart("3b")
             self.assertFalse(any("UPDATE dbo.GameStats" in c.args[1] for c in sql.call_args_list))
             self.assertEqual(runner.restart_data_done, set())
@@ -183,7 +183,7 @@ class ResetRunnerTests(unittest.TestCase):
             if "JOIN #FkOriginalItems" in sql:
                 self.assertIs(connection, owner)
                 events.append("restore")
-            return [], []
+            return [{"rows": []}], []
         with patch.object(runner, "connection", return_value=Mock()), patch("app.execute_sql", side_effect=execute):
             runner.restart("2e")
         self.assertEqual(events, ["restore", "close"])
@@ -201,6 +201,44 @@ class ResetRunnerTests(unittest.TestCase):
         self.assertIs(runner.sessions["2"], session)
         self.assertFalse(runner.jobs[0].get("archived", False))
         self.assertFalse(runner.resetting)
+
+    def test_both_guards_exclude_owned_connections_and_report_external_clients(self):
+        runner = DemoRunner()
+        runner.jobs = [job("1", "configure")]
+        calls = []
+
+        def execute(_connection, sql):
+            if "SELECT s.session_id, s.program_name" in sql:
+                calls.append(sql)
+                self.assertIn(f"s.context_info <> 0x{runner.context_hex}", sql)
+                self.assertIn("sys.dm_tran_locks", sql)
+                return [{"rows": [] if len(calls) == 1 else [
+                    [77, "Microsoft SQL Server Management Studio", "starswillwinthecup"]
+                ]}], []
+            return [], []
+
+        with patch.object(runner, "connection", return_value=Mock()), patch("app.execute_sql", side_effect=execute):
+            with self.assertRaisesRegex(ValueError, "SPID 77.*Management Studio"):
+                runner.restart("1")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0], calls[1])
+        self.assertIn("1", runner.restart_data_done)
+        self.assertFalse(runner.jobs[0].get("archived", False))
+        self.assertFalse(runner.resetting)
+
+    def test_outside_connection_stops_before_data_or_session_changes(self):
+        runner = DemoRunner()
+        runner.jobs = [job("1", "configure")]
+        session = {"busy": False, "cancel_requested": False, "connection": Mock()}
+        runner.sessions = {"1": session}
+        with patch.object(runner, "connection", return_value=Mock()), patch(
+            "app.execute_sql", return_value=([{"rows": [[88, "SQL client", "starswillwinthecup"]]}], [])
+        ) as sql:
+            with self.assertRaisesRegex(ValueError, "SPID 88"):
+                runner.restart("1")
+        self.assertEqual(sql.call_count, 1)
+        session["connection"].close.assert_not_called()
+        self.assertEqual(runner.restart_data_done, set())
 
 
 if __name__ == "__main__":

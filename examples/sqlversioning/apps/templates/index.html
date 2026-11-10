@@ -96,6 +96,11 @@
     .step-notes p { font-size: 14px; margin: 8px 0; }
     .workspace { display: grid; grid-template-columns: minmax(320px, .9fr) minmax(0, 1.25fr); gap: 24px; align-items: start; }
     .walkthrough .workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    .workspace > section { min-width: 0; }
+    .walkthrough.admin-step .workspace { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+    .admin-step .step-chapter { display: none; }
+    .admin-step .step-explanation { font-size: 13px; margin: 6px 0; }
+    .admin-step .step-sql { margin-top: 6px; }
     .step-navigation { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .step-navigation select { flex: 1; min-width: 0; font-size: 14px; }
     .step-navigation button { font-size: 14px; padding: 6px 12px; }
@@ -140,14 +145,16 @@
     .walkthrough .blocking { max-height: 90px; overflow: auto; margin: 6px 0; }
     .walkthrough .blocking .empty { padding: 0; margin: 0; font-size: 12px; }
     .walkthrough .blocking-edge { padding: 6px 8px; font-size: 12px; line-height: 1.3; }
-    #focused-results { max-height: clamp(140px, calc(100dvh - 350px), 480px); overflow: auto; }
+    #focused-results { margin-top: 12px; }
     #focused-results .job { border: 0; padding: 0; }
-    #focused-results .table-wrap { margin: 8px 0; }
-    #focused-results pre { font-size: 14px; line-height: 1.4; }
+    #focused-results .table-wrap { margin: 8px 0; max-height: none; }
+    #focused-results table { width: max-content; min-width: 100%; }
+    #focused-results th, #focused-results td { white-space: nowrap; overflow-wrap: normal; }
+    #focused-results pre { font-size: 14px; line-height: 1.4; max-height: none; }
     .walkthrough .panel h2 { font-size: 18px; margin-bottom: 6px; }
     .walkthrough #live-heading { font-size: 15px; }
-    .walkthrough #diagnostics, .walkthrough #execution-details { margin-top: 0; }
-    @media (max-width: 760px) { .walkthrough .workspace { grid-template-columns: 1fr; } }
+    .walkthrough #execution-details { margin-top: 0; }
+    @media (max-width: 760px) { .walkthrough .workspace, .walkthrough.admin-step .workspace { grid-template-columns: 1fr; } }
     .steps { display: flex; flex-direction: column; gap: 14px; }
     .step { border: 1px solid var(--cp-border); border-radius: 12px; padding: 14px; background: var(--cp-surface); }
     .step-heading { display: flex; gap: 12px; align-items: baseline; margin-bottom: 8px; }
@@ -166,10 +173,6 @@
     .highlight-line { display: block; background: var(--cp-highlight); color: var(--cp-accent); font-weight: 700; }
     td.dbcc-line { background: var(--cp-highlight); color: var(--cp-accent); font-weight: 700; }
     .evidence-column { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
-    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .metric { background: var(--cp-surface-soft); border: 1px solid var(--cp-border); border-radius: 10px; padding: 14px; }
-    .metric strong { display: block; font-size: 32px; color: var(--cp-accent); }
-    .metric span { font-size: 12px; color: var(--cp-text-muted); }
     .blocking { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
     .blocking-edge { background: var(--cp-highlight); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
     .arrow { color: var(--cp-accent); font-weight: 800; padding: 0 8px; }
@@ -200,7 +203,7 @@
       nav { padding: 6px 14px 0; } .serverbar { padding-left: 14px; padding-right: 14px; }
       .top-actions { margin-left: 0; } .hero { grid-template-columns: 1fr; }
       .hero-star { display: none; } .panel { padding: 18px; }
-      .metrics { grid-template-columns: 1fr 1fr; } .sessions { grid-template-columns: 1fr; }
+      .sessions { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: no-preference) {
       .status.running::before { content: "● "; animation: pulse 1.5s ease-in-out infinite; }
@@ -257,10 +260,10 @@
           <div id="steps-intro" class="section-head"><h2 id="steps-heading">Steps — run in order</h2><span class="badge">Manual execution only</span></div>
           <p id="step-guidance" class="muted step-guidance">Blocked reader? Run the writer’s COMMIT/ROLLBACK.</p>
           <div id="steps" class="steps"></div>
-          <section id="focused-panel" class="panel" aria-labelledby="focused-heading" hidden>
-            <h2 id="focused-heading">Result for this step</h2>
+          <details id="focused-panel" class="panel" hidden>
+            <summary id="focused-heading">Result for this step</summary>
             <div id="focused-results" aria-live="polite"></div>
-          </section>
+          </details>
         </section>
         <div id="evidence-column" class="evidence-column">
           <section class="panel" aria-labelledby="live-heading">
@@ -268,11 +271,6 @@
             <div id="sessions" class="sessions"></div>
             <div id="blocking" class="blocking"></div>
             <div id="monitor-error" class="banner error" hidden></div>
-            <details id="diagnostics"><summary>Detailed monitoring &amp; database options</summary>
-              <div id="metrics" class="metrics"></div>
-              <div id="monitor-tables"></div>
-              <small>Measured DMV samples, refreshed every second. “Unavailable” is not zero. Cleanup timing is asynchronous.</small>
-            </details>
           </section>
         </div>
         <section id="setup-inventory" class="panel" aria-live="polite" hidden></section>
@@ -316,8 +314,14 @@
         "1-cleanup-1": ["Finish", "Clean up Session 1", "Reset the writer connection. This does not undo committed changes."],
         "1-cleanup-2": ["Finish", "Clean up Session 2", "Reset the reader connection, then use End demo to close both sessions before the next demo."]
       };
-      function stepTitle(step) { return blockingStory[step.id]?.[1] || step.title; }
+      function stepTitle(step) { return blockingStory[step.id]?.[1] || step.title.replace(/^End demo first — configure/, "Configure"); }
       function stepExplanation(step) {
+        if (step.requires_clean_sessions) {
+          if (!connected) return "Checking whether app sessions are closed before configuration.";
+          return state?.sessions?.some(s => ["1", "2"].includes(String(s.name)))
+            ? "App sessions are open. Use End demo to close them before changing database options."
+            : "Ready to configure. App sessions are already closed.";
+        }
         const end = step.explanation.indexOf(". ");
         return blockingStory[step.id]?.[2] || (end < 0 ? step.explanation : step.explanation.slice(0, end + 1));
       }
@@ -421,8 +425,7 @@
           for (const s of currentDemo.scenarios) {
             const option = el("option", "", `${s.id} · ${s.title}`); option.value = s.id; $("scenario").append(option);
           }
-          const remembered = readLocal(`sql-versioning-scenario-${currentDemo.id}`);
-          if (currentDemo.scenarios.some(s => s.id === remembered)) $("scenario").value = remembered;
+          $("scenario").value = currentDemo.scenarios[0].id;
           chooseScenario();
         } else document.title = "SQL Versioning · Live Lab";
         activeWarning();
@@ -430,7 +433,6 @@
       function chooseScenario() {
         currentScenario = currentDemo.scenarios.find(s => s.id === $("scenario").value) || currentDemo.scenarios[0];
         if (!currentScenario) { $("steps").textContent = "No steps are available."; return; }
-        writeLocal(`sql-versioning-scenario-${currentDemo.id}`, currentScenario.id);
         $("scenario-description").textContent = currentScenario.description;
         const sources = currentScenario.source_files || (currentScenario.source ? [currentScenario.source] : []);
         $("scenario-source").textContent = sources.length ? `Source: ${sources.join(" · ")}` : "";
@@ -448,29 +450,45 @@
           const heading = el("div", "step-heading");
           if (!setup) heading.append(el("span", "step-number", String(i + 1).padStart(2, "0")));
           heading.append(el("h3", "", setup ? "Prepare the three demo databases" : stepTitle(step)));
+          if (!setup && step.session === "admin") heading.append(el("span", "badge", sessionName(step.session)));
           card.append(heading);
-          if (!setup) card.append(el("span", "badge", sessionName(step.session)),
-            el("p", "step-explanation", i === visibleSteps.length - 1 ?
+          if (!setup) {
+            if (step.session !== "admin") card.append(el("span", "badge", sessionName(step.session)));
+            card.append(el("p", "step-explanation", i === visibleSteps.length - 1 ?
               "After this cleanup SQL, click Finish demo — close sessions above to close both connections." :
               stepExplanation(step)));
+          }
           if (step.expected_error) card.append(el("p", "warning-note", `Expected SQL error ${step.expected_error}; this is evidence, not an ordinary failure.`));
-          if (step.dangerous) card.append(el("p", "warning-note", setup ?
+          if (step.dangerous && (setup || step.session !== "admin")) card.append(el("p", "warning-note", setup ?
             "Setup replaces all three demo databases and their data. Confirmation required. Tables will appear below when it finishes." :
             "Changes lab state. Confirmation required."));
           const bottom = el("div", "step-footer"), run = el("button", "primary", setup ? "Run setup" : `Run in ${sessionName(step.session)}`);
+          if (step.viewer) {
+            const link = el("a", "button primary", "Open page viewer");
+            const { kind, ...parameters } = step.viewer;
+            link.href = `/page-viewer/${encodeURIComponent(kind)}?${new URLSearchParams(parameters)}`;
+            link.target = "_blank"; link.rel = "noopener";
+            bottom.append(link);
+            card.append(bottom, el("p", "muted", "Opens in a new tab. Click View Page there, then return here and continue with Next."));
+            $("steps").append(card);
+            return;
+          }
           run.type = "button"; run.onclick = () => runStep(step);
           bottom.append(run, el("span", "status", "Not run")); card.append(bottom);
           const notes = el("details", "step-notes"); notes.append(el("summary", "", "Prerequisites & safety"));
+          if (step.dangerous && !setup && step.session === "admin") notes.append(el("p", "warning-note", "Changes lab state. Confirmation required before execution."));
           if (setup) notes.append(el("p", "", step.explanation));
-          else notes.append(el("p", "", step.explanation), el("p", "", currentScenario.description), el("small", "", $("scenario-source").textContent));
-          if (step.requires_clean_sessions) notes.append(el("p", "warning-note", "Use End demo before configuration: sessions 1 and 2 must be closed, not merely committed. End demo does not restore baseline data."));
+          else notes.append(el("p", "", step.requires_clean_sessions
+            ? "Configuration changes database options and can terminate other database connections. App sessions must be closed first; if they are already closed, no End demo action is needed."
+            : step.explanation), el("p", "", currentScenario.description), el("small", "", $("scenario-source").textContent));
           const repeat = el("button", "repeat-step", "Run again (intentional repeat)");
           repeat.type = "button"; repeat.hidden = true; repeat.onclick = () => runStep(step, true);
           notes.append(repeat);
-          card.append(notes);
+          if (setup || step.session !== "admin") card.append(notes);
           if (setup) {
             const sql = el("details"); sql.append(el("summary", "", "Inspect SQL"), SqlSyntax.render(step.sql)); card.append(sql);
           } else card.append(SqlSyntax.render(step.sql, "step-sql"));
+          if (!setup && step.session === "admin") card.append(notes);
           $("steps").append(card);
         });
         lastSessions = ""; renderSessions(); selectStep(0);
@@ -482,6 +500,12 @@
       }
       function selectStep(index) {
         selectedStep = index;
+        const admin = currentScenario.steps[index].session === "admin";
+        $("demo").classList.toggle("admin-step", admin && currentDemo.id !== "0");
+        if ($("focused-panel").dataset.stepId !== currentScenario.steps[index].id) {
+          $("focused-panel").open = false;
+          $("focused-panel").dataset.stepId = currentScenario.steps[index].id;
+        }
         $("step-picker").value = String(index);
         const setup = currentDemo.id === "0";
         [...$("steps").children].forEach((card, i) => {
@@ -538,6 +562,10 @@
           "Run the final cleanup SQL first, then finish the demo here.";
         document.querySelectorAll("#steps .step").forEach((card, i) => {
           const step = currentScenario.steps.find(s => s.id === card.dataset.stepId);
+          if (step.viewer) return;
+          if (step.requires_clean_sessions && currentDemo.id !== "0") {
+            card.querySelector(".step-explanation").textContent = stepExplanation(step);
+          }
           const busy = state?.sessions?.find(s => String(s.name) === String(step.session))?.busy;
           const waiting = [...pending.values()].some(p => String(p.session) === String(step.session));
           const mustEnd = step.requires_clean_sessions && state?.sessions?.some(s => ["1", "2"].includes(String(s.name)));
@@ -571,9 +599,10 @@
       }
       function fitStepSql() {
         const sql = $("steps").querySelector(".step:not([hidden]) .step-sql");
-        const results = $("focused-results"), reserve = $("focused-panel").hidden ? 0 : 180;
-        if (sql) sql.style.maxHeight = `${Math.max(80, Math.min(360, window.innerHeight - sql.getBoundingClientRect().top - 24 - reserve))}px`;
-        if (reserve) results.style.maxHeight = `${Math.max(80, Math.min(260, window.innerHeight - results.getBoundingClientRect().top - 24))}px`;
+        const admin = $("demo").classList.contains("admin-step");
+        const reserve = admin ? 32 : 0;
+        const maximum = $("demo").classList.contains("admin-step") ? 640 : 360;
+        if (sql) sql.style.maxHeight = `${Math.max(80, Math.min(maximum, window.innerHeight - sql.getBoundingClientRect().top - 24 - reserve))}px`;
       }
       function statusLabel(job) {
         let label = statusNames[job.status] || job.status;
@@ -735,8 +764,8 @@
         const previousJob = all.filter(j => j.step_id === step.id).at(-1);
         const previousRun = step.id === currentScenario.steps[0].id && state?.active_demo === null;
         const currentJob = previousJob && (previousRun || !walkthroughJobs().some(j => j.id === previousJob.id)) ? { ...previousJob, historical: true } : previousJob;
-        $("focused-panel").hidden = step.session !== "admin" || !currentJob;
-        $("focused-heading").textContent = `Result · step ${selectedStep + 1}`;
+        $("focused-panel").hidden = !!step.viewer || step.session !== "admin" || !currentJob;
+        $("focused-heading").textContent = `Admin result · step ${selectedStep + 1} · ${currentJob ? statusLabel(currentJob) : "Not run"}`;
         const previousPanel = $("focused-results").querySelector(".job");
         const expandedMessages = previousPanel?.dataset.jobId === currentJob?.id ? previousPanel?.querySelector("details")?.open : undefined;
         $("focused-results").replaceChildren();
@@ -799,30 +828,9 @@
         $("monitor-error").hidden = !monitor.error;
         $("monitor-error").textContent = monitor.error || "";
         const withColumn = column => sets.filter(s => s.columns.some(c => String(c).toLowerCase() === column));
-        const rows = monitorRows;
         const number = value => value !== null && value !== "" && Number.isFinite(Number(value));
-        const sum = column => {
-          const found = withColumn(column);
-          if (monitor.error || !found.length) return "Unavailable";
-          const values = found.flatMap(records).map(r => r[column]);
-          return values.every(number) ? values.reduce((a, v) => a + Number(v), 0).toLocaleString() : "Unavailable";
-        };
-        const requests = rows("blocking_session_id");
+        const requests = monitorRows("blocking_session_id");
         const blocked = requests.filter(r => number(r.blocking_session_id) && Number(r.blocking_session_id) !== 0);
-        const snapshotRows = rows("elapsed_time_seconds");
-        const metrics = [
-          ["Blocked requests", monitor.error || !withColumn("blocking_session_id").length ? "Unavailable" : String(blocked.length), "Live blocking_session_id ≠ 0"],
-          ["tempdb version store", sum("reserved_space_kb"), "KB · sum of returned database rows"],
-          ["Persistent versions", sum("persistent_version_store_size_kb"), "KB · sum of returned database rows"],
-          ["Active snapshots", monitor.error || !withColumn("elapsed_time_seconds").length ? "Unavailable" : String(snapshotRows.length), "Returned active snapshot rows"],
-          ["Oldest snapshot", monitor.error || !withColumn("elapsed_time_seconds").length || !snapshotRows.length || !snapshotRows.every(r => number(r.elapsed_time_seconds))
-            ? "Unavailable" : `${Math.max(...snapshotRows.map(r => Number(r.elapsed_time_seconds))).toLocaleString()} s`, "Measured elapsed_time_seconds"],
-          ["Open app transactions", (state.sessions || []).every(s => number(s.transaction_count)) && state.sessions?.length
-            ? state.sessions.reduce((a, s) => a + Number(s.transaction_count), 0).toLocaleString() : "Unavailable", "Sum of app session transaction counts"]
-        ];
-        $("metrics").replaceChildren(...metrics.map(([label, value, note]) => {
-          const card = el("div", "metric"); card.append(el("span", "", label), el("strong", "", value), el("span", "", note)); return card;
-        }));
         $("blocking").replaceChildren();
         const sessionLabel = spid => {
           const s = state.sessions?.find(s => Number(s.spid) === Number(spid));
@@ -836,18 +844,6 @@
         }
         if (!blocked.length) $("blocking").append(el("p", "empty", monitor.error || !withColumn("blocking_session_id").length
           ? "Blocking evidence unavailable." : "No blocking edges in the current DMV sample."));
-        $("monitor-tables").replaceChildren();
-        for (const [i, set] of sets.entries()) {
-          const columns = set.columns.map(c => String(c).toLowerCase());
-          let title = "Server / features / database isolation evidence";
-          if (columns.includes("blocking_session_id")) title = "Active requests & blocking";
-          else if (columns.includes("reserved_space_kb")) title = "tempdb version store by database";
-          else if (columns.includes("persistent_version_store_size_kb")) title = "Persistent version store by database";
-          else if (columns.includes("elapsed_time_seconds")) title = "Active snapshot transactions";
-          else if (columns.includes("transaction_count")) title = "Session transaction evidence";
-          $("monitor-tables").append(el("h3", "", `${i + 1}. ${title}`), table(set));
-        }
-        if (!sets.length) $("monitor-tables").append(el("p", "empty", "No monitor result sets returned."));
       }
       function renderSessions() {
         const sessions = state?.sessions || [];
@@ -990,6 +986,7 @@
         else $("end-demo").click();
       };
       $("result-session").onchange = () => { lastResults = ""; renderResults(); };
+      $("focused-panel").ontoggle = fitStepSql;
       $("restart-demo").onclick = async () => {
         if ($("restart-demo").disabled) return;
         const scenario = currentScenario;

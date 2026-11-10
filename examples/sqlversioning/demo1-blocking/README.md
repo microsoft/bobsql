@@ -34,7 +34,8 @@ admin-query results appear below the SQL step on the left.
   success message before starting Demo 2. Cleanup SQL by itself leaves the
   connections open. The header's End demo also closes them.
 
-Detailed monitoring and earlier results are expandable. Session balances are
+Earlier results are expandable; background monitoring still supplies live
+blocking and session state. Session balances are
 last returned SQL values, not estimates of the current committed balance.
 To start over, confirm **Reset demo 1**. It rolls back open transactions,
 sets Account 1 back to 100.00, restores locking READ COMMITTED's database

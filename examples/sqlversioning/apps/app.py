@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import atexit
+import importlib.util
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -298,6 +299,27 @@ class DemoRunner:
         with self.lock:
             self.active_demo = None
 
+    def _check_reset_connections(self, control: Any, scenario_id: str) -> None:
+        names = ", ".join(f"N'{name}'" for name in databases(scenario_id))
+        sets, _ = execute_sql(control, f"""
+USE master;
+SELECT s.session_id, s.program_name, DB_NAME(s.database_id) AS database_name
+FROM sys.dm_exec_sessions s
+WHERE s.is_user_process = 1 AND s.session_id <> @@SPID
+  AND (s.context_info IS NULL OR s.context_info <> 0x{self.context_hex})
+  AND (s.database_id IN (SELECT database_id FROM sys.databases WHERE name IN ({names}))
+   OR EXISTS (SELECT 1 FROM sys.dm_tran_locks l
+      WHERE l.request_session_id = s.session_id AND l.resource_database_id IN
+        (SELECT database_id FROM sys.databases WHERE name IN ({names}))));
+""")
+        others = sets[0]["rows"]
+        if others:
+            details = "; ".join(f"SPID {row[0]} ({row[1] or 'unknown client'}, "
+                                f"database {row[2] or 'unknown'})" for row in others[:5])
+            raise ValueError(f"Other SQL connections are using the lab databases: {details}. "
+                             "Disconnect those connections and retry Reset demo. "
+                             "No outside connections were closed.")
+
     def restart(self, scenario_id: str) -> None:
         with self.lock:
             scenario = self.scenarios.get(scenario_id)
@@ -330,18 +352,7 @@ class DemoRunner:
         try:
             control = self.sessions[owner]["connection"] if owner else self.connection()
             own_control = not owner
-            names = ", ".join(f"N'{name}'" for name in databases(scenario_id))
-            execute_sql(control, f"""
-USE master;
-IF EXISTS (SELECT 1 FROM sys.dm_exec_sessions s WHERE s.is_user_process = 1
-  AND s.session_id <> @@SPID AND
-  (s.context_info IS NULL OR s.context_info <> 0x{self.context_hex}) AND
-  (s.database_id IN (SELECT database_id FROM sys.databases WHERE name IN ({names}))
-   OR EXISTS (SELECT 1 FROM sys.dm_tran_locks l
-      WHERE l.request_session_id = s.session_id AND l.resource_database_id IN
-        (SELECT database_id FROM sys.databases WHERE name IN ({names})))))
-    THROW 50000, 'Other SQL sessions are using the lab databases. Close them and retry Reset demo.', 1;
-""")
+            self._check_reset_connections(control, scenario_id)
             if scenario_id not in self.restart_data_done:
                 for session in sessions:
                     if session["busy"]:
@@ -371,17 +382,7 @@ IF EXISTS (SELECT 1 FROM sys.dm_exec_sessions s WHERE s.is_user_process = 1
             own_control = False
             control = self.connection()
             own_control = True
-            names = ", ".join(f"N'{name}'" for name in databases(scenario_id))
-            execute_sql(control, f"""
-USE master;
-IF EXISTS (SELECT 1 FROM sys.dm_exec_sessions s WHERE s.is_user_process = 1
-  AND s.session_id <> @@SPID AND
-  (s.database_id IN (SELECT database_id FROM sys.databases WHERE name IN ({names}))
-   OR EXISTS (SELECT 1 FROM sys.dm_tran_locks l
-      WHERE l.request_session_id = s.session_id AND l.resource_database_id IN
-        (SELECT database_id FROM sys.databases WHERE name IN ({names})))))
-    THROW 50000, 'Other SQL sessions are using the lab databases. Close them and retry Reset demo.', 1;
-""")
+            self._check_reset_connections(control, scenario_id)
             execute_sql(control, configuration(scenario_id))
             with self.lock:
                 for job in self.jobs:
@@ -461,6 +462,35 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     runner = runner or DemoRunner()
     app.config["RUNNER"] = runner
+    app.config["VIEWER_SERVER"] = runner.server
+
+    def viewer_connection(database: str) -> Any:
+        if database not in DATABASES:
+            raise ValueError("Choose one of the three lab databases.")
+        if runner.resetting:
+            raise ValueError("Reset demo is in progress. Retry View Page when it finishes.")
+        connection = runner.connection()
+        try:
+            execute_sql(connection, f"USE [{database}];")
+        except SqlError:
+            connection.close()
+            raise
+        return connection
+
+    app.config["VIEWER_CONNECTION"] = viewer_connection
+    viewers = {}
+    root = Path(__file__).resolve().parent.parent
+    for kind, source in (
+        ("tempdb", root / "demo3-version-store" / "dbcc_page_viewer.py"),
+        ("adr", root / "demo4-adr-pvs" / "dbcc_page_viewer_adr.py"),
+    ):
+        spec = importlib.util.spec_from_file_location(f"page_viewer_{kind}", source)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Cannot load page viewer: {source}")
+        viewer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(viewer)
+        viewers[kind] = viewer
+    app.config["PAGE_VIEWERS"] = viewers
 
     @app.before_request
     def local_only():
@@ -469,11 +499,11 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
         if request.host.split(":")[0] not in ("localhost", "127.0.0.1"):
             return jsonify(error="Invalid local host."), 403
         if request.method == "POST":
-            if not request.is_json:
-                return jsonify(error="A JSON request is required."), 415
             origin = request.headers.get("Origin")
             if origin and origin != request.host_url.rstrip("/"):
                 return jsonify(error="Cross-origin execution is not allowed."), 403
+            if request.endpoint != "page_viewer" and not request.is_json:
+                return jsonify(error="A JSON request is required."), 415
 
     @app.after_request
     def response_headers(response):
@@ -492,6 +522,12 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
     @app.get("/api/catalog")
     def catalog():
         return jsonify(demos=DEMOS, server=runner.server)
+
+    @app.route("/page-viewer/<kind>", methods=["GET", "POST"])
+    def page_viewer(kind):
+        if kind not in viewers:
+            return jsonify(error="Unknown page viewer."), 404
+        return viewers[kind].index()
 
     @app.get("/benchmark")
     def benchmark():
