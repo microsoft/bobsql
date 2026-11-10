@@ -1,8 +1,9 @@
 import threading
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
-from app import DATABASES, DemoRunner, GO, SqlError, create_app, execute_sql
+from app import DATABASES, DemoRunner, GO, SqlError, create_app, execute_sql, parse_inventory_summary
 from catalog import COWBOYS, EAGLES, PRIMARY, _balance
 
 
@@ -289,7 +290,16 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/reset", json={"confirmed": True}).status_code, 200)
 
     def test_benchmark_replay_reads_captures_without_sql(self):
-        self.assertEqual(self.client.get("/benchmark").status_code, 200)
+        page = self.client.get("/benchmark")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Baseline (RCSI OFF, ADR OFF)", page.get_data(as_text=True))
+        self.assertIn("locking READ COMMITTED with RCSI OFF and ADR OFF", page.get_data(as_text=True))
+        self.assertIn("RCSI only (ADR OFF)", page.get_data(as_text=True))
+        self.assertIn("Avg read latency (ms)", page.get_data(as_text=True))
+        self.assertIn("Avg write latency (ms)", page.get_data(as_text=True))
+        self.assertIn("TPC-C and TPC-E comparisons shown here are not official TPC benchmark results.",
+                      page.get_data(as_text=True))
+        self.assertNotIn("capture-source", page.get_data(as_text=True))
         result = self.client.get("/api/benchmark")
         self.assertEqual(result.status_code, 200)
         captures = result.json["captures"]
@@ -297,19 +307,49 @@ class ApiTests(unittest.TestCase):
         self.assertEqual({c["benchmark"] for c in captures}, {"inventory"})
         inventory = next(c for c in captures if c["benchmark"] == "inventory")
         self.assertEqual(inventory["table_rows"], 200000)
-        self.assertEqual(inventory["configs"][0]["total_executions"], 5045)
+        self.assertEqual([c["total_executions"] for c in inventory["configs"]],
+                         [109886, 139909, 132310, 137113])
+        self.assertEqual([c["avg_latency_ms"] for c in inventory["configs"]],
+                         [9.46, 7.08, 7.50, 7.22])
+        self.assertEqual([c["deadlocks"] for c in inventory["configs"]], [2, 1, 3, 0])
+        self.assertEqual([c["queries"]["check_availability"]["avg_elapsed_ms"]
+                          for c in inventory["configs"]], [57.9, 34.8, 38.7, 35.7])
+        self.assertEqual([c["queries"]["warehouse_restock"]["avg_elapsed_ms"]
+                          for c in inventory["configs"]], [96.3, 135.4, 146.4, 121.3])
+        self.assertEqual([c["queries"]["check_availability"]["executions"]
+                          for c in inventory["configs"]], [13545, 21588, 19407, 21003])
+        self.assertEqual([c["queries"]["warehouse_restock"]["executions"]
+                          for c in inventory["configs"]], [983, 666, 623, 743])
+        self.assertEqual(inventory["configs"][1]["name"], "RCSI")
+        self.assertEqual(inventory["duration_seconds"], 30)
         for capture in captures:
+            self.assertNotIn("report_url", capture)
             self.assertEqual(len(capture["configs"]), 4)
-            self.assertTrue(capture["source"].endswith(".json"))
-            self.assertTrue(capture["timestamp"])
+            self.assertTrue(capture["source"].endswith("inventory-results.html"))
+            self.assertIsNone(capture["timestamp"])
             for config in capture["configs"]:
+                self.assertNotIn("runtime_seconds", config)
+                self.assertEqual(set(config["queries"]), {"check_availability", "warehouse_restock"})
+                self.assertEqual(config["queries"]["check_availability"]["threads"], 25)
+                self.assertEqual(config["queries"]["warehouse_restock"]["threads"], 3)
                 for name in config["queries"]:
+                    self.assertGreaterEqual(config["queries"][name]["executions"], 0)
+                    self.assertGreaterEqual(config["queries"][name]["avg_elapsed_ms"], 0)
                     workload = capture["workloads"][name]
                     self.assertTrue(workload["sql"].strip())
                     self.assertTrue(workload["source"].endswith(".sql"))
                     expected = "read" if name in ("check_availability", "category_report") else "write"
                     self.assertEqual(workload["kind"], expected)
         self.assertEqual(self.runner.mock_calls, [])
+
+    def test_inventory_summary_rejects_mismatched_tables(self):
+        self.assertEqual(self.client.get("/benchmark/inventory-summary").status_code, 404)
+        report = (Path(__file__).resolve().parent.parent / "benchmark" / "inventory" /
+                  "results" / "inventory-results.html").read_text(encoding="utf-8-sig")
+        with self.assertRaisesRegex(ValueError, "four configurations"):
+            parse_inventory_summary("<html>No results</html>")
+        with self.assertRaisesRegex(ValueError, "rows do not match"):
+            parse_inventory_summary(report.replace("<strong>RCSI</strong>", "<strong>Wrong row</strong>", 1))
 
     def test_team_logos_are_served_locally(self):
         for team in ("dallas-stars", "philadelphia-eagles", "dallas-cowboys"):
