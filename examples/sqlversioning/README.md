@@ -2,10 +2,6 @@
 
 ![Versioning! Unlocking the Secrets of SQL Server](figures/Picture1.jpg)
 
-**Session**: SQLBits 2026  
-**Speaker**: Bob Ward  
-**Format**: 50-minute session (core demos) or 75-minute extended  
-
 ## Quick Start
 
 Choose either the browser app or the original SSMS scripts. Both run real SQL
