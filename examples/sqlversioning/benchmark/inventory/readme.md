@@ -1,6 +1,6 @@
 # Inventory reader/writer benchmark
 
-Compare mixed reader/writer workloads under baseline locking, RCSI, ADR+RCSI,
+Compare mixed reader/writer workloads under baseline locking (RCSI OFF, ADR OFF), RCSI, ADR+RCSI,
 and ADR+RCSI+optimized locking. Read the
 [benchmark overview](../README.md) for configuration and dependencies.
 

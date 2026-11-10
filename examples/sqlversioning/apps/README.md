@@ -265,8 +265,17 @@ if the process is forcibly terminated, SQL Server rolls back disconnected sessio
 
 Open **Benchmark replay** from the navigation, or visit `/benchmark`.
 The single **Captured run** dropdown includes local comparisons:
-**Inventory — Baseline** and **Inventory — ADR + RCSI**. Inventory uses the
-200K-product capture and compares baseline with ADR + RCSI.
+**Inventory — Baseline (RCSI OFF, ADR OFF)**,
+**Inventory — RCSI only (ADR OFF)**, and **Inventory — ADR + RCSI**.
+The inventory baseline uses locking READ COMMITTED with both RCSI and ADR
+disabled; it is not the tempdb-versioning baseline in the published comparison.
+Run them in that order to isolate the effect of RCSI, then adding ADR.
+The chart, completion counter, and results compare all three against baseline.
+Inventory reads the slide's
+[source report](../benchmark/inventory/results/inventory-results.html) directly,
+including its 200K-product, reported 30-second test. Baseline/RCSI/ADR+RCSI totals
+are 109,886 / 139,909 / 132,310. The timestamped JSON runs use different workload
+mixes and are not combined with this report.
 Write-stress captures have been removed; its setup/workload code remains
 available for future testing. Inventory OL results are not presented pending
 further testing.
@@ -285,27 +294,32 @@ the ADR runs. No workload SQL or latency figures are invented.
 Click the single **Run** button to start the selected replay. Repeat a replay;
 completed comparisons remain visible without duplicate rows.
 Each run animates execution counters and progress for 10 seconds, ending at the
-exact captured total and adding the configuration to the comparison table.
+exact reported total and adding the configuration to the comparison table.
 An illustrative worker-to-SQL flow and color-coded throughput bars make the
-playback visual. Completed bars retain their recorded rates for comparison.
-The throughput display uses the original recorded runtime, not the compressed
-playback duration. **Restart replay** cancels playback and clears the comparison.
-The page shows actual saved execution totals, average latency, available
-deadlocks, and query breakdowns. Executions/s and baseline ratios are calculated
-using each configuration's recorded runtime. Missing metrics say **Not captured**.
+playback visual. Completed bars retain their reported execution totals.
+**Restart replay** cancels playback and clears the comparison.
+The source does not report exact runtime or a capture timestamp, so the app
+does not invent those values or calculate executions/s. Baseline ratios compare
+reported execution totals. The overall average latency shown during replay is
+the report's own value, not a reconstruction from partial query data.
+The comparison shows the slide's two named latency measurements:
+**check availability, 25 reader threads** (57.9 / 34.8 / 38.7 ms) and
+**warehouse restock, 3 writer threads** (96.3 / 135.4 / 146.4 ms).
+These are query averages, not pooled read/write workload averages or physical
+IO latencies. The full worker mix and order-fulfillment breakdown are not
+reported and are not inferred. The original HTML summary remains in the
+repository; the app does not expose a separate report page.
 Each workload row has **Expand SQL** for its current repository script.
-Historical captures do not include original SQL text, so the code is explicitly
-labeled as current source. The **% read / % write (workers)** column shows each
-query's share of configured worker threads, with an overall mix below the table
-(inventory: 62.5% read / 37.5% write).
-These are workload-role percentages, not measured IO or execution shares;
-write queries can also read rows internally.
-Only the selected 200K-product inventory capture is offered.
-The 50K inventory capture remains archived but is not shown.
+The report does not include original SQL text, so the code is explicitly
+labeled as current source. Only the two reported query breakdowns are shown;
+their counts need not sum to the total, which also includes order fulfillment.
+The timestamped 50K and 200K JSON runs remain archived but are not shown.
 Presentation labels omit timestamps; original capture metadata remains in the
 JSON files and API for traceability. The page is labeled
 **Replay — animated from recorded totals**. Intermediate counters are explicitly
 interpolated, not measured time-series evidence or new measurements.
+The TPC-C and TPC-E published research comparisons are explicitly labeled
+**unofficial**: these are not official TPC benchmark results.
 
 ## Validation commands
 

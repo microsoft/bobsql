@@ -6,14 +6,143 @@
 
 ## Quick Start
 
-For local, presenter-controlled browser demos 0-4, see the
-[click-through demo apps](apps/README.md). Each demo has its own page with
-independent SQL sessions, live results, and navy-and-silver presentation styling.
+Choose either the browser app or the original SSMS scripts. Both run real SQL
+against the local lab databases; the browser is not a simulation.
+
+### Browser walkthroughs
+
+1. Start a local SQL Server 2025 instance. Use a Windows account with SQL Server
+   sysadmin permissions for these diagnostic labs.
+2. With Python available, install the app dependencies if not already installed.
+   Run these commands from this `sqlversioning` directory:
+
+   ```powershell
+   python -m pip install -r .\apps\requirements.txt
+   .\apps\start.ps1
+   ```
+
+3. The launcher starts or reuses the backend and opens a **new normal Edge or
+   Chrome window** at <http://127.0.0.1:5080>. It uses Windows integrated
+   authentication to `localhost`. For a named instance, use:
+
+   ```powershell
+   .\apps\start.ps1 -ServerName 'localhost\SQL2025'
+   ```
+
+4. If the lab databases do not exist, open **0 Setup**, inspect the SQL, and
+   explicitly confirm **Run setup**. **Setup drops and recreates all three lab
+   databases and their sample data.** Do not run it over data you need to keep.
+   If the lab is already prepared, select the demo you want instead.
+
+Starting the app, opening a demo, or navigating between steps does **not** run
+setup or demo SQL. The launcher checks backend readiness and SQL monitoring;
+connection errors are reported rather than silently ignored.
+
+### Original SSMS scripts
 
 1. Start SQL Server 2025 (local instance)
-2. Run `demo0-setup/demo0-setup.sql` in SSMS (creates 3 databases + seed data)
+2. Review and run `demo0-setup/demo0-setup.sql` in SSMS (**drops/recreates**
+   3 databases and seeds data)
 3. Run `tools/check-readiness.ps1` to verify everything is ready
 4. Open each demo's session files in separate SSMS windows
+
+## How the browser app works
+
+The app has five demo pages backed by one local Flask process. Select a demo
+and subdemo, then execute its numbered steps manually. Each step shows its SQL,
+which connection runs it, and the evidence to look for. **Previous**, **Next**,
+and the step picker only navigate; they never execute SQL.
+
+### SQL sessions and results
+
+- **Session 1** and **Session 2** are independent, persistent SQL connections,
+  like two SSMS query windows. Their reader/writer roles depend on the step.
+  An explicit transaction stays open across clicks until its commit, rollback,
+  or cleanup step.
+- **Admin** runs separate diagnostic/configuration work. Read-only monitoring
+  and page viewers use autocommit connections rather than joining a held demo
+  transaction.
+- A blocked reader runs asynchronously. Advance to the writer's commit or
+  rollback step to release it; do not wait for the blocked read before advancing.
+- The right-hand panes show each session's executed SQL and returned results.
+  Live SPIDs, transaction counts, and blocking indicators are separate from
+  those sampled results. For Admin steps, expand **Admin result** below the SQL.
+- Read-only version-store and PVS measurements can be rerun with the same blue
+  **Run in Admin** button while available. Other completed steps retain repeat
+  safeguards, and destructive/configuration actions require confirmation.
+- Earlier results remain available as history. Saved results are evidence of
+  earlier executions, not a live query or a guarantee of current database state.
+
+### Page viewers
+
+At a page-inspection step, click **Open page viewer**, then **View Page** in the
+new tab. The app prefills the database, table, and selected row. Return to the
+walkthrough and continue; use **View Page** again to refresh after an update.
+
+Both the tempdb and ADR viewers are hosted by the same backend. **No separate
+viewer process or port is needed when using the app.** Opening the viewer form
+does not run SQL, and inspecting a page does not close the demo transactions.
+
+The viewers expose actual page/version evidence. The GameStats viewer shows
+the selected row's decoded pointer and measured retained-version count, not a
+verified pointer-walk length. The ADR wide-row viewer shows physical record and
+column sizes plus a text preview; those sizes are not the version-diff size or
+PVS allocation. Internal layouts and asynchronous cleanup can change results.
+
+### ADR walkthroughs in the app
+
+The browser separates these into three stories; it does not run the original
+SSMS files as one uninterrupted batch:
+
+| Subdemo | What to demonstrate |
+|---------|---------------------|
+| **4a: In-row version, blocked reader** | ADR ON, RCSI OFF, Snapshot OFF. Hold an Accounts update from 100 to 200 open. Inspect the in-row version and expected empty off-row PVS records, start a blocked reader, then roll back to release it. |
+| **4b: Off-row version, nonblocking reader** | ADR ON, RCSI ON, Snapshot OFF. Hold a wide SavingsAccounts update to 999.99 open. Inspect the off-row pointer, PVS records and stats. The RCSI reader returns committed 100 without waiting; after commit, a new read returns 999.99. |
+| **4c: Instance-wide cleanup horizon** | Hold a Snapshot transaction in starswillwinthecup while committing updates in eaglesdontfly. Inspect retained PVS/cleanup evidence, release the snapshot, and remeasure. |
+
+Version placement and read isolation are independent: update size, page space,
+and prior versions affect in-row versus off-row storage; RCSI controls whether
+these READ COMMITTED readers use versions instead of waiting on the writer.
+An empty off-row DMV alone does not prove in-row storage; inspect the page too.
+Cleanup is asynchronous, and other transactions can retain versions.
+
+### Finish, reset, and restart
+
+| Action | Effect |
+|--------|--------|
+| **Cleanup steps**, then **Finish demo — close sessions** | Complete the walkthrough and close its SQL connections after confirmation. |
+| **End demo** | Cancel app-owned running work, roll back unfinished transactions, and close app connections. Does **not** undo committed data or restore database options. |
+| **Reset demo** | Restore the selected subdemo's defined starting data/options using explicit reversal SQL, close its sessions, clear completion progress, and return to step 1. Does **not** recreate databases. |
+| **Run setup** in Demo 0 | Destructively recreate the complete three-database lab. |
+
+Finish restoration steps that depend on session-local temporary tables before
+closing those sessions. Reset can require the backend's execution history;
+if a safe reversal cannot be determined, it stops rather than guessing.
+Browser-saved history cannot replace that execution ledger. Reset does not
+rewind physical page layout or cleanup timing and does not kill outside users.
+
+Close app sessions before switching subdemos or configuring database options.
+There is no inactivity expiry: closing a browser tab does **not** end a SQL
+transaction. Use **End demo** before stopping the backend, and keep Windows
+awake while presenting. Restarting the backend disconnects sessions and loses
+its in-memory execution ledger, so do not restart during an active walkthrough.
+
+See the [app guide](apps/README.md) for detailed controls, reset limitations,
+testing, and troubleshooting. The [step catalog](apps/catalog.py) defines the
+browser walkthroughs, and the [Flask backend](apps/app.py) owns their connections
+and asynchronous execution.
+
+The app also includes **Benchmark replay** at `/benchmark`, an animation of
+the [slide summary report](benchmark/inventory/results/inventory-results.html)
+rather than a live workload or the different timestamped JSON runs. Inventory compares **Baseline
+(RCSI OFF, ADR OFF)** using locking READ COMMITTED, **RCSI only (ADR OFF)**,
+and **ADR + RCSI**. Replay in that order to separate RCSI's effect from adding ADR.
+The comparison shows the report's check-availability reader latency and
+warehouse-restock writer latency separately. It does not pool queries or infer
+executions/s from the nominal 30-second duration; exact runtime is not reported.
+Published research comparisons are labeled separately and use their own
+baseline definition; they are not local inventory measurements. The TPC-C and
+TPC-E comparisons are unofficial, not official TPC benchmark results.
 
 ## Demo names and folders
 
@@ -46,7 +175,8 @@ Script filenames retain their original numbered prefixes.
 | 3 | Version Chain | `demo3-version-store/demo3a-*-session1.sql` + `session2.sql` | DBCC PAGE proof of version records + chain building |
 | 4 | Instance-Wide Impact | `demo3-version-store/demo3b-*-session1.sql` + `session2.sql` | Cross-database contamination via global XSN watermark |
 
-Start the DBCC PAGE Viewer between demo2b and demo3a:
+For the SSMS workflow, start the DBCC PAGE Viewer between demo2b and demo3a
+(the browser app already embeds it):
 ```
 python demo3-version-store\dbcc_page_viewer.py
 # Open http://localhost:5050
@@ -87,9 +217,13 @@ Proves the problem: readers block on writers without versioning.
 | `demo3-version-store/demo3b-instance-wide-impact-session2.sql` | Session 2 (Victim OLTP) | 10 UPDATE waves on howboutthemcowboys; tempdb growth + chain depth proof |
 | `demo3-version-store/demo3c-ghost-records.sql` | Single session | DELETE creates BOTH ghost record AND version record — two independent cleanup processes |
 
-**Requires**: Start `demo3-version-store/dbcc_page_viewer.py` before demo3a.
+**SSMS workflow**: Start `demo3-version-store/dbcc_page_viewer.py` before demo3a.
+The browser app uses its embedded viewer instead.
 
 ### Part 4 — ADR & PVS
+
+The following inventory describes the original SSMS scripts. For the simplified
+browser 4a/4b/4c flow, see [ADR walkthroughs in the app](#adr-walkthroughs-in-the-app).
 
 | Script | Sessions | Purpose |
 |--------|----------|---------|
@@ -102,7 +236,8 @@ Proves the problem: readers block on writers without versioning.
 | `demo4-adr-pvs/demo4d-pvs-watermark-pinning.sql` | Single session | Snapshot holds cleaner watermark, cross-table pinning proof, skip reasons, idle connection diagnostics, release and drain |
 | `demo4-adr-pvs/demo4e-adr-recovery.sql` | Single session | Large transaction rollback: traditional vs ADR near-instant rollback + PVS Cleaner live |
 
-**Requires**: Start `demo4-adr-pvs/dbcc_page_viewer_adr.py` before demo4a/4b.
+**SSMS workflow**: Start `demo4-adr-pvs/dbcc_page_viewer_adr.py` before demo4a/4b.
+The browser app uses its embedded ADR viewer instead.
 
 #### ADR + RCSI: How the Engine Decides
 

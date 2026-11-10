@@ -8,6 +8,7 @@ import importlib.util
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
+from html.parser import HTMLParser
 import logging
 from pathlib import Path
 import re
@@ -67,6 +68,79 @@ def execute_sql(connection: Any, sql: str) -> tuple[list[dict], list[str]]:
     finally:
         cursor.close()
     return results, messages
+
+
+class _SummaryTables(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tables: list[list[list[str]]] = []
+        self.rows: list[list[str]] = []
+        self.cells: list[str] = []
+        self.text: list[str] | None = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            self.rows = []
+        elif tag == "tr":
+            self.cells = []
+        elif tag == "td":
+            self.text = []
+
+    def handle_data(self, data):
+        if self.text is not None:
+            self.text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "td" and self.text is not None:
+            self.cells.append("".join(self.text).strip())
+            self.text = None
+        elif tag == "tr" and self.cells:
+            self.rows.append(self.cells)
+        elif tag == "table":
+            self.tables.append(self.rows)
+
+
+def parse_inventory_summary(report: str) -> dict:
+    parser = _SummaryTables()
+    parser.feed(report)
+    if len(parser.tables) != 3 or any(len(table) != 4 for table in parser.tables):
+        raise ValueError("Inventory summary must contain four configurations in three tables.")
+    duration = re.search(r"(\d+) sec", report)
+    products = re.search(r"(\d+)K products", report)
+    readers = re.search(r"Reader Latency \(check-availability, (\d+) threads\)", report)
+    writers = re.search(r"Writer Latency \(warehouse restock, (\d+) threads\)", report)
+    if duration is None or products is None or readers is None or writers is None:
+        raise ValueError("Inventory summary workload metadata is missing.")
+    configs = []
+    databases = ("inventory_baseline", "inventory_rcsi", "inventory_adr_rcsi", "inventory_adr_rcsi_ol")
+    names = ("Baseline", "RCSI", "ADR + RCSI", "ADR + RCSI + OL")
+    for total, read, write, database in zip(*parser.tables, databases):
+        if (len(total) != 5 or len(read) != 3 or len(write) != 3 or
+                total[0] != read[0] or total[0] != write[0] or total[0] != names[len(configs)]):
+            raise ValueError("Inventory summary configuration rows do not match.")
+        configs.append({
+            "name": total[0], "database": database,
+            "total_executions": int(total[1].replace(",", "")),
+            "avg_latency_ms": float(total[2]), "deadlocks": int(total[3]),
+            "queries": {
+                "check_availability": {
+                    "executions": int(read[1].replace(",", "")),
+                    "threads": int(readers[1]), "avg_elapsed_ms": float(read[2]),
+                },
+                "warehouse_restock": {
+                    "executions": int(write[1].replace(",", "")),
+                    "threads": int(writers[1]), "avg_elapsed_ms": float(write[2]),
+                },
+            },
+        })
+    return {
+        "benchmark": "inventory", "timestamp": None,
+        "table_rows": int(products[1]) * 1000, "duration_seconds": int(duration[1]),
+        "description": "Slide summary: warehouse restock, order fulfillment and check availability. "
+                       f"Reported duration: {duration[1]} seconds; {products[1]}K products. Exact runtime and the full worker "
+                       "mix are not reported. Latencies are for the two named queries, not pooled averages.",
+        "configs": configs,
+    }
 
 
 class DemoRunner:
@@ -538,10 +612,10 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
         root = Path(__file__).resolve().parent.parent / "benchmark"
         captures = []
         for source in (
-            "inventory/results/inventory-20260420-064554.json",
+            "inventory/results/inventory-results.html",
         ):
             path = root / source
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            data = parse_inventory_summary(path.read_text(encoding="utf-8-sig"))
             suite = data["benchmark"]
             workloads = {}
             for name in data["configs"][0]["queries"]:
@@ -559,6 +633,7 @@ def create_app(runner: DemoRunner | None = None) -> Flask:
                 "timestamp": data["timestamp"],
                 "table_rows": data["table_rows"],
                 "description": data["description"],
+                "duration_seconds": data["duration_seconds"],
                 "configs": data["configs"],
                 "workloads": workloads,
             })

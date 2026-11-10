@@ -4,7 +4,7 @@ Compares SQL Server throughput across four versioning configurations:
 
 | Config | Settings |
 |--------|----------|
-| Baseline | READ COMMITTED (locking) |
+| Baseline | READ COMMITTED (locking); RCSI OFF, ADR OFF |
 | RCSI | READ_COMMITTED_SNAPSHOT ON |
 | ADR+RCSI | Accelerated Database Recovery + RCSI |
 | ADR+RCSI+OL | ADR + RCSI + Optimized Locking |
