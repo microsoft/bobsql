@@ -111,7 +111,7 @@
     .walkthrough .step.current { border-left: 5px solid var(--cp-accent); }
     .walkthrough .step.completed { background: var(--cp-surface-soft); border-color: var(--cp-border); }
     .walkthrough .step.completed .step-heading h3 { color: var(--cp-text-muted); }
-    .step.completed .step-footer > button { background: var(--cp-bg-elevated); color: var(--cp-text-muted); border-color: var(--cp-border); opacity: 1; }
+    .step.completed .step-footer > button:disabled { background: var(--cp-bg-elevated); color: var(--cp-text-muted); border-color: var(--cp-border); opacity: 1; }
     .repeat-step { font-size: 14px; margin-top: 8px; }
     .walkthrough .step-heading { margin-bottom: 4px; gap: 8px; align-items: start; }
     .walkthrough .step-heading h3 { margin: 0; font-size: 18px; }
@@ -180,10 +180,11 @@
     table { border-collapse: collapse; width: 100%; font-size: 16px; text-align: left; }
     th { position: sticky; top: 0; background: var(--cp-surface-soft); color: var(--cp-accent); font-weight: 700; }
     th, td { border-bottom: 1px solid var(--cp-border); padding: 9px 12px; vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 90px; }
+    th { white-space: nowrap; overflow-wrap: normal; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:nth-child(even) { background: var(--cp-bg-elevated); }
     .sessions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
-    .session { border: 1px solid var(--cp-border); border-radius: 10px; padding: 12px; background: var(--cp-bg-elevated); }
+    .session { min-width: 0; border: 1px solid var(--cp-border); border-radius: 10px; padding: 12px; background: var(--cp-bg-elevated); }
     .session strong { display: block; }
     .session button { font-size: 12px; padding: 4px 8px; margin-top: 8px; }
     .job { border-top: 1px solid var(--cp-border); padding: 16px 0; }
@@ -579,15 +580,16 @@
           const button = card.querySelector("button");
           const unavailable = !connected || resetting || state?.resetting || state?.incomplete_resets?.length ||
             !!busy || waiting || !!mustEnd || configuring || configurationPending;
-          button.disabled = unavailable || completed;
-          button.textContent = completed ? "Completed" : currentDemo.id === "0" ? "Run setup" : `Run in ${sessionName(step.session)}`;
+          button.disabled = unavailable || (completed && !step.repeatable);
+          button.textContent = completed && !step.repeatable ? "Completed" : currentDemo.id === "0" ? "Run setup" : `Run in ${sessionName(step.session)}`;
           button.title = configuring || configurationPending ? "Wait for database configuration to finish." :
             mustEnd ? "End demo to close app sessions 1 and 2 before configuration." :
             busy || waiting ? "This session is executing. Other idle sessions remain available." :
+            completed && step.repeatable ? "Refresh this read-only measurement." :
             completed ? "Step completed. Use Next, or expand instructions for an intentional repeat." : "Execute only this SQL step";
           const repeat = card.querySelector(".repeat-step");
-          repeat.hidden = !completed; repeat.disabled = unavailable;
-          card.querySelector(".step-notes summary").textContent = completed ? "Instructions & Run again" : "Prerequisites & safety";
+          repeat.hidden = !completed || !!step.repeatable; repeat.disabled = unavailable;
+          card.querySelector(".step-notes summary").textContent = completed && !step.repeatable ? "Instructions & Run again" : "Prerequisites & safety";
           const status = card.querySelector(".status");
           status.className = `status ${latest?.status || ""}`;
           const submitted = [...pending.values()].some(p => p.step_id === step.id);
@@ -631,7 +633,7 @@
       async function runStep(step, repeat = false) {
         if (!connected || resetting || [...pending.values()].some(p => String(p.session) === String(step.session)) ||
           state?.sessions?.some(s => String(s.name) === String(step.session) && s.busy)) return;
-        if (completedStep(step)) {
+        if (completedStep(step) && !step.repeatable) {
           if (!repeat) return;
           if (!step.dangerous && !window.confirm(`Run "${stepTitle(step)}" again?\n\nThis step already completed. Only repeat it intentionally; an UPDATE can apply the change a second time.`)) return;
         }
