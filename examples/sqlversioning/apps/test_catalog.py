@@ -13,6 +13,34 @@ SPEC.loader.exec_module(catalog)
 
 
 class CatalogTests(unittest.TestCase):
+    def test_2c_rereads_snapshot_before_conflict_without_rcsi(self):
+        steps = {step["id"]: step for step in catalog.S2C["steps"]}
+        self.assertIn("READ_COMMITTED_SNAPSHOT OFF", steps["2c-configure"]["sql"])
+        self.assertIn("ALLOW_SNAPSHOT_ISOLATION ON", steps["2c-configure"]["sql"])
+        self.assertIn("SET TRANSACTION ISOLATION LEVEL SNAPSHOT;", steps["2c-snapshot"]["sql"])
+        self.assertIn("AccountId = 100", steps["2c-snapshot"]["sql"])
+        reread = steps["2c-snapshot-second"]
+        self.assertEqual(reread["session"], "1")
+        self.assertIn("SELECT", reread["sql"])
+        self.assertIn("AccountId = 100", reread["sql"])
+        self.assertNotRegex(reread["sql"], r"\b(?:COMMIT|ROLLBACK|SET TRANSACTION)\b")
+        self.assertIn("still 100", reread["title"])
+        self.assertEqual(steps["2c-conflict"]["expected_error"], 3960)
+        identifiers = list(steps)
+        for before, after in (("2c-snapshot", "2c-competitor"),
+                              ("2c-competitor", "2c-snapshot-second"),
+                              ("2c-snapshot-second", "2c-conflict")):
+            self.assertLess(identifiers.index(before), identifiers.index(after))
+
+    def test_demo1_balance_reset_uses_default_isolation(self):
+        reset = catalog.S1["steps"][1]
+        self.assertNotIn("SET TRANSACTION ISOLATION LEVEL", reset["sql"])
+        self.assertIn("IF @@TRANCOUNT > 0 ROLLBACK;", reset["sql"])
+        self.assertIn("UPDATE dbo.Accounts SET Balance = 100.00 WHERE AccountId = 1;", reset["sql"])
+        snapshot_reset = next(step for step in catalog.S2B["steps"]
+                              if step["id"] == "2b-snapshot-reset")
+        self.assertIn("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;", snapshot_reset["sql"])
+
     def test_4a_only_demonstrates_inrow_versions_and_locking_reads(self):
         steps = catalog.S4A["steps"]
         self.assertEqual(len(steps), 10)

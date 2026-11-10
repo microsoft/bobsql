@@ -300,6 +300,10 @@ class ApiTests(unittest.TestCase):
         self.assertIn("TPC-C and TPC-E comparisons shown here are not official TPC benchmark results.",
                       page.get_data(as_text=True))
         self.assertNotIn("capture-source", page.get_data(as_text=True))
+        self.assertIn('<div class="flow-box">Inventory workload</div>', page.get_data(as_text=True))
+        self.assertIn('<div class="flow-box">SQL Server</div>', page.get_data(as_text=True))
+        self.assertEqual(page.get_data(as_text=True).count('<div class="pipeline"></div>'), 4)
+        self.assertNotIn("Recorded workload</div>", page.get_data(as_text=True))
         result = self.client.get("/api/benchmark")
         self.assertEqual(result.status_code, 200)
         captures = result.json["captures"]

@@ -15,4 +15,4 @@ SET Balance = Balance + 999.00
 WHERE AccountId = 100;
 GO
 
--- >>> Go back to Session 1: try to UPDATE the same row — ERROR 3960!
+-- >>> Go back to Session 1: reread 100, then try to UPDATE — ERROR 3960!

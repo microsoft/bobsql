@@ -9,9 +9,9 @@ USE starswillwinthecup;
 GO
 
 -- ============================================================================
--- SETUP: Enable RCSI + Snapshot
+-- SETUP: Enable Snapshot only; RCSI is not required for this conflict
 -- ============================================================================
-ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE starswillwinthecup SET READ_COMMITTED_SNAPSHOT OFF WITH ROLLBACK IMMEDIATE;
 GO
 ALTER DATABASE starswillwinthecup SET ALLOW_SNAPSHOT_ISOLATION ON;
 GO
@@ -30,6 +30,10 @@ BEGIN TRAN;
 GO
 
 -- >>> Go to Session 2: modify the same row and COMMIT.
+
+-- Session 2 committed 1099, but this snapshot still reads 100:
+SELECT AccountId, Balance FROM dbo.Accounts WHERE AccountId = 100;
+GO
 
 -- Try to update the same row — ERROR 3960:
 UPDATE dbo.Accounts 

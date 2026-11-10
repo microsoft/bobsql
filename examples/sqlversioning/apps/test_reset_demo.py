@@ -10,6 +10,12 @@ def job(scenario, key, status="succeeded"):
 
 
 class ResetSqlTests(unittest.TestCase):
+    def test_2c_restores_snapshot_on_and_rcsi_off(self):
+        sql = configuration("2c")
+        self.assertIn("READ_COMMITTED_SNAPSHOT OFF", sql)
+        self.assertIn("ALLOW_SNAPSHOT_ISOLATION ON", sql)
+        self.assertIn("is_read_committed_snapshot_on = 0 AND snapshot_isolation_state = 1", sql)
+
     def test_every_walkthrough_has_explicit_reset_sql(self):
         for scenario in SCENARIOS:
             with self.subTest(scenario=scenario):

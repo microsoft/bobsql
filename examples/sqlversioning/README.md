@@ -1,5 +1,7 @@
 # SQL Server Versioning Explained — Demo Scripts
 
+![Versioning! Unlocking the Secrets of SQL Server](figures/Picture1.jpg)
+
 **Session**: SQLBits 2026  
 **Speaker**: Bob Ward  
 **Format**: 50-minute session (core demos) or 75-minute extended  
@@ -201,7 +203,7 @@ Proves the problem: readers block on writers without versioning.
 | `demo2-rcsi-snapshot/demo2a-rcsi-session2.sql` | Session 2 (Reader) | RCSI non-blocking read; READCOMMITTEDLOCK opt-in blocking |
 | `demo2-rcsi-snapshot/demo2b-rcsi-vs-snapshot-session1.sql` | Session 1 (Reader) | Two reads under RCSI (see change) vs Snapshot (frozen) |
 | `demo2-rcsi-snapshot/demo2b-rcsi-vs-snapshot-session2.sql` | Session 2 (Writer) | UPDATE between reads (run twice — once per isolation level) |
-| `demo2-rcsi-snapshot/demo2c-snapshot-conflict-session1.sql` | Session 1 (Snapshot Writer) | Open snapshot, attempt conflicting update → error 3960 |
+| `demo2-rcsi-snapshot/demo2c-snapshot-conflict-session1.sql` | Session 1 (Snapshot Writer) | RCSI OFF, Snapshot ON; read 100, reread 100 after competing commit, then update → error 3960 |
 | `demo2-rcsi-snapshot/demo2c-snapshot-conflict-session2.sql` | Session 2 (Conflicting Writer) | Modify same row and commit first |
 | `demo2-rcsi-snapshot/demo2d-fk-slock.sql` | Single session | FK validation still takes S locks even under RCSI |
 | `demo2-rcsi-snapshot/demo2e-fk-scan-conflict-session1.sql` | Session 1 (Snapshot) | DELETE order → error 3960 from FK range scan |
