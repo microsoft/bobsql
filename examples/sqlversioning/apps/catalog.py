@@ -81,12 +81,12 @@ FROM sys.databases WHERE name = N'{db}';
 
 
 def _reset(scenario, account=42, value="100.00", table="Accounts", key="reset",
-           skip_unchanged=False):
+           skip_unchanged=False, reset_isolation=True):
     predicate = f" AND Balance <> {value}" if skip_unchanged else ""
     _add(scenario, key, "Reset the starting balance", "1", f"""
 USE [{PRIMARY}];
 IF @@TRANCOUNT > 0 ROLLBACK;
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+{'SET TRANSACTION ISOLATION LEVEL READ COMMITTED;' if reset_isolation else ''}
 UPDATE dbo.{table} SET Balance = {value} WHERE AccountId = {account}{predicate};
 SELECT N'Starting committed balance' AS Observation, AccountId, Balance
 FROM dbo.{table} WHERE AccountId = {account};
@@ -359,7 +359,7 @@ S1 = _scenario("1", "Blocking and dirty reads", "Locking READ COMMITTED blocks; 
                "NOLOCK can expose a value that is later rolled back.",
                ["demo1-blocking/demo1-blocking-session1.sql", "demo1-blocking/demo1-blocking-session2.sql"])
 _config(S1, rcsi=False, snapshot=False)
-_reset(S1, 1)
+_reset(S1, 1, reset_isolation=False)
 _add(S1, "writer", "Hold writer X lock (100 → 200)", "1", f"""
 USE [{PRIMARY}];
 BEGIN TRAN;
@@ -454,10 +454,14 @@ S2C = _scenario("2c", "Snapshot update conflict", "Error 3960 means retry the "
                 "whole transaction, not silently retry its UPDATE.",
                 ["demo2-rcsi-snapshot/demo2c-snapshot-conflict-session1.sql",
                  "demo2-rcsi-snapshot/demo2c-snapshot-conflict-session2.sql"])
-_config(S2C)
+_config(S2C, rcsi=False)
 _reset(S2C, 100)
 _snapshot(S2C, account=100)
 _write_balance(S2C, "competitor", "Balance + 999.00", 100)
+_read(S2C, "snapshot-second", "Snapshot reread — still 100 after writer commits 1099",
+      account=100, explanation="Session 2 committed 1099, but session 1 still reads "
+      "100 from its original snapshot. The next UPDATE cannot modify the row "
+      "changed since that snapshot was established.")
 _add(S2C, "conflict", "Expected error 3960 — stale snapshot UPDATE", "1", f"""
 USE [{PRIMARY}];
 UPDATE dbo.Accounts SET Balance = Balance + 50.00 WHERE AccountId = 100;

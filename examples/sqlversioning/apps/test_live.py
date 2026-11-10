@@ -80,6 +80,8 @@ def rehearse(scenario: dict) -> None:
             "1": {"1-reset": "100", "1-nolock": "1000199", "1-clean": "200"},
             "2b": {"2b-rcsi-first": "1000", "2b-rcsi-second": "2000",
                    "2b-snapshot": "1000", "2b-snapshot-second": "1000", "2b-outside": "2000"},
+            "2c": {"2c-snapshot": "100", "2c-competitor": "1099",
+                   "2c-snapshot-second": "100", "2c-actual": "1099"},
             "4a": {"4a-reset": "100", "4a-adr-only-blocked": "100", "4a-adr-only-after": "100"},
             "4b": {"4b-reset": "100", "4b-held": "100", "4b-latest": "999.99"},
         }

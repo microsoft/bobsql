@@ -18,17 +18,17 @@ def configuration(scenario_id: str) -> str:
     statements = ["USE master;"]
     for db in databases(scenario_id):
         adr = db == PRIMARY and scenario_id in ("4a", "4b", "4c", "4d")
-        versions = scenario_id not in ("1", "4a")
-        snapshot = versions and scenario_id != "4b"
+        rcsi = scenario_id not in ("1", "2c", "4a")
+        snapshot = scenario_id not in ("1", "4a", "4b")
         statements.extend([
             f"ALTER DATABASE [{db}] SET OPTIMIZED_LOCKING = OFF;",
             f"ALTER DATABASE [{db}] SET ACCELERATED_DATABASE_RECOVERY = {'ON' if adr else 'OFF'};",
-            f"ALTER DATABASE [{db}] SET READ_COMMITTED_SNAPSHOT {'ON' if versions else 'OFF'};",
+            f"ALTER DATABASE [{db}] SET READ_COMMITTED_SNAPSHOT {'ON' if rcsi else 'OFF'};",
             f"ALTER DATABASE [{db}] SET ALLOW_SNAPSHOT_ISOLATION {'ON' if snapshot else 'OFF'};",
             f"ALTER DATABASE [{db}] SET MULTI_USER;",
             f"IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'{db}' "
             f"AND is_optimized_locking_on = 0 AND is_accelerated_database_recovery_on = {int(adr)} "
-            f"AND is_read_committed_snapshot_on = {int(versions)} AND snapshot_isolation_state = {int(snapshot)} "
+            f"AND is_read_committed_snapshot_on = {int(rcsi)} AND snapshot_isolation_state = {int(snapshot)} "
             "AND user_access_desc = N'MULTI_USER') "
             "THROW 50000, 'Database options have not returned to their starting state. Retry Reset demo.', 1;",
         ])

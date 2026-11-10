@@ -14,7 +14,6 @@
     main { max-width: 1400px; margin: auto; padding: 12px 24px; }
     h1 { margin: 0; font-size: 28px; }
     h2 { margin: 0 0 10px; font-size: 22px; }
-    .intro { margin: 4px 0 10px; font-size: 15px; }
     .panel { background: #f4f5f7; padding: 14px; margin: 10px 0; border-radius: 10px; }
     .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .controls select { flex: 1; min-width: 200px; max-width: 100%; }
@@ -31,14 +30,21 @@
     .scroll { overflow-x: auto; }
     small { overflow-wrap: anywhere; }
     pre { background: #002244; color: #f4f5f7; padding: 12px; text-align: left; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow-y: auto; }
-    .counters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; font-size: 14px; }
+    .counters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; font-size: 14px; }
+    .counter { display: grid; grid-template-rows: 1fr auto; gap: 6px; min-width: 0; }
+    .counter-label { line-height: 1.4; }
     .counter strong { display: block; font-size: clamp(22px, 2.8vw, 38px); font-variant-numeric: tabular-nums; }
+    .counter strong.improved { color: #176638; }
     progress { width: 100%; height: 24px; accent-color: #002244; }
     .running { border: 3px solid #002244; }
     .flow { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
     .flow-box { background: #002244; color: white; padding: 12px; border-radius: 10px; text-align: center; font-size: 15px; }
-    .pipeline { flex: 1; height: 8px; background: #b0b7bc; position: relative; overflow: hidden; border-radius: 8px; }
+    .pipelines { flex: 1; min-width: 36px; display: grid; gap: 6px; }
+    .pipeline { height: 8px; background: #b0b7bc; position: relative; overflow: hidden; border-radius: 8px; }
     .running .pipeline::after { content: ""; display: block; width: 30%; height: 100%; background: #002244; animation: travel 1.2s linear infinite; }
+    .running .pipeline:nth-child(2)::after { animation-delay: -.3s; }
+    .running .pipeline:nth-child(3)::after { animation-delay: -.6s; }
+    .running .pipeline:nth-child(4)::after { animation-delay: -.9s; }
     @keyframes travel { from { transform: translateX(-100%); } to { transform: translateX(440%); } }
     .chart-row { display: grid; grid-template-columns: minmax(110px, 160px) 1fr; gap: 10px; margin: 8px 0; align-items: center; font-size: 15px; }
     .track { background: #d8dde1; border-radius: 6px; height: 24px; overflow: hidden; }
@@ -49,7 +55,14 @@
     .chart-value { font-variant-numeric: tabular-nums; margin-top: 4px; display: block; }
     @media (prefers-reduced-motion: reduce) { .running .pipeline::after { animation: none; } }
     @media (max-width: 760px) { .replay-visuals { grid-template-columns: 1fr; } }
-    @media (max-width: 600px) { .flow { gap: 6px; } .flow-box { padding: 10px; font-size: 14px; } .chart-row { grid-template-columns: 120px 1fr; } }
+    @media (max-width: 600px) {
+      .flow { gap: 6px; }
+      .flow-box { padding: 10px; font-size: 14px; }
+      .chart-row { grid-template-columns: 120px 1fr; }
+      .counters { grid-template-columns: 1fr; }
+      .counter { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto; align-items: center; }
+      .counter strong { text-align: right; }
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -57,7 +70,6 @@
   <header><a href="/">SQL Versioning</a> · <a href="/demo/0">Demo 0</a> · Benchmark replay</header>
   <main>
     <h1>Benchmark replay</h1>
-    <p class="intro">Replay — animated from recorded totals. No live SQL is executed.</p>
     <div id="error" class="panel" role="alert" hidden></div>
     <section class="panel">
       <div class="controls">
@@ -73,21 +85,22 @@
     <section id="run-panel" class="panel" hidden>
       <h2 id="run-title"></h2>
       <div class="flow" aria-hidden="true">
-        <div class="flow-box" id="workers">Workers</div>
-        <div class="pipeline"></div><div class="flow-box">SQL Server<br>Recorded workload</div>
-        <div class="pipeline"></div><div class="flow-box">Executions</div>
+        <div class="flow-box">Inventory workload</div>
+        <div class="pipelines">
+          <div class="pipeline"></div>
+          <div class="pipeline"></div>
+          <div class="pipeline"></div>
+          <div class="pipeline"></div>
+        </div>
+        <div class="flow-box">SQL Server</div>
       </div>
-      <small>Workload flow illustration — not live engine activity.</small>
       <div class="counters">
-        <div class="counter">Executions (animated)<strong id="executions">0</strong></div>
-        <div class="counter">Reported overall avg latency (ms)<strong id="latency">0</strong></div>
-        <div class="counter">Replay elapsed<strong id="elapsed">0.0 s</strong></div>
+        <div class="counter"><span class="counter-label">Executions</span><strong id="executions">0</strong></div>
+        <div class="counter"><span class="counter-label">Avg Latency (ms)</span><strong id="latency">0</strong></div>
+        <div class="counter"><span class="counter-label">Replay elapsed</span><strong id="elapsed">0.0 s</strong></div>
       </div>
       <p id="run-status" role="status"></p>
       <progress id="run-progress" max="1" value="0" aria-label="Replay progress"></progress>
-      <details class="capture-details"><summary>Playback methodology</summary><p>10-second compressed playback. Counter progress is interpolated, not
-        recorded time-series evidence. The report states a 30-second test but
-        does not provide exact runtime, so executions/s is not calculated.</p></details>
     </section>
     <section id="chart-panel" class="panel" hidden>
       <h2>Recorded execution comparison</h2>
@@ -135,7 +148,7 @@
     const completed = new Set();
     let queue = [];
     let publishedDone = false;
-    const published = { "TPC-C": 13.8, "TPC-E": 2.4 };
+    const published = { "TPC-E": 2.4, "TPC-C": 13.8 };
     const publishedMix = { "TPC-C": { read: 8, write: 92 }, "TPC-E": { read: 76.9, write: 23.1 } };
     const isPublished = () => $("capture").value.startsWith("paper:");
     const selectedCapture = () => captures[Number($("capture").value.split(":")[0])];
@@ -162,8 +175,10 @@
         const progress = active ? fraction : completed.has(i) ? 1 : 0;
         bar.style.width = `${totals[i] / max * progress * 100}%`;
         track.append(bar);
+        const gain = (totals[i] / totals[0] - 1) * 100;
+        const comparison = i === 0 ? "baseline" : `${gain > 0 ? "+" : ""}${format(gain)}% vs baseline`;
         const value = node("small", active ? "Replaying…" :
-          completed.has(i) ? `${format(totals[i])} executions · complete` : "Not run");
+          completed.has(i) ? `${format(totals[i])} executions · ${comparison}` : "Not run");
         value.className = "chart-value"; content.append(track, value);
         row.append(label, content); $("chart").append(row);
       });
@@ -286,7 +301,7 @@
       $("run-panel").classList.add("running");
       $("run-title").textContent = `${configLabel(config)} — replay`;
       $("latency").textContent = format(config.avg_latency_ms);
-      $("workers").textContent = "Inventory workloads";
+      for (const id of ["executions", "latency"]) $(id).classList.remove("improved");
       const start = performance.now();
       function tick(now) {
         const fraction = Math.min((now - start) / RUN_MS, 1);
@@ -299,6 +314,9 @@
         else {
           frame = null; running = false; completed.add(activeIndex); lastCompleted = activeIndex;
           $("run-panel").classList.remove("running");
+          const baseline = selectedCapture().configs[0];
+          $("executions").classList.toggle("improved", config.total_executions > baseline.total_executions);
+          $("latency").classList.toggle("improved", config.avg_latency_ms < baseline.avg_latency_ms);
           render();
           if (queue.length) runNext();
         }

@@ -2,8 +2,9 @@
 
 Five light navy-and-silver presentation pages share a local Flask backend.
 Presentation sizing is always on; there is no alternate mode or sizing toggle.
-The Cowboys silver background and compact headings keep demo cards and the
-first execution controls visible without scrolling on typical laptop screens.
+The Cowboys silver background, compact headings, and smaller header and
+End demo button keep demo cards and the first execution controls visible
+without scrolling on typical laptop screens.
 Demo 1-4 show one step at a time with its exact SQL batch always visible.
 Prerequisites and earlier results expand on demand;
 destructive steps still require confirmation.
@@ -299,8 +300,8 @@ An illustrative worker-to-SQL flow and color-coded throughput bars make the
 playback visual. Completed bars retain their reported execution totals.
 **Restart replay** cancels playback and clears the comparison.
 The source does not report exact runtime or a capture timestamp, so the app
-does not invent those values or calculate executions/s. Baseline ratios compare
-reported execution totals. The overall average latency shown during replay is
+does not invent those values or calculate executions/s. Baseline ratios and
+chart percentage gains compare reported execution totals. The overall average latency shown during replay is
 the report's own value, not a reconstruction from partial query data.
 The comparison shows the slide's two named latency measurements:
 **check availability, 25 reader threads** (57.9 / 34.8 / 38.7 ms) and
@@ -315,9 +316,8 @@ labeled as current source. Only the two reported query breakdowns are shown;
 their counts need not sum to the total, which also includes order fulfillment.
 The timestamped 50K and 200K JSON runs remain archived but are not shown.
 Presentation labels omit timestamps; original capture metadata remains in the
-JSON files and API for traceability. The page is labeled
-**Replay — animated from recorded totals**. Intermediate counters are explicitly
-interpolated, not measured time-series evidence or new measurements.
+JSON files and API for traceability. Intermediate counters are interpolated,
+not measured time-series evidence or new measurements.
 The TPC-C and TPC-E published research comparisons are explicitly labeled
 **unofficial**: these are not official TPC benchmark results.
 
