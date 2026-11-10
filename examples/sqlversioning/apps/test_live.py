@@ -7,15 +7,26 @@ import argparse
 import time
 from decimal import Decimal
 
-from app import DemoRunner
+from app import DemoRunner, create_app, execute_sql
 from catalog import DEMOS
 
 
 def rehearse(scenario: dict) -> None:
     runner = DemoRunner()
+    viewer_client = create_app(runner).test_client() if scenario["id"] in ("4a", "4b") else None
     print(f"REHEARSING {scenario['id']}", flush=True)
     try:
         for step in scenario["steps"]:
+            if viewer_client is not None and step.get("viewer"):
+                viewer = step["viewer"]
+                response = viewer_client.post(f"/page-viewer/{viewer['kind']}", data=viewer)
+                html = response.get_data(as_text=True)
+                expected = "inrow" if scenario["id"] == "4a" else "offrow"
+                assert response.status_code == 200 and '<div class="error">' not in html, html
+                assert f'class="slot-box has-{expected}"' in html, (
+                    f"{step['id']}: expected measured {expected} page evidence")
+                print(f"  {step['id']}: measured {expected} page evidence", flush=True)
+                continue
             if step.get("requires_clean_sessions"):
                 for existing in list(runner.sessions.values()):
                     if existing["busy"]:
@@ -36,11 +47,26 @@ def rehearse(scenario: dict) -> None:
             job = next(j for j in runner.jobs if j["id"] == job_id)
             if job["status"] in ("failed", "cancelled"):
                 raise AssertionError(f"{step['id']}: {job['error']}")
-            if step["id"] in ("1-blocked", "2a-hint-blocked"):
+            if step["id"] in ("1-blocked", "2a-hint-blocked", "4a-adr-only-blocked"):
                 requests = [row for result in runner.monitor()["result_sets"]
                             if "blocking_session_id" in result["columns"]
                             for row in result["rows"]]
                 assert any(row[1] > 0 for row in requests), "Expected a measured blocking relationship"
+            if step["id"] == "4a-adr-only-records":
+                assert job["status"] == "succeeded", job
+                assert all(not result["rows"] for result in job["result_sets"]), (
+                    "Expected no off-row Accounts versions; inspect actual placement/prior retained versions")
+            if step["id"] == "4b-held":
+                assert job["status"] == "succeeded", "RCSI reader blocked on the held writer"
+                counts, _ = execute_sql(runner.sessions["2"]["connection"], "SELECT @@TRANCOUNT;")
+                assert counts[0]["rows"][0][0] == 1, "The writer must still be uncommitted"
+            if step["id"] == "4b-offrow-size":
+                stats = next(r for r in job["result_sets"] if "PVS_Size_KB" in r["columns"])
+                assert stats["rows"][0][stats["columns"].index("PVS_Size_KB")] > 0, stats
+                records = next(r for r in job["result_sets"] if "ObservedOffRowRecords" in r["columns"])
+                assert any(row[records["columns"].index("TableName")] == "SavingsAccounts"
+                           and row[records["columns"].index("ObservedOffRowRecords")] > 0
+                           for row in records["rows"]), records
             print(f"  {step['id']}: {job['status']} "
                   f"({sum(len(r['rows']) for r in job['result_sets'])} evidence rows)", flush=True)
             for old_job in runner.jobs:
@@ -54,6 +80,8 @@ def rehearse(scenario: dict) -> None:
             "1": {"1-reset": "100", "1-nolock": "1000199", "1-clean": "200"},
             "2b": {"2b-rcsi-first": "1000", "2b-rcsi-second": "2000",
                    "2b-snapshot": "1000", "2b-snapshot-second": "1000", "2b-outside": "2000"},
+            "4a": {"4a-reset": "100", "4a-adr-only-blocked": "100", "4a-adr-only-after": "100"},
+            "4b": {"4b-reset": "100", "4b-held": "100", "4b-latest": "999.99"},
         }
         for step_id, expected in expected_balances.get(scenario["id"], {}).items():
             job = next(j for j in runner.jobs if j["step_id"] == step_id)

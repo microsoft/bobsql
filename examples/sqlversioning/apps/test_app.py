@@ -107,6 +107,122 @@ class ApiTests(unittest.TestCase):
                 connection.close.assert_called_once()
                 connection.cursor.return_value.execute.assert_called_with("USE master;")
 
+    def test_page_viewers_release_results_before_returning_to_master(self):
+        for kind, viewer in self.client.application.config["PAGE_VIEWERS"].items():
+            for failed in (False, True):
+                with self.subTest(kind=kind, failed=failed):
+                    connection = Mock()
+                    cursor = Mock()
+                    cleanup_cursor = Mock()
+
+                    def open_cursor():
+                        if connection.cursor.call_count == 1:
+                            return cursor
+                        if not cursor.close.called:
+                            raise SqlError("Connection is busy with results for another command", "")
+                        return cleanup_cursor
+
+                    connection.cursor.side_effect = open_cursor
+                    found = (1, 123, 0, 42, 100) if kind == "tempdb" else (1, 123, 0)
+                    page = ([], []) if kind == "tempdb" else []
+                    with patch.object(viewer, "get_connection", return_value=connection), \
+                            patch.object(viewer, "find_page_for_row", return_value=found,
+                                         side_effect=ValueError("Page lookup failed") if failed else None), \
+                            patch.object(viewer, "run_dbcc_page", return_value=page), \
+                            patch.object(viewer, "format_page_output", return_value=("<b>Page evidence</b>", None)), \
+                            patch.object(self.client.application.config["PAGE_VIEWERS"]["tempdb"],
+                                         "get_version_store", return_value=([], [])):
+                        response = self.client.post(f"/page-viewer/{kind}", data={"find_row": "42"})
+                    self.assertEqual(response.status_code, 200)
+                    self.assertIn("Page lookup failed" if failed else "<b>Page evidence</b>",
+                                  response.get_data(as_text=True))
+                    cursor.close.assert_called_once()
+                    cleanup_cursor.execute.assert_called_once_with("USE master;")
+                    connection.close.assert_called_once()
+
+    def test_adr_wide_row_shows_measured_sizes_and_escaped_text_preview(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["adr"]
+        rows = [
+            ("Slot 0 Offset 0x1804 Length 680",
+             "Slot 0 Column 6 Offset 0x19 Length 600 Length (physical) 600",
+             "ComplianceNotes", "UPDATED: full preview beyond eighty characters. " * 3 + "<script>unsafe</script>"),
+        ]
+        html, _ = viewer.format_page_output(rows, highlight_slot=0)
+        self.assertIn("680 bytes", html)
+        self.assertIn("600 bytes", html)
+        self.assertIn("ComplianceNotes physical column size", html)
+        self.assertIn("&lt;script&gt;unsafe&lt;/script&gt;", html)
+        self.assertNotIn("<script>unsafe</script>", html)
+        self.assertIn("DBCC may truncate", html)
+        self.assertIn("not a measured version-diff size or PVS allocation", html)
+        self.assertEqual(html.count("UPDATED: full preview beyond eighty characters."), 3)
+
+    def test_adr_wide_row_does_not_invent_missing_sizes(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["adr"]
+        html, _ = viewer.format_page_output([("Slot 0", "", "ComplianceNotes", "Preview")], 0)
+        self.assertEqual(html.count("Not reported by DBCC"), 2)
+        self.assertNotIn("600 bytes", html)
+
+    def test_gamestats_viewer_does_not_load_database_wide_before_images(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
+        connection = Mock()
+        with patch.object(viewer, "get_connection", return_value=connection), \
+                patch.object(viewer, "find_page_for_row", return_value=(1, 368, 0, 1, None)), \
+                patch.object(viewer, "run_dbcc_page", return_value=([], [])), \
+                patch.object(viewer, "format_page_output", return_value=("<b>GameStats page</b>", "123")), \
+                patch.object(viewer, "format_gamestats_summary", return_value="<b>10 retained versions</b>"), \
+                patch.object(viewer, "get_version_store") as versions:
+            response = self.client.post("/page-viewer/tempdb", data={
+                "database": COWBOYS, "table_name": "GameStats", "find_row": "1",
+            })
+        html = response.get_data(as_text=True)
+        self.assertIn("<b>GameStats page</b>", html)
+        self.assertIn("<b>10 retained versions</b>", html)
+        self.assertLess(html.index("<b>GameStats page</b>"),
+                        html.index("<b>10 retained versions</b>"))
+        self.assertNotIn("tempdb version-store evidence", html)
+        self.assertNotIn("Database-wide before-images are not loaded here", html)
+        self.assertNotIn("version store is <b>empty</b>", html)
+        versions.assert_not_called()
+        connection.close.assert_called_once()
+
+    def test_gamestats_graph_uses_selected_pointer_and_measured_row_count(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
+        cursor = Mock()
+        cursor.fetchone.return_value = (10,)
+        rows = [
+            ("Slot 0 Offset 0x60 Length 7057", "", "GameId", "1"),
+            ("Slot 0 Offset 0x60 Length 7057", "", "Yards", "29"),
+            ("Slot 10 Offset 0x60 Length 7057", "", "GameId", "99"),
+            ("Slot 10 Offset 0x60 Length 7057", "", "Yards", "999"),
+        ]
+        pointer = {"pointer_file": "1", "pointer_page": "3048", "pointer_slot": "0"}
+        with patch.object(viewer, "parse_version_from_hex", return_value=pointer):
+            html = viewer.format_gamestats_summary(cursor, rows, 0, "1")
+        self.assertIn('class="chain-count">10<', html)
+        self.assertIn("Current GameId 1", html)
+        self.assertIn("Yards: 29", html)
+        self.assertIn("page 3048", html)
+        self.assertNotIn("999", html)
+        self.assertIn("not a verified pointer-walk length", html)
+        sql = cursor.execute.call_args.args[0]
+        self.assertIn("COUNT_BIG(*)", sql)
+        self.assertIn("v.rowset_id IN", sql)
+        self.assertIn("SUBSTRING(v.record_image_first_part, 5, 4)", sql)
+        self.assertNotIn("ORDER BY", sql)
+
+    def test_gamestats_graph_rejects_moved_row_and_shows_zero_honestly(self):
+        viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
+        cursor = Mock()
+        with self.assertRaisesRegex(ValueError, "no longer contains"):
+            viewer.format_gamestats_summary(cursor, [], 0, "1")
+        cursor.execute.assert_not_called()
+        cursor.fetchone.return_value = (0,)
+        rows = [("Slot 0", "", "GameId", "1")]
+        html = viewer.format_gamestats_summary(cursor, rows, 0, "1")
+        self.assertIn('class="chain-count">0<', html)
+        self.assertIn("No version pointer decoded", html)
+
     def test_tempdb_viewer_connection_is_autocommit(self):
         viewer = self.client.application.config["PAGE_VIEWERS"]["tempdb"]
         with viewer.app.app_context(), patch.object(viewer, "mssql_connect") as connect:

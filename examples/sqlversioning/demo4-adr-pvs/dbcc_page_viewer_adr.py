@@ -11,6 +11,7 @@ Shows formatted page contents with ADR version info highlighted.
 Runs on port 5051 so it can coexist with the tempdb page viewer on 5050.
 """
 from flask import Flask, current_app, render_template_string, request
+from html import escape
 from mssql_python import connect as mssql_connect
 import re
 
@@ -107,6 +108,17 @@ HTML_TEMPLATE = """
         .no-version {
             background: #f5f5f5; border: 1px solid #ccc; border-radius: 8px;
             padding: 8px 15px; margin-top: 10px; color: #78788c; font-size: 12px;
+        }
+
+        .wide-row-evidence {
+            background: #f0e8ff; border: 2px solid #8b5cf6; border-radius: 8px;
+            padding: 12px 15px; margin: 10px 0;
+        }
+        .wide-row-evidence h3 { color: #8b5cf6; font-size: 15px; margin-bottom: 8px; }
+        .wide-row-evidence p { font-size: 13px; margin-top: 8px; }
+        .wide-row-evidence pre {
+            white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px;
+            background: white; padding: 10px; margin-top: 6px; border-radius: 6px;
         }
         
         .error { color: #c82828; background: #fde; padding: 15px; border-radius: 10px; }
@@ -871,7 +883,7 @@ def format_page_output(rows, highlight_slot=None, cursor=None, database=None):
                     slot_data[slot_num] = {
                         "fields": {}, "version_info": None,
                         "hex_lines": [], "record_length": 0,
-                        "status_byte": None,
+                        "status_byte": None, "column_lengths": {},
                     }
 
                 len_match = re.search(r'Length (\d+)', parent)
@@ -882,6 +894,9 @@ def format_page_output(rows, highlight_slot=None, cursor=None, database=None):
                     slot_data[slot_num]["hex_lines"].append(value)
                 elif field:
                     slot_data[slot_num]["fields"][field] = value
+                    physical_length = re.search(r'Length \(physical\)\s+(\d+)', obj)
+                    if physical_length:
+                        slot_data[slot_num]["column_lengths"][field] = int(physical_length.group(1))
 
     # Parse hex dumps for version tags
     for slot_num, sd in slot_data.items():
@@ -948,20 +963,38 @@ def format_page_output(rows, highlight_slot=None, cursor=None, database=None):
                              f'Record: {rec_len} bytes &middot; No version pointer</span>')
         parts.append('</div>')
 
+        if 'ComplianceNotes' in sd["fields"]:
+            column_bytes = sd["column_lengths"].get('ComplianceNotes')
+            record_size = f'{rec_len} bytes' if rec_len else 'Not reported by DBCC'
+            column_size = f'{column_bytes} bytes' if column_bytes is not None else 'Not reported by DBCC'
+            parts.append('<section class="wide-row-evidence">')
+            parts.append('<h3>Wide-column update: size and text</h3>')
+            parts.append('<div class="field-grid">')
+            for label, measured in (
+                ('Current physical record (including version tag)', record_size),
+                ('ComplianceNotes physical column size', column_size),
+            ):
+                parts.append(f'<div class="field-item"><div class="fname">{label}</div>'
+                             f'<div class="fval">{measured}</div></div>')
+            parts.append('</div>')
+            parts.append('<p><b>ComplianceNotes: current on-page text preview</b> '
+                         '(DBCC may truncate text; fixed-width padding is not shown.)</p>')
+            parts.append(f'<pre>{escape(sd["fields"]["ComplianceNotes"])}</pre>')
+            parts.append('<p>The demo changes this wide column, creating a larger '
+                         'before-image than a balance-only update. ADR placement '
+                         'also depends on page space and prior versions. The decoded '
+                         'version tag below shows whether this version is off-row.</p>')
+            parts.append('<p>These are physical column/record sizes, not a measured '
+                         'version-diff size or PVS allocation.</p></section>')
+
         # Column fields
-        hide_fields = {'Filler', 'KeyHashValue'}
-        truncate_fields = {'ComplianceNotes': 80}
+        hide_fields = {'Filler', 'KeyHashValue', 'ComplianceNotes'}
         parts.append('<div class="field-grid">')
         for fname, fval in sd["fields"].items():
             if fname in hide_fields:
                 continue
             display_val = fval
-            span_style = ''
-            if fname in truncate_fields:
-                span_style = ' style="grid-column:1/-1;"'
-                if len(fval) > truncate_fields[fname]:
-                    display_val = fval[:truncate_fields[fname]] + f'... <span style="font-size:10px;color:#999;">({len(fval)} chars)</span>'
-            parts.append(f'<div class="field-item"{span_style}><div class="fname">{fname}</div>'
+            parts.append(f'<div class="field-item"><div class="fname">{fname}</div>'
                          f'<div class="fval">{display_val}</div></div>')
         parts.append('</div>')
 
@@ -985,8 +1018,9 @@ def format_page_output(rows, highlight_slot=None, cursor=None, database=None):
                 parts.append('<div class="version-offrow">')
                 parts.append('<h3>OFF-ROW PVS Record (slot = ' + str(ptr_slot) + ')</h3>')
                 parts.append('<p style="font-size:13px;margin-bottom:8px;">'
-                             'The before-image was too large for in-row storage. '
-                             'ADR wrote it to a dedicated PVS page <b>in the user database</b> (not tempdb). '
+                             'ADR stored this before-image on a separate PVS page '
+                             '<b>in the user database</b> (not tempdb). '
+                             'Placement depends on version size, page space and prior versions. '
                              'This row has a pointer to that PVS page.</p>')
 
             # Version tag table
@@ -1349,6 +1383,7 @@ def index():
 
     if request.method == 'POST':
         conn = None
+        cursor = None
         try:
             if ctx['table_name'] not in ('Accounts', 'SavingsAccounts'):
                 raise ValueError("Choose Accounts or SavingsAccounts.")
@@ -1381,6 +1416,8 @@ def index():
         finally:
             if conn is not None:
                 try:
+                    if cursor is not None:
+                        cursor.close()
                     conn.cursor().execute("USE master;")
                 finally:
                     conn.close()

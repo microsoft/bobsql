@@ -292,7 +292,7 @@ class DemoRunner:
                 if self.sessions.get(session["name"]) is not session:
                     continue
             if not session["cancel_requested"]:
-                execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;")
+                execute_sql(session["connection"], "IF @@TRANCOUNT > 0 ROLLBACK;\nUSE master;")
             session["connection"].close()
             with self.lock:
                 self.sessions.pop(session["name"], None)

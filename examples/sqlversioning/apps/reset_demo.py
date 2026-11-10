@@ -19,15 +19,16 @@ def configuration(scenario_id: str) -> str:
     for db in databases(scenario_id):
         adr = db == PRIMARY and scenario_id in ("4a", "4b", "4c", "4d")
         versions = scenario_id not in ("1", "4a")
+        snapshot = versions and scenario_id != "4b"
         statements.extend([
             f"ALTER DATABASE [{db}] SET OPTIMIZED_LOCKING = OFF;",
             f"ALTER DATABASE [{db}] SET ACCELERATED_DATABASE_RECOVERY = {'ON' if adr else 'OFF'};",
             f"ALTER DATABASE [{db}] SET READ_COMMITTED_SNAPSHOT {'ON' if versions else 'OFF'};",
-            f"ALTER DATABASE [{db}] SET ALLOW_SNAPSHOT_ISOLATION {'ON' if versions else 'OFF'};",
+            f"ALTER DATABASE [{db}] SET ALLOW_SNAPSHOT_ISOLATION {'ON' if snapshot else 'OFF'};",
             f"ALTER DATABASE [{db}] SET MULTI_USER;",
             f"IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'{db}' "
             f"AND is_optimized_locking_on = 0 AND is_accelerated_database_recovery_on = {int(adr)} "
-            f"AND is_read_committed_snapshot_on = {int(versions)} AND snapshot_isolation_state = {int(versions)} "
+            f"AND is_read_committed_snapshot_on = {int(versions)} AND snapshot_isolation_state = {int(snapshot)} "
             "AND user_access_desc = N'MULTI_USER') "
             "THROW 50000, 'Database options have not returned to their starting state. Retry Reset demo.', 1;",
         ])
@@ -88,7 +89,8 @@ def data_sql(scenario_id: str, jobs: list[dict]) -> str:
         if (job["status"] in ("failed", "cancelled") and
                 not step.get("expected_error") and
                 not job["step_id"].endswith(("-large-update", "-timed-rollback")) and
-                re.search(r"\b(?:UPDATE|INSERT|DELETE)\b", step.get("sql", ""), re.I) and
+                (re.search(r"\b(?:UPDATE|INSERT|DELETE)\b", step.get("sql", ""), re.I)
+                 or (scenario_id == "3b" and re.fullmatch(r"3b-wave-(?:[1-9]|10)", job["step_id"]))) and
                 scenario_id in ("2d", "2e", "3b", "3c", "4c", "4d", "4e")):
             raise ValueError("A data-changing step failed or was cancelled. Its committed effect "
                              "cannot be inferred safely; reset stopped instead of guessing.")
@@ -135,7 +137,8 @@ def data_sql(scenario_id: str, jobs: list[dict]) -> str:
     if scenario_id == "2e":
         sql.append("DROP INDEX IF EXISTS IX_OrderItems_OrderId ON dbo.OrderItems;")
     if scenario_id == "3b":
-        waves = sum(count(f"wave-{n}") for n in range(1, 11)) - 10 * count("restore-yards")
+        waves = (10 * count("waves") + sum(count(f"wave-{n}") for n in range(1, 11))
+                 - 10 * count("restore-yards"))
         sql.append(f"USE [{COWBOYS}]; UPDATE dbo.GameStats SET Yards = Yards - ({waves});")
     if scenario_id == "4b":
         sql.extend([

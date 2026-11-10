@@ -80,7 +80,35 @@ these diagnostic demos assume SQL Server sysadmin.
    **View Page** there to inspect or refresh the evidence, then return and
    use **Next**. Opening the tab alone does not run SQL; viewer diagnostics
    use separate autocommit connections and leave demo sessions untouched.
+   Both viewers close their diagnostic cursor before returning the pooled
+   connection to master, so pending DBCC results cannot block cleanup.
    No separate viewer process or port is required.
+   The Demo 3b GameStats viewer displays the selected page and version tag
+   without loading the database's tens of thousands of wide before-images.
+   Use 3b's numbered measurement steps for database-wide tempdb usage.
+   Below the page details, the GameStats viewer replaces the explanatory
+   version-store footer with a compact graphic of the selected current
+   row, its decoded newest-version pointer, and the measured count of retained
+   before-images for that GameId and base-table rowset. Only the aggregate
+   count is returned, not the wide records. This is labelled as retained
+   versions for the row, not a verified pointer-walk length; cleanup may race
+   the diagnostic reads.
+   Demo 3b runs all ten update waves with one button, preserving ten separate
+   autocommit transactions rather than one transaction or one increment of ten.
+   Each wave updates all 5,000 roughly 7 KB GameStats rows, so ten waves can
+   retain about 50,000 before-images (roughly 350 MB plus overhead). Measure
+   usage after the combined step. Reset counts each successful combined run
+   as ten waves; failed/cancelled runs stop reset because partial commits
+   cannot safely be inferred.
+   The wave result reports committed waves, actual average rows updated per
+   wave, total row updates (including repeated updates of the same rows), and
+   the record-count-weighted average physical in-row size in bytes from
+   `sys.dm_db_index_physical_stats`. Physical row bytes are not a measurement
+   of version-store allocation or exact before-image size.
+   Demo 3a's preparation updates Account 42 only if its balance is not already
+   100, avoiding an extra 100 before-image from a redundant baseline UPDATE.
+   Previously retained versions are not hidden or deleted; their cleanup
+   remains asynchronous, so an already-running presentation can still show them.
    A short explanation stays visible; full instructions and safety details
    remain under **Prerequisites & safety**. Long SQL/results scroll inside their
    own panels rather than sending you down a list of steps.
@@ -95,6 +123,27 @@ these diagnostic demos assume SQL Server sysadmin.
    Admin table headers and values stay on one line; wide tables scroll
    horizontally instead of wrapping column names. Configuration guidance reports whether
    app sessions are open: **End demo** is needed only if they are still open.
+   Demo 4 has three distinct stories:
+   - **4a: In-row version, blocked reader.** ADR is on; RCSI and Snapshot are
+     off. Hold the narrow Accounts update open, inspect its in-row page
+     evidence and the expected empty off-row PVS records, then start a
+     blocking READ COMMITTED read. Roll back the writer to release it.
+   - **4b: Off-row version, nonblocking RCSI reader.** ADR and RCSI are on;
+     Snapshot is off. Hold a wide SavingsAccounts update open, inspect its
+     off-row pointer, PVS records and stats on separate Admin connections,
+     then read the committed 100 without waiting. Commit and read 999.99.
+     The wide update drives placement; RCSI independently controls reads.
+     The page viewer shows the current physical record size, the measured
+     ComplianceNotes column bytes, and its DBCC text preview. Column/record
+     sizes are not the version-diff size or PVS allocation, and DBCC may
+     truncate text. The decoded version tag establishes actual placement.
+   - **4c: Snapshot holds up cleanup instance-wide.** Hold a snapshot in
+     starswillwinthecup, commit updates in eaglesdontfly, inspect retained
+     PVS/cleanup evidence, release the snapshot and remeasure. Storage is
+     per database but the cleanup horizon spans the instance; cleanup is
+     asynchronous, not guaranteed to finish immediately.
+   Neither 4a nor 4b opens a Snapshot transaction. Finish cleanup and use
+   **End demo** between subdemos, not halfway through either story.
    Saved results are labeled as previous
    evidence, not current database state.
    The current step has a navy highlight. Completed steps turn grey, receive
@@ -117,6 +166,17 @@ these diagnostic demos assume SQL Server sysadmin.
    not simulated or continuously sampled balances. A blocked pane is highlighted
    only when the live DMV sample identifies it as blocked. SQL/messages remain
    expandable and result tables scroll inside each pane.
+   Result column headers stay on one line, including the before/after
+   chain-traversal counters; wide tables scroll horizontally within the pane.
+   Read-only tempdb/version-holder and PVS measurement steps remain directly rerunnable:
+   their main button stays **Run in Admin**, without an intentional-repeat
+   confirmation, and stays blue while available. Other completed steps retain
+   their existing repeat safeguards.
+   **TotalPagesInTempdb** is the allocated tempdb data-file page count, not the
+   number of outstanding version-store pages.
+   Demo 4a's off-row PVS query can return no rows when versions are stored
+   in-row; an empty DMV result does not prove that no versions exist. Inspect
+   the page viewer for the row's version tag and in-row evidence.
 3. Sessions 1 and 2 are independent, persistent SQL connections. Explicit
    transactions remain open across clicks. A blocked reader does not freeze
    the browser: advance the writer's commit step to release it.
@@ -169,6 +229,8 @@ master before closing, so pooled viewer connections do not keep a lab database
 in use. A genuinely outside connection is reported
 with its SPID, client name, and current database so it can be disconnected
 without guessing which session caused the refusal.
+Idle writer/reader connections also switch to master after rollback and before
+returning to the driver pool, so they cannot obstruct database-option resets.
 The app's in-memory execution ledger is required for counter-based reversals;
 browser-saved history is evidence only and is never trusted to modify SQL data.
 If data restoration succeeds but restoring settings fails, retry Reset demo:

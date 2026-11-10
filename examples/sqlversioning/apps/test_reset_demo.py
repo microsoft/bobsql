@@ -32,6 +32,8 @@ class ResetSqlTests(unittest.TestCase):
             self.assertIn(f"AccountId IN ({predicate})", sql)
             self.assertIn("IF @@ROWCOUNT <>", sql)
         self.assertIn("ComplianceNotes = DEFAULT", data_sql("4b", []))
+        self.assertIn("READ_COMMITTED_SNAPSHOT ON", configuration("4b"))
+        self.assertIn("ALLOW_SNAPSHOT_ISOLATION OFF", configuration("4b"))
 
     def test_partial_waves_and_intentional_repeats_are_counted(self):
         jobs = [job("3b", "configure-culprit"), job("3b", "wave-1"),
@@ -39,6 +41,17 @@ class ResetSqlTests(unittest.TestCase):
         self.assertIn("Yards = Yards - (3)", data_sql("3b", jobs))
         jobs.append(job("3b", "restore-yards"))
         self.assertIn("Yards = Yards - (-7)", data_sql("3b", jobs))
+
+    def test_combined_waves_and_repeats_compensate_ten_commits_each(self):
+        jobs = [job("3b", "configure-culprit"), job("3b", "waves")]
+        self.assertIn("Yards = Yards - (10)", data_sql("3b", jobs))
+        jobs.append(job("3b", "waves"))
+        self.assertIn("Yards = Yards - (20)", data_sql("3b", jobs))
+        jobs.append(job("3b", "restore-yards"))
+        self.assertIn("Yards = Yards - (10)", data_sql("3b", jobs))
+        for status in ("failed", "cancelled"):
+            with self.assertRaisesRegex(ValueError, "cannot be inferred"):
+                data_sql("3b", [job("3b", "waves", status)])
 
     def test_missing_history_and_uncertain_commits_stop(self):
         for scenario in ("2d", "2e", "3b", "3c", "4c", "4d", "4e"):
@@ -101,6 +114,21 @@ class ResetSqlTests(unittest.TestCase):
 
 
 class ResetRunnerTests(unittest.TestCase):
+    def test_idle_sessions_return_to_master_before_pooling(self):
+        runner = DemoRunner()
+        connection = Mock()
+        session = {"name": "2", "busy": False, "cancel_requested": False,
+                   "connection": connection}
+        runner.sessions = {"2": session}
+        events = []
+        connection.close.side_effect = lambda: events.append("close")
+        with patch("app.execute_sql", side_effect=lambda conn, sql: events.append(sql)):
+            runner._close_sessions([session])
+        self.assertIn("ROLLBACK;", events[0])
+        self.assertIn("USE master;", events[0])
+        self.assertEqual(events[1], "close")
+        self.assertEqual(runner.sessions, {})
+
     def test_api_requires_boolean_confirmation_and_selected_scenario(self):
         runner = Mock()
         client = create_app(runner).test_client()
