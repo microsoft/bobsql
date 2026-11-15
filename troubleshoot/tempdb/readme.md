@@ -6,6 +6,7 @@ performance incidents. Confirm the database platform before selecting diagnostic
 | Scenario | Guide |
 | --- | --- |
 | tempdb data files or the log grow unexpectedly, with or without a slow workload | [Unexpected tempdb growth diagnostic kit](growth-and-slow-workloads/readme.md) |
+| Reproduce user-object space consumption, identify its owner in SSMS, and verify cleanup | [SQL Server 2025 SQLSimTools lab](growth-and-slow-workloads/demo/readme.md) |
 
 The kit includes read-only SQL scripts and the workspace skill `tempdb-growth`
 for SQL Server 2019+ and Azure SQL Managed Instance.
