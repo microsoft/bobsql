@@ -1,0 +1,8 @@
+node_modules/
+.render-*/
+.render-*.mp4
+.cache/
+exports/
+*.mp4
+*.png
+*.pptx

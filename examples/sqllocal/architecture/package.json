@@ -1,0 +1,17 @@
+{
+  "name": "caldova-architecture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline animated Azure Local architecture and five slide-ready MP4 exports.",
+  "scripts": {
+    "export": "node export-architecture.cjs",
+    "verify": "node verify-architecture.cjs",
+    "build:business": "node build-business-scenario.cjs",
+    "build:comparison": "node build-platform-comparison.cjs"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "1.1.0",
+    "playwright": "1.57.0",
+    "pptxgenjs": "4.0.1"
+  }
+}
