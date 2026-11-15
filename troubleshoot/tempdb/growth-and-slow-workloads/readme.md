@@ -80,6 +80,14 @@ labeled server-local. Store results privately, not in this repository.
 
 Invoke the workspace skill **`tempdb-growth`** to guide this workflow.
 
+### Reproduce and test in SSMS
+
+Use the [SQL Server 2025 SQLSimTools lab](demo/readme.md) on an approved
+non-production instance. It includes a bounded temporary-table workload,
+an SSMS Copilot prompt, expected evidence, cross-session allocation assertions,
+and automatic cleanup verification. Workloads run with
+[SQLSimTools](https://aka.ms/sqlsimtools); diagnostics remain read-only.
+
 ## 1. Establish scope and a baseline
 
 Confirm the database product, version, and service tier before selecting

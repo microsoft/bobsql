@@ -17,6 +17,7 @@ There is no shared application or universal setup command.
 | [securescaleabledbapp](securescaleabledbapp/readme.md) | Azure SQL application security, performance, and availability |
 | [sqlbyexample](sqlbyexample/readme.md) | SQL Server 2019 capability walkthroughs |
 | [sqllinux](sqllinux/readme.md) | SQL Server on Linux deployment, tuning, AG, and Docker demos |
+| [sqllocal](sqllocal/README.md) | SQL Server 2025, Foundry Local, and the synthetic Caldova transfer-center demo |
 | [sqlserver2022](sqlserver2022/readme.md) | SQL Server 2022 features and deployment scenarios |
 | [sqlserver2025](sqlserver2025/readme.md) | SQL Server 2025 engine, developer, and AI capabilities |
 | [sqlversioning](sqlversioning/README.md) | SQLBits 2026 row-versioning and ADR demonstrations |

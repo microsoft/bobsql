@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caldova | SQL and AI inside Azure Local</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07182f; --surface: #0b213d; --card: #102b4b;
+      --border: #345679; --wire: #8badcf; --text: #f3f8ff;
+      --soft: #c4d8ef; --blue: #50b9ff; --mint: #7ce5cb; --grid: #183450;
+      --avd: #c4a0ff; --vm: #54d6c7; --sql: #69b8ff; --foundry: #ffc16f;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Segoe UI", Aptos, Calibri, sans-serif; }
+    .shell { margin: auto; height: 100dvh; display: flex; flex-direction: column; }
+    header { margin-bottom: 8px; }
+    h1 { margin: 0; font-size: 32px; letter-spacing: -.035em; }
+    .subtitle { margin: 4px 0 0; font-size: 12px; color: var(--blue); }
+    .navigation { flex: none; display: grid; gap: 4px; padding: 6px 12px; }
+    nav { display: grid; gap: 6px; }
+    .chapter-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 10px 14px; cursor: pointer; }
+    button:hover, button[aria-current] { border-color: var(--blue); background: #0a2b50; }
+    button:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+    nav button { text-align: left; padding: 6px 8px; font-size: 12px; line-height: 1.25; }
+    .chapter-nav button:nth-child(1) { --button-color: var(--sql); }
+    .chapter-nav button:nth-child(2) { --button-color: var(--vm); }
+    .chapter-nav button:nth-child(3) { --button-color: var(--foundry); }
+    .chapter-nav button:nth-child(4) { --button-color: var(--avd); }
+    .chapter-nav button:nth-child(5) { --button-color: #ff9bb5; }
+    .chapter-nav button { color: var(--button-color); border-color: var(--button-color); background: transparent; }
+    .chapter-nav button:hover { background: var(--card); }
+    .chapter-nav button[aria-current] { color: var(--bg); background: var(--button-color); font-weight: 650; }
+    .workspace { position: relative; flex: 1; min-height: 0; }
+    .stage { background: var(--surface); overflow: hidden; height: 100%; display: flex; align-items: center; }
+    svg { display: block; width: 100%; height: 100%; aspect-ratio: 1720 / 900; }
+    .caption { overflow: visible; }
+    aside { margin: 0; text-align: center; }
+    .counter { color: var(--blue); font: 11px/14px Consolas, monospace; letter-spacing: .08em; }
+    svg text { fill: var(--text); }
+    .card { fill: var(--card); stroke: var(--border); stroke-width: 2; }
+    .outer { fill: #0a1d36; stroke: var(--border); stroke-width: 2; }
+    .pill { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+    #cloud, #local-control { --node-accent: var(--avd); --node-fill: #201830; --node-highlight: #312344; }
+    #avd, #app { --node-accent: var(--vm); --node-fill: #09262d; --node-highlight: #0c3740; }
+    #sql { --node-accent: var(--sql); --node-fill: #0a213b; --node-highlight: #103653; }
+    #foundry { --node-accent: var(--foundry); --node-fill: #2b2113; --node-highlight: #44331b; }
+    #cloud > rect, #local-control > rect, #avd > rect, #app > rect, #sql > rect, #foundry > rect { stroke: var(--node-accent); fill: var(--node-fill); }
+    .label { font-size: 16px; fill: var(--node-accent, var(--blue)); font-weight: 650; letter-spacing: 1px; }
+    .title { font-size: 27px; font-weight: 650; letter-spacing: -.5px; }
+    .detail { fill: var(--soft); font-size: 19px; }
+    .small { fill: var(--soft); font-size: 16px; }
+    .mint { fill: var(--mint); }
+    .focus > rect:first-child { stroke: var(--node-accent, var(--mint)); stroke-width: 3; fill: var(--node-highlight, #0c3045); }
+    .avd-color { fill: var(--avd); }
+    .vm-color { fill: var(--vm); }
+    .sql-color { fill: var(--sql); }
+    .foundry-color { fill: var(--foundry); }
+    .color-key text { font-size: 13px; fill: var(--soft); }
+    .dim { opacity: .72; }
+    .concealed { opacity: .08; }
+    .wire { fill: none; stroke: var(--wire); stroke-width: 2.5; opacity: .2; }
+    .wire.active { opacity: 1; stroke: var(--mint); }
+    .control-wire { fill: none; stroke: var(--blue); stroke-width: 2; stroke-dasharray: 6 8; }
+    #avd-control .control-wire, #local-control .control-wire { stroke: var(--avd); }
+    .packet { fill: var(--mint); filter: drop-shadow(0 0 4px #7ce5cb70); }
+    .hidden { display: none; }
+    [data-export="true"]:not([data-buttons="true"]) .navigation { display: none; }
+    @media (max-width: 740px) {
+      .shell { height: auto; min-height: 100dvh; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+      .workspace { display: flex; flex-direction: column; gap: 12px; }
+      svg { height: auto; }
+      nav { grid-template-columns: 1fr 1fr; order: 2; }
+      .navigation { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="workspace">
+      <section class="stage" aria-label="Animated Caldova architecture">
+        <svg id="diagram" viewBox="0 0 1720 900" role="img" aria-labelledby="diagram-title diagram-desc">
+          <title id="diagram-title">Caldova architecture and data flows</title>
+          <desc id="diagram-desc">In the connected architecture, the Azure portal and control plane run in the public cloud, outside Azure Local. The user remotes into an Azure Virtual Desktop session host VM on Azure Local. Both the browser and the ASP.NET Core Transfer Center application run inside that VM. The Azure-hosted AVD service provides connection brokering; the session host runs locally. The application calls SQL Server 2025 on an Azure Local VM with Windows Server 2025. A standalone vector search previews patient history. For briefing generation, an optional includeHistory flag makes SQL retrieve up to three filtered historical notes using the current transfer concern, validate and snapshot their text, and invoke the approved ReceivingBriefing 2.0 skill through a separate local generative model. SQL records completed briefing interactions in append-only ledger. In the separately provisioned disconnected architecture, the local Azure portal and control plane run inside Azure Local; Azure-hosted AVD access is not depicted.</desc>
+          <defs>
+            <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="var(--grid)"/></pattern>
+            <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto"><path d="M2 2L10 6L2 10" fill="none" stroke="var(--mint)" stroke-width="2"/></marker>
+          </defs>
+          <rect width="1720" height="900" fill="url(#grid)"/>
+          <rect id="local-boundary" x="32" y="190" width="1656" height="680" rx="20" fill="none" stroke="var(--blue)" stroke-width="2"/>
+          <text class="label" x="590" y="226">AZURE LOCAL | ORGANIZATION-CONTROLLED BOUNDARY</text>
+          <text id="mode-label" class="small mint" x="590" y="253">Connected deployment</text>
+          <g id="client" data-node>
+            <rect class="pill" x="70" y="24" width="330" height="110" rx="13"/>
+            <text id="client-access-label" class="label" x="92" y="55">REMOTE ACCESS</text>
+            <text class="title" x="92" y="88">Care team workstation</text>
+            <text id="client-access-detail" class="small" x="92" y="115">User device / remote desktop client</text>
+          </g>
+          <g id="avd" data-node>
+            <rect class="outer" x="50" y="205" width="370" height="560" rx="16"/>
+            <text class="label" x="72" y="233"><tspan class="avd-color">AZURE VIRTUAL DESKTOP</tspan></text>
+            <text class="detail" x="72" y="259">Session host VM on Azure Local</text>
+            <rect id="avd-browser" class="card" x="70" y="270" width="330" height="28" rx="6"/>
+            <text class="small" x="92" y="290">Browser on the AVD VM</text>
+            <text class="small mint" x="72" y="745">Browser + app run in this VM</text>
+          </g>
+          <g id="cloud" data-node transform="translate(280 0)">
+            <rect class="pill" x="1000" y="24" width="370" height="104" rx="13"/>
+            <text class="label" x="1022" y="49">AZURE PUBLIC CLOUD</text>
+            <text id="azure-portal" class="detail" x="1022" y="75">Azure portal + control plane</text>
+            <text class="small" x="1022" y="98"><tspan class="sql-color">Azure Arc</tspan><tspan> + </tspan><tspan class="avd-color">AVD service</tspan></text>
+            <text class="small" x="1022" y="118">Management / connection brokering</text>
+          </g>
+          <g id="management" transform="translate(280 0)">
+            <path class="control-wire" d="M1190 128V190"/>
+            <text class="small" x="1000" y="161">Azure Arc management</text>
+          </g>
+          <g id="avd-control">
+            <path class="control-wire" d="M1280 104H1210V180H430V245H420"/>
+            <circle class="avd-color" cx="1280" cy="104" r="3"/>
+            <circle class="avd-color" cx="420" cy="245" r="3"/>
+            <text class="small avd-color" x="560" y="172">Azure-hosted AVD service: connection brokering</text>
+          </g>
+          <g id="routes">
+            <path id="client-app-local" class="wire hidden" d="M220 134V310"/>
+            <path id="client-avd" class="wire" d="M220 137V199"/>
+            <path id="avd-app" class="wire" d="M220 300V308"/>
+            <path id="app-sql" class="wire" d="M402 416H584"/>
+            <path id="sql-app" class="wire" d="M586 450H404"/>
+            <path id="records-work" class="wire" d="M863 446V465"/>
+            <path id="work-store" class="wire" d="M863 579V596"/>
+            <path id="store-work" class="wire" d="M888 596V580"/>
+            <path id="sql-embed" class="wire" d="M1142 496H1252V423H1374"/>
+            <path id="embed-sql" class="wire" d="M1375 454H1274V526H1142"/>
+            <path id="sql-chat" class="wire" d="M1142 548H1252V619H1374"/>
+            <path id="chat-sql" class="wire" d="M1375 653H1274V573H1142"/>
+            <path id="audit-read" class="wire" d="M586 675H476V643H404"/>
+          </g>
+          <g id="app" data-node>
+            <rect class="outer" x="70" y="310" width="330" height="410" rx="16"/>
+            <text class="label" x="92" y="345">ASP.NET CORE APPLICATION</text>
+            <text class="title" x="92" y="381">Transfer Center</text>
+            <g id="app-patient" data-node>
+              <rect class="card" x="90" y="398" width="290" height="78" rx="10"/>
+              <text class="detail" x="108" y="430">Patient + transfer</text>
+              <text class="small" x="108" y="456">Current facts from SQL</text>
+            </g>
+            <g id="app-history" data-node>
+              <rect class="card" x="90" y="498" width="290" height="78" rx="10"/>
+              <text id="history-title" class="detail" x="108" y="530">Find relevant history</text>
+              <text id="history-detail" class="small" x="108" y="556">Standalone search preview</text>
+            </g>
+            <g id="app-result" data-node>
+              <rect class="card" x="90" y="598" width="290" height="96" rx="10"/>
+              <text id="result-title" class="detail" x="108" y="632">Receiving briefing</text>
+              <text id="result-detail" class="small" x="108" y="659">Grounded, saved, cited</text>
+              <text id="result-extra" class="small mint" x="108" y="682">Review before use</text>
+            </g>
+          </g>
+          <g id="sql" data-node transform="translate(140 0)">
+            <rect class="outer" x="450" y="285" width="550" height="480" rx="16"/>
+            <text class="label" x="475" y="321">SQL SERVER 2025</text>
+            <text id="sql-hosting" class="small vm-color" x="475" y="345">Running on Azure Local VM with Windows Server 2025</text>
+            <g id="records" data-node>
+              <rect class="card" x="475" y="360" width="500" height="82" rx="11"/>
+              <text class="title" x="495" y="393">Patient + transfer records</text>
+              <text id="records-detail" class="small" x="495" y="420">Operational facts and dated historical notes</text>
+            </g>
+            <g id="work" data-node>
+              <rect class="card" x="475" y="470" width="500" height="105" rx="11"/>
+              <text id="work-title" class="title" x="495" y="508">Governed stored procedures</text>
+              <text id="work-detail" class="small" x="495" y="537">Grounding, model calls, validation, provenance</text>
+              <text id="work-extra" class="small mint" x="495" y="559">The browser does not call either model</text>
+            </g>
+            <g id="store" data-node>
+              <rect class="card" x="475" y="602" width="500" height="110" rx="11"/>
+              <text id="store-title" class="title" x="495" y="638">Vectors + results + ledger</text>
+              <text id="store-detail" class="small" x="495" y="665">Persisted in the database</text>
+              <g id="ledger-immutable" class="hidden" role="img" aria-label="Immutable append-only ledger: UPDATE and DELETE rejected">
+                <title>Engine-enforced append-only records; external digest verification is not configured.</title>
+                <path d="M820 627V620a8 8 0 0 1 16 0v7" fill="none" stroke="var(--mint)" stroke-width="3"/>
+                <rect x="816" y="627" width="24" height="20" rx="3" fill="var(--surface)" stroke="var(--mint)" stroke-width="2"/>
+                <path d="M828 634v6" stroke="var(--mint)" stroke-width="3"/>
+                <text class="small mint" x="848" y="642">IMMUTABLE</text>
+              </g>
+              <g id="ledger-chain" class="hidden">
+                <rect class="pill" x="496" y="677" width="117" height="25" rx="5"/>
+                <rect class="pill" x="652" y="677" width="117" height="25" rx="5"/>
+                <rect class="pill" x="808" y="677" width="143" height="25" rx="5"/>
+                <text class="small mint" x="509" y="695">Interaction 1</text>
+                <text class="small mint" x="665" y="695">Interaction 2</text>
+                <text class="small mint" x="821" y="695">New interaction</text>
+                <path d="M617 689H646M773 689H802" stroke="var(--mint)" stroke-width="2"/>
+              </g>
+            </g>
+            <text id="sql-foot" class="small mint" x="475" y="741">CaldovaRegionalCare | Data + AI workflow</text>
+          </g>
+          <g id="foundry" data-node transform="translate(280 0)">
+            <rect class="outer" x="1080" y="285" width="290" height="480" rx="16"/>
+            <text class="label" x="1100" y="321">FOUNDRY LOCAL</text>
+            <text id="foundry-hosting" class="small" x="1100" y="345">AKS on Azure Local</text>
+            <g id="embedding" data-node>
+              <rect class="card" x="1100" y="366" width="250" height="128" rx="12"/>
+              <text class="label" x="1120" y="399">EMBEDDINGS</text>
+              <text class="title" x="1120" y="435">Nemotron</text>
+              <text class="small" x="1120" y="466">2,048-dimensional vector</text>
+              <text class="small mint" x="1120" y="486">Retrieval, not generation</text>
+            </g>
+            <g id="chat" data-node>
+              <rect class="card" x="1100" y="563" width="250" height="128" rx="12"/>
+              <text class="label" x="1120" y="596">BRIEFING GENERATION</text>
+              <text class="title" x="1120" y="632">gpt-oss-20b</text>
+              <text class="small" x="1120" y="663">Grounded chat completion</text>
+              <text class="small mint" x="1120" y="683">Summarize supplied evidence</text>
+            </g>
+            <text id="foundry-gpu" class="label" x="1100" y="730">POWERED BY GPUs</text>
+            <text class="small" x="1100" y="753">Local authenticated HTTPS</text>
+          </g>
+          <g id="payload">
+            <rect class="pill" x="70" y="790" width="1170" height="51" rx="11"/>
+            <text id="payload-text" class="detail mint" x="90" y="822">Data and inference stay inside the organization.</text>
+          </g>
+          <g id="local-control" class="hidden" data-node transform="translate(280 0)">
+            <rect class="pill" x="1000" y="205" width="370" height="65" rx="11"/>
+            <text id="local-portal" class="label" x="1022" y="231">AZURE PORTAL (LOCAL)</text>
+            <text class="small" x="1022" y="255">Local control plane + identity</text>
+            <path class="control-wire" d="M1185 205V193"/>
+            <circle class="avd-color" cx="1185" cy="193" r="3"/>
+          </g>
+          <g id="particles" aria-hidden="true"></g>
+          <g class="color-key" aria-label="Colors: Azure control plane and AVD service purple, session host VM teal, SQL Server blue, Foundry Local amber">
+            <circle class="avd-color" cx="450" cy="887" r="5"/><text x="463" y="892">Azure control / AVD</text>
+            <circle class="vm-color" cx="660" cy="887" r="5"/><text x="673" y="892">Session host VM</text>
+            <circle class="sql-color" cx="900" cy="887" r="5"/><text x="913" y="892">SQL Server</text>
+            <circle class="foundry-color" cx="1110" cy="887" r="5"/><text x="1123" y="892">Foundry Local</text>
+          </g>
+          <foreignObject class="caption" x="490" y="20" width="740" height="160">
+            <aside xmlns="http://www.w3.org/1999/xhtml" aria-label="Architecture title">
+              <header>
+                <h1>Caldova Regional Care Transfer Center</h1>
+                <p class="subtitle">SQL Server 2025 + Foundry Local | Azure Local</p>
+              </header>
+              <div class="counter" id="counter"></div>
+            </aside>
+          </foreignObject>
+        </svg>
+      </section>
+    </div>
+    <div class="navigation">
+      <nav class="chapter-nav" aria-label="Architecture sections"></nav>
+    </div>
+  </main>
+  <script>
+    const chapters = [
+      {
+        id: "overview", file: "01-overview", title: "The complete architecture", label: "01 | Overview",
+        work: ["Governed stored procedures", "Grounding, model calls, validation, provenance", "The browser does not call either model"],
+        store: ["Vectors + results + ledger", "Persisted in the database"],
+        summary: {
+          title: "The complete architecture",
+          text: "The Azure portal and control plane run in the public cloud, outside Azure Local. The user remotes into an AVD session host VM on Azure Local, where both the browser and Transfer Center app run. SQL Server 2025 runs on an Azure Local VM with Windows Server 2025 and owns the records, approved skills, vector retrieval, model calls, saved briefings, and ledger audit. Nemotron and gpt-oss-20b run on AKS on Azure Local, powered by GPUs. Azure provides Arc management and AVD connection brokering.",
+          takeaway: "Remote access and cloud management; local desktop, application, SQL, and inference.",
+          focus: ["client","avd","cloud","app","app-patient","app-history","app-result","sql","records","work","store","foundry","embedding","chat"],
+          flows: ["client-avd","avd-app","app-sql","sql-app","records-work","work-store","store-work","sql-embed","embed-sql","sql-chat","chat-sql","audit-read"],
+          payload: "AVD VM [browser + app] -> SQL -> local models | Saved results + ledger"
+        },
+        steps: [
+          { title: "Enter through Azure Virtual Desktop", text: "The user remotes into an Azure Virtual Desktop (AVD) session host VM on Azure Local. Both the browser and the ASP.NET Core Transfer Center app run inside that same VM. Azure's AVD service provides connection brokering.", takeaway: "Remote user device; local AVD VM containing both browser and app.", focus: ["client","avd","app","app-patient"], flows: ["client-avd","avd-app"], payload: "User device -> AVD VM on Azure Local [browser + Transfer Center app]", duration: 5500 },
+          { title: "SQL owns the workflow", text: "SQL Server holds patient records, historical notes, approved skills, vectors, briefings, and the audit history.", takeaway: "The application delegates data and AI orchestration to SQL.", focus: ["app","sql","records","work","store"], flows: ["app-sql","records-work","sql-app"], payload: "Application queries and stored procedure calls", duration: 4500 },
+          { title: "Two local models.\nTwo different jobs.", text: "Nemotron generates embeddings for retrieval. gpt-oss-20b produces briefings from supplied evidence. SQL calls both through local HTTPS endpoints.", takeaway: "Patient records and inference requests stay local.", focus: ["sql","foundry","embedding","chat"], flows: ["sql-embed","embed-sql","sql-chat","chat-sql"], payload: "SQL -> local embedding and generative models", duration: 5500 },
+          { title: "Connected management", text: "The Azure portal and control plane run outside Azure Local in the public cloud. Azure Arc provides management connectivity. Azure's AVD service brokers connections to the session host on Azure Local. The desktop session, application, SQL, and model inference run locally.", takeaway: "Cloud portal, control plane, and brokering; local session hosts and inference.", focus: ["client","avd","cloud","app","sql","foundry"], flows: ["app-sql","sql-embed","chat-sql"], payload: "Azure: portal + control plane + AVD | Azure Local: app + SQL + AI", duration: 5000 }
+        ]
+      },
+      {
+        id: "search", file: "02-patient-and-vector-search", title: "Patient information and vector search", label: "02 | Patient + search",
+        work: ["usp_SearchTransferHistory", "Native external model + AI_GENERATE_EMBEDDINGS", "SQL owns retrieval and patient/date filtering"],
+        store: ["DiskANN vector index", "VECTOR(2048, float16) | Cosine similarity"],
+        summary: {
+          title: "Patient information and vector search",
+          text: "The app reads current patient facts from SQL. Find relevant history submits an editable query; SQL embeds query-prefixed text through Nemotron and searches the stored DiskANN note vectors. It applies patient, date, freshness, and distance filters before returning up to three dated source notes. This preview does not select briefing evidence.",
+          takeaway: "SQL retrieves existing notes; the embedding model does not generate patient facts.",
+          focus: ["client","avd","app","app-patient","app-history","sql","records","work","store","foundry","embedding"],
+          flows: ["client-avd","avd-app","app-sql","records-work","sql-embed","embed-sql","work-store","store-work","sql-app"],
+          payload: "Search query -> Nemotron -> SQL DiskANN + filters -> dated source notes"
+        },
+        steps: [
+          { title: "Open an incoming transfer", text: "From the browser in the local AVD session, the application queries SQL for this patient's current transfer facts, observations, medications, allergies, and narratives.", takeaway: "Ordinary SQL queries supply current patient information.", focus: ["client","avd","app","app-patient","records"], flows: ["client-avd","avd-app","app-sql"], payload: "Local desktop session -> application -> patient / transfer query", duration: 4000 },
+          { title: "Return authoritative facts", text: "SQL returns the live transfer information. This step does not need an AI model.", takeaway: "Patient information comes from SQL, not from model memory.", focus: ["records","app","app-patient"], flows: ["sql-app"], payload: "SQL records -> patient and transfer details", duration: 4000 },
+          { title: "Prepare the note vectors", text: "During setup or explicit refresh, SQL embeds passage: plus each note's text using Nemotron, stores the vector and content hash, and builds the DiskANN index. This is not repeated on every search.", takeaway: "Stored note vectors are prepared separately from query embeddings.", focus: ["records","work","store","foundry","embedding"], flows: ["records-work","sql-embed","embed-sql","work-store"], payload: "Setup / refresh: passage text -> Nemotron -> stored vectors + index", duration: 5500 },
+          { title: "Ask about relevant history", text: "Find relevant history submits editable search text and the transfer number. The app requests up to three results from ai.usp_SearchTransferHistory.", takeaway: "The selected transfer establishes the patient scope.", focus: ["app","app-history","work"], flows: ["app-sql"], payload: "Preview query + transfer number + TopK = 3", duration: 4000 },
+          { title: "Turn the query into a vector", text: "SQL prefixes the text with query: and calls AI_GENERATE_EMBEDDINGS using the native external model. Nemotron returns 2,048 dimensions.", takeaway: "Nemotron embeds the query; it does not write a briefing.", focus: ["work","foundry","embedding"], flows: ["sql-embed","embed-sql"], payload: "Query text -> Nemotron -> query vector", duration: 5000 },
+          { title: "Filter the vector results", text: "VECTOR_SEARCH uses cosine DiskANN retrieval. SQL filters to the same patient and notes before the transfer, rejects stale eligible embeddings, and keeps distances at most 0.82 and within 0.10 of the best eligible match.", takeaway: "Demo/model-specific relevance filters, not clinical confidence.", focus: ["work","store","records"], flows: ["work-store","store-work","records-work"], payload: "ANN candidates -> patient/date/freshness + distance filters -> TopK", duration: 6500 },
+          { title: "Return the original notes", text: "The app receives up to three ranked notes with dates, full source text, cosine distances, and version tokens. Fewer or no notes can pass the filters.", takeaway: "These are existing source records, not generated patient facts.", focus: ["records","store","app","app-history"], flows: ["sql-app"], payload: "Filtered dated sources + distances + version tokens", duration: 4500 },
+          { title: "Preview is independent", text: "Expand a note to inspect its source. This search does not select evidence or generate a briefing. Editing the preview query does not change the briefing's retrieval query.", takeaway: "The briefing pane has its own optional history control.", focus: ["app","app-history","app-result"], flows: [], payload: "Preview only | No manual note selection in the current UI", duration: 5500 }
+        ]
+      },
+      {
+        id: "briefing", file: "03-grounded-briefing", title: "Generate a grounded briefing", label: "03 | Briefing",
+        staticFlows: ["sql-embed","embed-sql"],
+        work: ["usp_GenerateTransferBriefing", "Optional SQL retrieval -> packet -> approved skill", "ReceivingBriefing 2.0 with or without history"],
+        store: ["Saved briefing + sources", "Validated JSON and persisted source citations"],
+        summary: {
+          title: "Generate a grounded briefing",
+          text: "The browser sends includeHistory. When enabled, SQL retrieves up to three filtered notes using ChiefConcern and validates their versions before saving text snapshots alongside current facts and extracted signals. The approved ReceivingBriefing 2.0 skill and packet go to gpt-oss-20b. SQL validates and saves the result, citations, and successful ledger audit. With history off, SQL skips retrieval and uses the same skill with seven source groups.",
+          takeaway: "Optional retrieval, then grounded generation; SQL owns both paths.",
+          focus: ["app","app-result","sql","records","work","store","foundry","chat"],
+          flows: ["app-sql","records-work","sql-embed","embed-sql","work-store","store-work","sql-chat","chat-sql","sql-app"],
+          payload: "Optional SQL history retrieval -> packet + skill 2.0 -> gpt-oss-20b -> validated result"
+        },
+        steps: [
+          { title: "Request optional history", text: "In the briefing pane, enable Include relevant history (top 3), then Generate receiving briefing. The browser sends includeHistory: true, not note text or a preview selection. The option defaults off and resets on patient changes.", takeaway: "No preview search is required. SQL owns RAG orchestration.", focus: ["app","app-result","work"], flows: ["app-sql"], payload: "Generate: transfer number + includeHistory = true", history: true, duration: 5500 },
+          { title: "SQL retrieves the evidence", text: "ai.usp_GenerateTransferBriefing reads the transfer's ChiefConcern and calls ai.usp_SearchTransferHistory with TopK = 3. Nemotron embeds that query; SQL applies the same patient, date, freshness, and distance filters.", takeaway: "SQL retrieves up to three notes independently of the preview query.", store: ["DiskANN vector index", "Stored note vectors + content hashes"], focus: ["records","work","store","foundry","embedding"], flows: ["records-work","sql-embed","embed-sql","work-store","store-work"], payload: "ChiefConcern -> query embedding -> filtered historical note IDs", history: true, duration: 6000 },
+          { title: "Validate and snapshot sources", text: "SQL passes the retrieved note IDs and version tokens to ai.usp_CreateTransferPacketWithHistory. It rechecks patient, date, version, and embedding freshness, then rereads the note text inside the packet transaction.", takeaway: "Changed or stale evidence is an error, not silently omitted history.", focus: ["records","work","store"], flows: ["records-work","work-store"], payload: "SQL-retrieved IDs + versions -> validated historical snapshots", history: true, duration: 5500 },
+          { title: "Build the grounding packet", text: "After deterministic RegEx signal extraction, SQL packages current facts from seven regional source groups with the validated historical text and citations. With no qualifying notes, it builds the original seven-source packet.", takeaway: "Text snapshots, not embedding vectors, ground the generative model.", focus: ["records","work","store"], flows: ["records-work","work-store"], payload: "Current facts + extracted signals + optional dated source snapshots", history: true, duration: 5500 },
+          { title: "Apply the approved skill", text: "ai.usp_InvokeTransferSkill reads the approved ReceivingBriefing 2.0 contract and builds system/user messages from the skill and saved packet. SQL saves the exact skill and request before calling the model.", takeaway: "One approved skill handles both history-enabled and current-only briefings.", focus: ["work","store"], flows: ["store-work","work-store"], payload: "ReceivingBriefing 2.0 + grounded JSON packet -> saved request", history: true, duration: 5000 },
+          { title: "Call the generative model", text: "SQL calls gpt-oss-20b through sp_invoke_external_rest_endpoint. Nemotron served the earlier optional retrieval step; gpt-oss-20b now summarizes the supplied evidence.", takeaway: "Embedding retrieval and briefing generation are different model calls.", focus: ["work","foundry","chat"], flows: ["sql-chat","chat-sql"], payload: "Approved skill + evidence text -> gpt-oss-20b -> JSON", history: true, duration: 5000 },
+          { title: "Validate, then persist", text: "SQL validates the JSON, two to four receiving recommendations, and exactly one historical item for each supplied note ID. It saves the briefing, source citations, and successful ledger audit together.", takeaway: "The model response must pass validation before becoming a saved briefing.", focus: ["work","store"], flows: ["work-store"], payload: "Validated result + source citations + successful ledger audit", history: true, duration: 5500 },
+          { title: "Review the saved briefing", text: "The app shows current summary, receiving recommendations, key context, and separate dated Historical context when supplied. Expand citations to inspect the saved source snapshots, not a later live read.", takeaway: "AI-generated draft. Clinician review required.", focus: ["store","app","app-result"], flows: ["sql-app"], payload: "Saved briefing + exact historical evidence + provenance", history: true, duration: 5500 },
+          { title: "History off: same skill", text: "With Include relevant history off, SQL skips vector retrieval and builds the original seven-source packet. ReceivingBriefing 2.0 still generates and validates the briefing, with no historical notes supplied.", takeaway: "No query embedding call on the current-facts-only path.", focus: ["app","records","work","store","chat"], flows: ["app-sql","records-work","sql-chat","chat-sql","work-store","sql-app"], payload: "includeHistory = false -> seven sources -> same approved 2.0 skill", duration: 5500 }
+        ]
+      },
+      {
+        id: "audit", file: "04-briefing-and-ledger-audit", title: "Briefing generation and immutable audit", label: "04 | Ledger audit",
+        sequence: true,
+        staticFlows: ["sql-embed","embed-sql"],
+        work: ["Generate, validate, and audit", "Approved packet -> local GPT -> validated result", "Successful briefing and audit commit together"],
+        store: ["Append-only SQL ledger", "ai.ModelInvocationAudit"],
+        summary: {
+          title: "Briefing generation and immutable audit",
+          text: "First SQL sends the grounded briefing request to gpt-oss-20b and receives its response. SQL validates and commits the successful briefing, sources, and append-only interaction audit together. A lock marks the saved audit as immutable: UPDATE and DELETE are rejected. Finally, Audit reads saved records without invoking a model. External digest verification is not configured.",
+          takeaway: "Generate, validate, append, then inspect immutable interaction evidence.",
+          focus: ["app","app-result","sql","records","work","store","foundry","chat"],
+          flows: ["app-sql","records-work","sql-chat","chat-sql","work-store","sql-app","audit-read"],
+          payload: "Grounded briefing -> gpt-oss-20b -> validation -> atomic save + immutable audit",
+          ledger: true, audit: true
+        },
+        steps: [
+          { title: "Prepare the grounded request", text: "The application requests a briefing. SQL builds the grounding packet and approved skill messages; this illustration uses the current-facts-only path.", takeaway: "SQL owns the request and its evidence.", work: ["Build the briefing request", "Approved skill + saved grounding packet", "SQL owns the model call and audit"], focus: ["app","app-result","sql","records","work"], flows: ["app-sql","records-work"], payload: "1 | Application -> SQL: prepare the approved skill + grounding packet", duration: 1800 },
+          { title: "Generate through the chat model", text: "SQL sends the approved skill and grounded request to the local gpt-oss-20b model.", takeaway: "The browser does not call the model.", work: ["Generate the briefing", "Approved packet -> gpt-oss-20b", "Local model inference; SQL owns the call"], focus: ["sql","work","foundry","chat"], flows: ["sql-chat"], payload: "2 | SQL -> gpt-oss-20b: generate a grounded receiving briefing", once: true, duration: 1800 },
+          { title: "Receive and validate the response", text: "gpt-oss-20b returns the response. SQL validates the JSON and briefing contract before saving a successful result.", takeaway: "Validate the model response before persistence.", work: ["Validate the model response", "gpt-oss-20b -> SQL response validation", "Validate the JSON before saving"], focus: ["sql","work","foundry","chat"], flows: ["chat-sql"], payload: "3 | gpt-oss-20b -> SQL: receive and validate the briefing JSON", once: true, duration: 1800 },
+          { title: "Commit the briefing and audit", text: "SQL saves the validated briefing, source citations, and successful model interaction audit in one transaction. The audit includes the saved request and response, model, skill, status, and timing.", takeaway: "The successful briefing and its audit commit together.", work: ["Save briefing + audit together", "Validated result + sources + interaction evidence", "One SQL transaction commits both"], store: ["Append-only SQL ledger", "Appending request, response, and outcome"], focus: ["sql","work","store"], flows: ["work-store"], payload: "4 | SQL transaction: save briefing + sources + append-only audit together", ledger: true, once: true, duration: 1800 },
+          { title: "Inspect the immutable audit", text: "The saved audit is an append-only SQL ledger record: UPDATE and DELETE are rejected. The app reads saved evidence without invoking a model. External digest verification is not configured.", takeaway: "Engine-enforced append-only records; no claim of external digest verification.", work: ["Inspect the immutable audit", "Saved request / response + model + skill + status", "Reading Audit does not invoke a model"], store: ["Append-only SQL ledger", "No UPDATE / DELETE | Appended evidence"], focus: ["app","app-result","sql","work","store"], flows: ["sql-app","audit-read"], payload: "5 | Saved audit is immutable: no UPDATE / DELETE | Read evidence in the app", ledger: true, immutable: true, audit: true, duration: 10800 }
+        ]
+      },
+      {
+        id: "disconnected", file: "05-disconnected", title: "Disconnected deployment", label: "05 | Disconnected",
+        work: ["Local data + AI orchestration", "Local records, retrieval, generation, and validation", "Requires a separately provisioned disconnected deployment"],
+        store: ["Local vectors + results + ledger", "Persisted vectors, briefings, and audit"],
+        summary: {
+          title: "Disconnected deployment",
+          text: "The local Azure portal and control plane run inside Azure Local. This conceptual variant uses local identity, imported models and dependencies, and local browser access to the application. SQL, vector retrieval, model inference, and audit remain on Azure Local. Azure-hosted AVD brokering and public-cloud management connections are not part of this separately provisioned deployment.",
+          takeaway: "Local portal, control plane, access, data, and inference; separately provisioned prerequisites.",
+          focus: ["client","local-control","app","app-patient","app-history","app-result","sql","records","work","store","foundry","embedding","chat"],
+          flows: ["client-app-local","app-sql","records-work","sql-embed","embed-sql","work-store","store-work","sql-chat","chat-sql","sql-app","audit-read"],
+          payload: "Disconnected variant: local access + local control plane + local SQL + local inference",
+          disconnected: true
+        },
+        steps: [
+          { title: "Disconnected deployment", text: "The Azure portal and control plane run locally inside Azure Local, with local identity and imported model artifacts and dependencies. Local browser access replaces Azure-hosted AVD brokering. This is a separately provisioned disconnected deployment.", takeaway: "Local portal and control plane; the same local application/data/inference pattern.", focus: ["client","local-control","app","sql","foundry"], flows: ["client-app-local","app-sql","sql-embed","embed-sql","sql-chat","chat-sql","sql-app"], payload: "Disconnected variant: local portal + control plane + data + inference", disconnected: true, duration: 6500 }
+        ]
+      }
+    ];
+    const $ = id => document.getElementById(id);
+    const parameters = new URLSearchParams(location.search);
+    const exporting = parameters.get("export") === "1";
+    document.documentElement.dataset.export = String(exporting);
+    document.documentElement.dataset.buttons = String(parameters.get("buttons") === "1");
+    let current = chapters.findIndex(c => c.id === parameters.get("chapter"));
+    if (current < 0) current = 0;
+    let elapsed, selectedKey = "", renderedKey = "", animationEpoch = 0;
+    const svgNS = "http://www.w3.org/2000/svg";
+    const routeParticles = new Map();
+    for (const route of document.querySelectorAll("#routes path")) {
+      const length = route.getTotalLength();
+      const dots = Array.from({ length: 3 }, () => {
+        const dot = document.createElementNS(svgNS, "circle");
+        dot.setAttribute("class", "packet"); dot.setAttribute("r", "4.5");
+        dot.dataset.route = route.id;
+        $("particles").append(dot);
+        return dot;
+      });
+      routeParticles.set(route.id, { route, length, dots });
+    }
+    function duration(chapter) { return chapter.steps.reduce((sum, step) => sum + step.duration, 0); }
+    function locate(chapter, time) {
+      let start = 0;
+      for (let i = 0; i < chapter.steps.length; i++) {
+        if (time < start + chapter.steps[i].duration || i === chapter.steps.length - 1) return { index: i, start };
+        start += chapter.steps[i].duration;
+      }
+    }
+    function put(id, value) { $(id).textContent = value; }
+    function render(id, time, animationTime = time ?? performance.now()) {
+      const chapterIndex = chapters.findIndex(c => c.id === id);
+      if (chapterIndex < 0 || (time !== undefined && !Number.isFinite(time))) throw new Error("Invalid chapter or time");
+      current = chapterIndex;
+      const chapter = chapters[current];
+      const summary = time === undefined;
+      elapsed = summary ? undefined : Math.max(0, Math.min(time, duration(chapter)));
+      const position = summary ? { index: -1, start: 0 } : locate(chapter, elapsed);
+      const selection = `${id}:${position.index}`;
+      if (selectedKey !== selection) {
+        selectedKey = selection;
+        animationEpoch = animationTime;
+      }
+      const phaseTime = summary ? Math.max(0, animationTime - animationEpoch) : animationTime - position.start;
+      const sequence = summary && chapter.sequence;
+      const scene = sequence ? locate(chapter, phaseTime) : position;
+      const step = sequence ? chapter.steps[scene.index] : summary ? chapter.summary : chapter.steps[position.index];
+      const key = `${selection}:${scene.index}`;
+      if (key !== renderedKey) {
+        renderedKey = key;
+        document.body.dataset.chapter = id;
+        document.body.dataset.step = String(position.index);
+        document.body.dataset.stage = sequence ? String(scene.index) : "";
+        document.body.dataset.disconnected = String(Boolean(step.disconnected));
+        put("counter", `${String(current + 1).padStart(2, "0")} / ${String(chapters.length).padStart(2, "0")}${summary ? "" : `  |  STEP ${position.index + 1} / ${chapter.steps.length}`}`);
+        const work = step.work || chapter.work;
+        put("work-title", work[0]); put("work-detail", work[1]); put("work-extra", work[2]);
+        const store = step.store || chapter.store;
+        put("store-title", store[0]); put("store-detail", store[1]);
+        put("payload-text", step.payload);
+        put("history-title", "Find relevant history");
+        put("history-detail", "Standalone search preview");
+        put("result-title", step.audit ? "Audit overlay" : "Receiving briefing");
+        put("result-detail", step.audit ? "Status | timing | ledger ID" : step.history ? "Include history: SQL top 3" : "Grounded, saved, cited");
+        put("result-extra", step.audit ? "Saved request / response" : "Review before use");
+        put("mode-label", step.disconnected ? "Disconnected deployment" : "Connected deployment");
+        $("management").classList.toggle("hidden", Boolean(step.disconnected));
+        $("avd-control").classList.toggle("hidden", Boolean(step.disconnected));
+        $("local-control").classList.toggle("hidden", !step.disconnected);
+        $("cloud").classList.toggle("hidden", Boolean(step.disconnected));
+        $("avd").classList.toggle("hidden", Boolean(step.disconnected));
+        put("client-access-label", step.disconnected ? "LOCAL ACCESS" : "REMOTE ACCESS");
+        put("client-access-detail", step.disconnected ? "Browser / organization network" : "User device / remote desktop client");
+        $("ledger-chain").classList.toggle("hidden", !step.ledger);
+        $("ledger-immutable").classList.toggle("hidden", !step.immutable);
+        for (const node of document.querySelectorAll("[data-node]")) {
+          node.classList.toggle("focus", step.focus.includes(node.id));
+          // Keep the architecture readable; highlight the current actors instead of removing context.
+          node.classList.toggle("dim", !["app","sql","foundry","client","avd","cloud"].includes(node.id) && !step.focus.includes(node.id));
+        }
+        if (id === "overview" && !summary) {
+          $("foundry").classList.toggle("concealed", position.index < 2);
+          $("sql").classList.toggle("concealed", position.index < 1);
+        } else {
+          $("foundry").classList.remove("concealed"); $("sql").classList.remove("concealed");
+        }
+        for (const { route } of routeParticles.values()) {
+          route.classList.toggle("hidden", route.id === "client-app-local" ? !step.disconnected
+            : Boolean(step.disconnected) && ["client-avd","avd-app"].includes(route.id));
+          route.classList.toggle("active", step.flows.includes(route.id));
+          route.setAttribute("marker-end", step.flows.includes(route.id) ? "url(#arrow)" : "");
+        }
+        document.querySelectorAll(".chapter-nav button").forEach((button, index) => {
+          if (index === current) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
+        });
+      }
+      const reduced = !exporting && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const trafficTime = sequence ? phaseTime - scene.start : phaseTime;
+      for (const [routeId, { route, length, dots }] of routeParticles) {
+        const embedding = routeId === "sql-embed" || routeId === "embed-sql";
+        const embeddingProgress = (trafficTime - (routeId === "embed-sql" ? 1800 : 0)) / 1800;
+        const onceProgress = trafficTime / step.duration;
+        dots.forEach((dot, index) => {
+          const progress = reduced ? .5 : step.once ? onceProgress : embedding ? embeddingProgress
+            : ((trafficTime / 1800 + index / 3) % 1 + 1) % 1;
+          const point = route.getPointAtLength(length * Math.max(0, Math.min(1, progress)));
+          dot.setAttribute("cx", point.x); dot.setAttribute("cy", point.y);
+          const visible = step.flows.includes(routeId) && !chapter.staticFlows?.includes(routeId)
+            && (!step.once || (index === 0 && onceProgress >= 0 && onceProgress <= 1))
+            && (!embedding || (index === 0 && embeddingProgress >= 0 && embeddingProgress <= 1));
+          dot.setAttribute("opacity", visible ? Math.max(0, Math.min(1, progress * 8, (1 - progress) * 8)) : 0);
+        });
+      }
+      return { id, title: step.title, step: position.index, duration: duration(chapter), disconnected: Boolean(step.disconnected), flows: step.flows };
+    }
+    function select(index) {
+      if (chapters[index].sequence) selectedKey = "";
+      render(chapters[index].id);
+    }
+    for (let i = 0; i < chapters.length; i++) {
+      const button = document.createElement("button"); button.textContent = chapters[i].label;
+      button.type = "button";
+      button.setAttribute("aria-controls", "diagram");
+      button.addEventListener("click", () => select(i)); document.querySelector(".chapter-nav").append(button);
+    }
+    function tick(now) {
+      render(chapters[current].id, elapsed, now);
+      requestAnimationFrame(tick);
+    }
+    window.caldova = { chapters, render, duration, select };
+    render(chapters[current].id, undefined, exporting ? 0 : performance.now());
+    if (!exporting) requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

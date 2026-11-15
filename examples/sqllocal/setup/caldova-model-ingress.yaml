@@ -1,0 +1,80 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: caldova-external-gateway
+  namespace: foundry-local-operator
+  labels:
+    app.kubernetes.io/part-of: caldova-regional-care
+  annotations:
+    networking.istio.io/service-type: LoadBalancer
+spec:
+  gatewayClassName: istio
+  infrastructure:
+    annotations:
+      metallb.io/address-pool: caldova-model-lb
+      metallb.io/loadBalancerIPs: 192.0.2.10
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: inference-external-gateway-ip-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: caldova-gpt-oss-20b
+  namespace: foundry-local-operator
+  labels:
+    app.kubernetes.io/part-of: caldova-regional-care
+spec:
+  parentRefs:
+    - name: caldova-external-gateway
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /gpt-oss-20b
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: gpt-oss-20b
+          port: 5000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: caldova-nemotron-3-embed-1b-bf16
+  namespace: foundry-local-operator
+  labels:
+    app.kubernetes.io/part-of: caldova-regional-care
+spec:
+  parentRefs:
+    - name: caldova-external-gateway
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /nemotron-3-embed-1b-bf16
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: nemotron-3-embed-1b-bf16
+          port: 5000

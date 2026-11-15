@@ -47,3 +47,26 @@ If no approved connection is available, provide the execution order and request
 redacted results rather than claiming a diagnosis. Do not save raw query text,
 production captures, or credentials in this public repository. Follow
 [secret handling](../../../SECRET-SCANNING.md).
+
+## SQL Server 2025 teaching lab
+
+For an explicitly approved non-production demonstration, follow the
+[SQLSimTools lab](../../../troubleshoot/tempdb/growth-and-slow-workloads/demo/readme.md).
+Use SQLSimTools from <https://aka.ms/sqlsimtools> for workload execution, one
+thread and one iteration. Resolve its installed executable; do not install or
+run a workload against an unapproved target. The lab requires SQL Server 2025
+and at least 48 MB of reusable tempdb data space.
+
+Observe from a separate connection during the 90-second hold. Verify at least
+32 MB of user-object allocation and the owning session, then verify the
+workload's cleanup assertion (within 2 MB of its session baseline).
+The deliberate `WAITFOR` is not a performance incident. Do not claim physical
+autogrowth, spilling, or version retention from this example. Never run the
+reproduction simply because the diagnostic skill was activated.
+
+## Report format
+
+Return: product/build and sample times; observed data/log occupancy versus file
+size; allocation category and owners; progress/waits; evidence supporting or
+rejecting each hypothesis; one approved next action; and comparable verification
+measurements. Label unknowns and distinguish lab assertions from actual results.
