@@ -1,0 +1,51 @@
+<NetworkPoolCards Resources="Resources" Loading="Loading" ShowProfiles="false">
+    <Metrics Context="provider">
+        @{
+            var clinic = Clinics.FirstOrDefault(item => item.Key == provider.Key);
+            var measured = StorageReading(provider.Key);
+            var before = clinic?.InitialStorage;
+            var expanded = provider.Key == "caldova" && before is not null && measured is not null
+                && measured.AllocatedBytes > before.AllocatedBytes;
+        }
+        <section class="clinic-metrics">
+            <div class="provider-stats">
+                <div><strong>@(clinic?.Workload.Active.ToString() ?? "–")</strong><span>Staff online</span></div>
+                <div><strong>@(clinic?.Workload.Completed.ToString("N0", CultureInfo.InvariantCulture) ?? "–")</strong><span>Scheduling queries</span></div>
+                <div><strong>@Cpu(clinic)</strong><span>CPU-used vCores</span></div>
+            </div>
+        </section>
+        <section class="clinic-growth-space @(expanded ? "storage-expanded" : null)">
+            <h3>Database storage</h3>
+            <div class="growth-reading">
+                <strong>@(measured?.UsedGiB.ToString("0.00", CultureInfo.InvariantCulture) ?? "–") GiB used</strong>
+                @if (measured is not null)
+                {
+                    <progress max="@measured.AllocatedBytes.ToString(CultureInfo.InvariantCulture)"
+                              value="@measured.UsedBytes.ToString(CultureInfo.InvariantCulture)"
+                              aria-label="@($"{provider.Name} space used versus currently allocated data-file space")"></progress>
+                }
+            </div>
+            @if (expanded && before is { } original && measured is { } current)
+            {
+                <div class="storage-expansion" role="status" aria-live="polite">
+                    <span>Storage auto-expanded</span>
+                    <strong>@original.AllocatedGiB.ToString("0.##", CultureInfo.InvariantCulture) → @current.AllocatedGiB.ToString("0.##", CultureInfo.InvariantCulture) GiB</strong>
+                    <small>+@((current.AllocatedGiB - original.AllocatedGiB).ToString("0.##", CultureInfo.InvariantCulture)) GiB allocated automatically</small>
+                </div>
+            }
+            else
+            {
+                <p class="footnote">@(measured?.AllocatedGiB.ToString("0.00", CultureInfo.InvariantCulture) ?? "–") GiB allocated</p>
+            }
+        </section>
+    </Metrics>
+</NetworkPoolCards>
+
+@code {
+    [Parameter] public NetworkResources? Resources { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public IReadOnlyList<PoolClinicReading> Clinics { get; set; } = [];
+    [Parameter, EditorRequired] public Func<string, DatabaseStorage?> StorageReading { get; set; } = default!;
+    private static string Cpu(PoolClinicReading? clinic) => clinic?.Samples.Count > 0
+        ? Math.Ceiling(clinic.Samples[^1].UsedVCores).ToString("0", CultureInfo.InvariantCulture) : "–";
+}

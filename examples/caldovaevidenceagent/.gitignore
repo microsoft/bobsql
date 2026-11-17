@@ -1,0 +1,26 @@
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+.azure/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# .NET
+bin/
+obj/
+.checkpoints/
+
+# Local runtime
+.run/
+
+# Generated deployment artifacts
+app/infra/main.json
+app/infra/main.parameters.json

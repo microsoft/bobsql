@@ -1,0 +1,15 @@
+@inherits LayoutComponentBase
+
+<div class="shell">
+    <header class="topbar">
+        <div class="brand">Caldova Patient Access Operations</div>
+        <nav class="topnav">
+            <NavLink href="/" Match="NavLinkMatch.All" class="nav-item">Operations Dashboard</NavLink>
+            <NavLink href="/index-health" class="nav-item">Index Health</NavLink>
+        </nav>
+    </header>
+
+    <main class="content">
+        @Body
+    </main>
+</div>

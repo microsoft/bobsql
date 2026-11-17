@@ -1,0 +1,180 @@
+@page "/scale"
+@implements IAsyncDisposable
+@inject NetworkResourceMonitor Resources
+@inject PoolScaler Scaler
+@inject PoolScheduling Scheduling
+@inject PoolStorage Storage
+@inject ILogger<PoolScale> Logger
+
+<PageTitle>Step 4 · Scale · Caldova</PageTitle>
+<div class="pool-scale-page">
+<section class="page-header heading-row network-header">
+    <div>
+        <p class="eyebrow">Step 4 · Scale shared compute</p>
+        <h1>Scale shared compute</h1>
+        <p title="Sum of the clinics' latest measured 15-second CPU averages.">
+            CPU-used across pool: <strong>@PoolCpu(Scheduling.State)</strong> / @(resources?.VCores.ToString("0", CultureInfo.InvariantCulture) ?? "–") vCores
+        </p>
+    </div>
+    <div class="transport">
+        <button class="btn btn-primary" disabled="@(!CanScale(24))" @onclick="() => ScaleAsync(24)">Scale Pool to 24</button>
+        <button class="btn btn-secondary" disabled="@(!CanScale(8))" @onclick="() => ScaleAsync(8)">Scale Pool to 8</button>
+        @if (Scheduling.State.Running)
+        {
+            <button class="btn btn-secondary" @onclick="StopAsync">■ Stop</button>
+        }
+        else
+        {
+            <button class="btn btn-primary" disabled="@(!Scheduling.Enabled || resourceBusy || !PoolReady || Scheduling.GrowthEnabled && (!StorageReady || storageError is not null))" @onclick="RunAsync">
+                ▶ @(Scheduling.GrowthEnabled && !GrowthDone ? "Run Scheduling & Grow" : "Run Scheduling")
+            </button>
+        }
+    </div>
+</section>
+@if (resourceError is not null) { <p class="callout callout-error" role="alert">@resourceError</p> }
+@if (storageError is not null) { <p class="callout callout-error" role="alert">@storageError</p> }
+@if (actionError is not null || Scaler.State.Error is not null || Scheduling.State.Error is not null)
+{
+    <p class="callout callout-error" role="alert">@(actionError ?? Scaler.State.Error ?? Scheduling.State.Error)</p>
+}
+@if (Scaler.State.Running) { <p class="callout callout-info" role="status">Scaling pool to @Scaler.State.Target vCores...</p> }
+@if (!Scaler.Enabled) { <p class="footnote">Live scale and scheduling controls are disabled on this app host.</p> }
+<PoolActivityCards Resources="resources" Loading="resourceBusy"
+                   Clinics="Scheduling.State.Clinics" StorageReading="LatestStorage" />
+@if (Scheduling.GrowthEnabled && Scheduling.State.Finished is not null
+    && !Scheduling.State.Running && Scheduling.State.Error is null && !GrowthDone)
+{
+    <p class="footnote" role="status">Growth past 20 GiB has not been confirmed. Actual storage sizes are shown above.</p>
+}
+<p class="footnote">@(Scheduling.GrowthEnabled
+    ? GrowthDone ? "Caldova has already crossed 20 GiB with higher allocation; Run preserves existing storage."
+        : $"Run grows Caldova past 20 GiB until SQL confirms higher allocation, capped at {PoolScheduling.GrowthTargetGiB} GiB used. Committed batches remain after Stop."
+    : "Storage inserts are disabled on this app host.")
+    Scheduling does not book appointments. CPU samples are 15-second averages.</p>
+</div>
+
+@code {
+    private bool resourceBusy;
+    private string? resourceError;
+    private string? actionError;
+    private string? storageError;
+    private IReadOnlyList<DatabaseStorage> storageReadings = [];
+    private NetworkResources? resources;
+    private readonly CancellationTokenSource closing = new();
+    private Task? watching;
+    private long revision;
+    private bool PoolReady => resources is { } pool && pool.State == "Ready"
+        && ProviderProfiles.All.All(provider => pool.Databases.Any(db => db.Name == provider.Database
+            && db.Pool == pool.Pool && db.Status == "Online"));
+    private bool CanScale(int capacity) => Scaler.Enabled && !resourceBusy && !Scaler.State.Running
+        && PoolReady && (resources!.VCores != capacity
+            || resources.MaxVCoresPerDatabase != Math.Min(capacity, PoolScaler.PerDatabaseMaxVCores));
+    private bool StorageReady => ProviderProfiles.All.All(provider => LatestStorage(provider.Key) is { } measured
+        && measured.UsedBytes >= PoolStorage.TargetBytes(provider.Key, PoolStorage.SeedTarget(provider.Key)));
+    private bool GrowthDone => LatestStorage("caldova") is { } measured && PoolScheduling.GrowthConfirmed(measured);
+    private DatabaseStorage? LatestStorage(string key) => new[]
+        { Scheduling.State.Clinics.FirstOrDefault(clinic => clinic.Key == key)?.Storage,
+            storageReadings.FirstOrDefault(reading => reading.Key == key) }
+        .OfType<DatabaseStorage>().MaxBy(reading => reading.At);
+
+    protected override async Task OnInitializedAsync()
+    {
+        revision = Scaler.State.Revision;
+        await LoadResourcesAsync();
+    }
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) watching = WatchAsync();
+    }
+    private async Task LoadResourcesAsync()
+    {
+        resourceBusy = true;
+        resourceError = null;
+        try
+        {
+            resources = await Resources.ReadAsync(closing.Token);
+            if (!resources.IsPlayback)
+            {
+                try
+                {
+                    storageReadings = await Storage.ReadAllAsync(closing.Token);
+                    storageError = Scheduling.GrowthEnabled && !StorageReady
+                        ? "Run initial Grow storage seeding before Step 4: Caldova 18, Northbrook 12, Ridgeview 15 GiB used." : null;
+                }
+                catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException or InvalidOperationException
+                    or OperationCanceledException or Azure.Identity.AuthenticationFailedException or Azure.Identity.CredentialUnavailableException)
+                {
+                    Logger.LogError("Storage inspection failed: {Error}", AzureCliRunner.Redact(ex.Message));
+                    storageReadings = [];
+                    storageError = "SQL storage measurements could not be verified. Run Grow storage seeding and check SQL access.";
+                }
+            }
+        }
+        catch (OperationCanceledException) when (closing.IsCancellationRequested) { }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or System.Text.Json.JsonException
+            or KeyNotFoundException or FormatException or OperationCanceledException
+            or Azure.Identity.AuthenticationFailedException or Azure.Identity.CredentialUnavailableException)
+        {
+            resources = null;
+            Logger.LogError(ex, "Pool resource inspection failed");
+            resourceError = "Pool resources could not be verified. Check Azure resource-read access and the configured target.";
+        }
+        finally { resourceBusy = false; }
+    }
+    private async Task ScaleAsync(int capacity)
+    {
+        actionError = null;
+        try { await Scaler.ScaleAsync(capacity); }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentOutOfRangeException)
+        {
+            Logger.LogError("Pool scaling failed: {Error}", ex.Message);
+            actionError = ex.Message;
+        }
+        finally { await LoadResourcesAsync(); }
+    }
+    private async Task RunAsync()
+    {
+        actionError = null;
+        try { await Scheduling.StartAsync(); }
+        catch (InvalidOperationException ex) { actionError = ex.Message; }
+    }
+    private async Task StopAsync()
+    {
+        await Scheduling.StopAsync();
+        await LoadResourcesAsync();
+    }
+    private async Task WatchAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(closing.Token))
+                await InvokeAsync(async () =>
+                {
+                    var state = Scaler.State;
+                    if (state.Revision != revision)
+                    {
+                        revision = state.Revision;
+                        if (!state.Running) await LoadResourcesAsync();
+                    }
+                    StateHasChanged();
+                });
+        }
+        catch (OperationCanceledException) when (closing.IsCancellationRequested) { }
+    }
+    private static string PoolCpu(PoolSchedulingState state)
+    {
+        var latest = ProviderProfiles.All.Select(provider =>
+            state.Clinics.FirstOrDefault(clinic => clinic.Key == provider.Key)?.Samples.LastOrDefault())
+            .OfType<ServerlessCpuSample>().ToArray();
+        if (latest.Length != ProviderProfiles.All.Count
+            || latest.Max(sample => sample.At) - latest.Min(sample => sample.At) > TimeSpan.FromSeconds(15)) return "–";
+        return Math.Ceiling(latest.Sum(sample => sample.UsedVCores)).ToString("0", CultureInfo.InvariantCulture);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        closing.Cancel();
+        if (watching is not null) await watching;
+        closing.Dispose();
+    }
+}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Caldova Network Scheduling</title>
+    <link rel="stylesheet" href="css/app.css?v=20261102-21" />
+    <HeadOutlet @rendermode="InteractiveNoPrerender" />
+</head>
+<body>
+    @* No prerender: buttons only appear once the circuit is live, so an early Play click is never dropped. *@
+    <Routes @rendermode="InteractiveNoPrerender" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+
+@code {
+    private static readonly IComponentRenderMode InteractiveNoPrerender = new InteractiveServerRenderMode(prerender: false);
+}

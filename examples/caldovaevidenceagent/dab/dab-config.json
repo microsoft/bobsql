@@ -1,0 +1,115 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/download/v2.0.9/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('SQL_CONNECTION_STRING')",
+    "options": {
+      "set-session-context": false
+    }
+  },
+  "runtime": {
+    "rest": {
+      "enabled": false
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "description": "Caldova biomedical evidence retrieval. Use only the three curated, read-only tools. Search broadly with search_evidence, retrieve neighboring passages with get_article_context, and inspect readiness with get_corpus_status.",
+      "dml-tools": {
+        "describe-entities": false,
+        "create-record": false,
+        "read-records": false,
+        "update-record": false,
+        "delete-record": false,
+        "execute-entity": false,
+        "aggregate-records": false
+      }
+    },
+    "host": {
+      "mode": "development",
+      "authentication": {
+        "provider": "Simulator"
+      }
+    }
+  },
+  "entities": {
+    "search_evidence": {
+      "source": {
+        "object": "dbo.search_evidence",
+        "type": "stored-procedure",
+        "parameters": {
+          "question": "",
+          "top_k": 5
+        }
+      },
+      "rest": {
+        "enabled": false
+      },
+      "graphql": {
+        "enabled": false
+      },
+      "mcp": {
+        "custom-tool": true
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["execute"]
+        }
+      ],
+      "description": "Search the curated biomedical corpus for a natural-language research question. Returns one best passage per distinct article, neighboring context, title, PMCID, cosine distance, and a PMC source URL. Use top_k from 1 through 10."
+    },
+    "get_article_context": {
+      "source": {
+        "object": "dbo.get_article_context",
+        "type": "stored-procedure",
+        "parameters": {
+          "pmcid": "",
+          "chunk_number": 0,
+          "radius": 2
+        }
+      },
+      "rest": {
+        "enabled": false
+      },
+      "graphql": {
+        "enabled": false
+      },
+      "mcp": {
+        "custom-tool": true
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["execute"]
+        }
+      ],
+      "description": "Retrieve ordered passages surrounding a selected PMCID and chunk number when the initial evidence is incomplete. Radius must be from 0 through 5."
+    },
+    "get_corpus_status": {
+      "source": {
+        "object": "dbo.get_corpus_status",
+        "type": "stored-procedure"
+      },
+      "rest": {
+        "enabled": false
+      },
+      "graphql": {
+        "enabled": false
+      },
+      "mcp": {
+        "custom-tool": true
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["execute"]
+        }
+      ],
+      "description": "Report corpus article and passage counts, embedding completeness, embedding model and dimensions, and DiskANN vector-index readiness."
+    }
+  }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caldova Evidence Agent - Architecture Motion</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e8edf4; color: #142b48; font: 14px "Segoe UI", sans-serif; }
+    canvas { display: block; width: min(100vw, 1920px); height: auto; margin: auto; }
+    nav { display: flex; align-items: center; gap: 16px; max-width: 1000px; margin: 18px auto; padding: 0 20px; }
+    button { border: 0; border-radius: 6px; background: #0067b8; color: white; padding: 9px 18px; cursor: pointer; }
+    input { flex: 1; accent-color: #0067b8; }
+    output { font-variant-numeric: tabular-nums; min-width: 80px; }
+    html[data-theme="dark"] { color-scheme: dark; }
+    html[data-theme="dark"] body { background: #080f1e; color: #edf4ff; }
+    html[data-theme="dark"] button { background: #215c91; }
+    html[data-theme="dark"] input { accent-color: #61b5ff; }
+  </style>
+</head>
+<body>
+  <canvas id="film" width="3840" height="2160" aria-label="Animated Caldova Evidence Agent architecture"></canvas>
+  <nav aria-label="Preview controls">
+    <button id="play" type="button">Pause</button>
+    <input id="seek" aria-label="Timeline" type="range" min="0" max="30" step="0.01" value="0">
+    <output id="time">0.0 / 30 s</output>
+  </nav>
+  <script type="module" src="./animation.mjs"></script>
+</body>
+</html>

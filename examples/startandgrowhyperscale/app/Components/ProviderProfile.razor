@@ -1,0 +1,14 @@
+<section class="provider-profile">
+    <h3>Provider profile</h3>
+    <div class="provider-stats">
+        <div><strong>@Profile.Patients.ToString("N0", CultureInfo.InvariantCulture)</strong><span>Patients</span></div>
+        <div><strong>@Profile.Staff.ToString("N0", CultureInfo.InvariantCulture)</strong><span>Staff</span></div>
+        <div><strong>@Profile.Departments</strong><span>Departments</span></div>
+    </div>
+    <h4>Care capabilities</h4>
+    <p>@Profile.Capabilities</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ProviderDemoProfile Profile { get; set; } = default!;
+}

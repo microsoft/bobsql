@@ -1,0 +1,193 @@
+@page "/"
+@implements IDisposable
+@inject IOperationsDataService DataService
+
+<PageTitle>Operations Dashboard</PageTitle>
+
+<section class="page-header dashboard-heading">
+    <div>
+        <p class="eyebrow">Caldova Regional Care</p>
+        <h1>Patient Access Operations</h1>
+        <p>Live appointment activity.</p>
+    </div>
+    <div class="header-actions">
+        <button class="refresh-button" type="button" @onclick="LoadDashboardAsync" disabled="@isLoading">
+            @(isLoading ? "Refreshing..." : "Refresh dashboard")
+        </button>
+    </div>
+</section>
+
+@if (errorMessage is not null)
+{
+    <section class="status-panel status-error">
+        <strong>Live database unavailable</strong>
+        <p>@errorMessage</p>
+    </section>
+}
+else if (data is null)
+{
+    <section class="status-panel">
+        <strong>Dashboard ready</strong>
+        <p>Refresh to measure the current Azure SQL access path.</p>
+    </section>
+}
+else
+{
+    <section class="regional-metrics" aria-busy="@isLoading">
+        <div class="regional-metrics-heading">
+            <div>
+                <p class="eyebrow">Regional access metrics</p>
+                <h2>Today's operating picture</h2>
+            </div>
+            @if (isLoading)
+            {
+                <div class="refresh-clock" role="status" aria-live="polite">
+                    <span class="clock-face" aria-hidden="true"><span class="clock-hand"></span></span>
+                    <span><strong>Refreshing metrics</strong><small>@elapsedSeconds.ToString("0.0") seconds</small></span>
+                </div>
+            }
+        </div>
+
+        <section class="metric-grid operational-metric-grid" aria-label="Operational metrics">
+            @foreach (var metric in OperationalMetrics(data))
+            {
+                <article class="metric-card @metric.ClassName">
+                    <h3>@metric.Label</h3>
+                    <div class="metric-value">@metric.Value</div>
+                    <p>@metric.Caption</p>
+                </article>
+            }
+        </section>
+    </section>
+
+    <section class="query-strip" aria-label="Refresh measurement">
+        <div><span>Metrics refresh</span><strong>@data.QueryDurationMs ms</strong></div>
+        <div><span>Logical reads</span><strong>@data.LogicalReads.ToString("N0")</strong></div>
+        <div><span>Measured</span><strong>@data.CapturedAtUtc.ToString("HH:mm:ss") UTC</strong></div>
+        <div><span>Window</span><strong>Last 365 days</strong></div>
+    </section>
+
+    <section class="detail-grid dashboard-detail-grid @(isLoading ? "dashboard-detail-stale" : null)">
+        <article class="status-board">
+            <div class="section-title">
+                <div><p class="eyebrow">Care flow</p><h2>Appointment Status</h2></div>
+                <span>@data.AppointmentVolume.ToString("N0") total</span>
+            </div>
+            @foreach (var status in StatusRows(data))
+            {
+                var width = data.AppointmentVolume == 0 ? 0 : status.Count * 100.0 / data.AppointmentVolume;
+                <div class="@($"status-row status-{StatusClass(status.Label)}")">
+                    <div><strong>@status.Label</strong><span>@status.Count.ToString("N0")</span></div>
+                    <div class="status-track"><div style="@($"width:{width:0.##}%")"></div></div>
+                </div>
+            }
+        </article>
+
+        <article>
+            <div class="section-title">
+                <div><p class="eyebrow">Demand profile</p><h2>Specialty Activity</h2></div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Specialty</th><th>Status</th><th>Appointments</th><th>Avg wait</th></tr></thead>
+                <tbody>
+                    @foreach (var row in data.Breakdown.OrderByDescending(item => item.AppointmentCount))
+                    {
+                        <tr>
+                            <td>Service @row.SpecialtyCode</td>
+                            <td><span class="@($"status-pill status-{StatusClass(row.AppointmentStatus)}")">@row.AppointmentStatus</span></td>
+                            <td>@row.AppointmentCount.ToString("N0")</td>
+                            <td>@row.AverageWaitMinutes.ToString("0.0") min</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </article>
+    </section>
+}
+
+@code {
+    private const int serviceRegionId = 42;
+    private OperationsDashboardData? data;
+    private string? errorMessage;
+    private bool isLoading;
+    private double elapsedSeconds;
+    private System.Diagnostics.Stopwatch? refreshStopwatch;
+    private System.Timers.Timer? refreshTimer;
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        StartRefreshClock();
+        try
+        {
+            data = await DataService.GetDashboardDataAsync(
+                serviceRegionId,
+                DateTime.UtcNow.AddDays(-365));
+            await DataService.CaptureIndexHealthAsync();
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+        }
+        finally
+        {
+            StopRefreshClock();
+            isLoading = false;
+        }
+    }
+
+    private void StartRefreshClock()
+    {
+        StopRefreshClock();
+        elapsedSeconds = 0;
+        refreshStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        refreshTimer = new System.Timers.Timer(100) { AutoReset = true };
+        refreshTimer.Elapsed += OnRefreshClockTick;
+        refreshTimer.Start();
+    }
+
+    private void StopRefreshClock()
+    {
+        if (refreshTimer is not null)
+        {
+            refreshTimer.Elapsed -= OnRefreshClockTick;
+            refreshTimer.Stop();
+            refreshTimer.Dispose();
+            refreshTimer = null;
+        }
+
+        refreshStopwatch?.Stop();
+        refreshStopwatch = null;
+    }
+
+    private async void OnRefreshClockTick(object? sender, System.Timers.ElapsedEventArgs eventArgs)
+    {
+        if (refreshStopwatch is null) return;
+        elapsedSeconds = refreshStopwatch.Elapsed.TotalSeconds;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static IEnumerable<(string Label, string Value, string Caption, string ClassName)> OperationalMetrics(
+        OperationsDashboardData dashboard)
+    {
+        yield return ("Appointment Volume", dashboard.AppointmentVolume.ToString("N0"), "Region activity in window", "accent-card metric-volume");
+        yield return ("Average Wait", $"{dashboard.AverageWaitMinutes:0.0} min", "Across all appointment states", "metric-wait");
+        yield return ("Cancellation Rate", $"{dashboard.CancellationRatePercent:0.0}%", $"{dashboard.CancelledCount:N0} cancelled", "metric-cancelled");
+        yield return ("Confirmed", dashboard.ConfirmedCount.ToString("N0"), "Ready for care delivery", "metric-confirmed");
+        yield return ("Completed", dashboard.CompletedCount.ToString("N0"), "Closed appointments", "metric-completed");
+    }
+
+    private static IEnumerable<(string Label, long Count)> StatusRows(OperationsDashboardData dashboard)
+    {
+        yield return ("Requested", dashboard.RequestedCount);
+        yield return ("Scheduled", dashboard.ScheduledCount);
+        yield return ("Confirmed", dashboard.ConfirmedCount);
+        yield return ("Completed", dashboard.CompletedCount);
+        yield return ("Cancelled", dashboard.CancelledCount);
+    }
+
+    private static string StatusClass(string status) => status.ToLowerInvariant();
+
+    public void Dispose() => StopRefreshClock();
+}

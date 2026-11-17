@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CaldovaEvidenceHostedAgent</RootNamespace>
+    <AssemblyName>CaldovaEvidenceHostedAgent</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!--
+      MAAI001          - Microsoft.Agents.AI experimental APIs (AgentSkillsProvider)
+      AAIP001          - Azure.AI.Projects.Agents experimental Skills APIs
+      OPENAI001         - OpenAI Responses experimental APIs (Foundry Responses hosting)
+      NU1903 / NU1605   - sample-only vulnerability/downgrade notices that are not actionable
+    -->
+    <NoWarn>$(NoWarn);MAAI001;AAIP001;OPENAI001;NU1903;NU1605</NoWarn>
+    <UserSecretsId>4b9d851e-6d58-45af-b921-b2e45cf23101</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Agent Framework core - provides AgentSkillsProviderBuilder and ChatClientAgent. -->
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.15.0" />
+    <!-- Agent Framework hosting - provides AgentHost, AddFoundryResponses, MapFoundryResponses. -->
+    <PackageReference Include="Microsoft.Agents.AI.Foundry.Hosting" Version="1.15.0-preview.260722.1" />
+    <!-- Foundry SDK - provides AIProjectClient and AsAIAgent. -->
+    <PackageReference Include="Azure.AI.Projects" Version="2.1.0-beta.4" />
+    <!-- MCP client used to discover and call governed DAB SQL MCP tools. -->
+    <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
+    <!-- .env file support for local development. -->
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+  </ItemGroup>
+
+</Project>

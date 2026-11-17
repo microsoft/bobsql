@@ -1,0 +1,39 @@
+@page "/verify"
+@inject NetworkResourceMonitor Resources
+@inject ILogger<Verify> Logger
+@inject PoolPresentation Presentation
+
+<PageTitle>Step 3 · Caldova scheduling network</PageTitle>
+<section class="page-header network-header">
+    <p class="eyebrow">Step 3 · One pool, one network · caldova-network-pool</p>
+    <h1>Caldova scheduling network</h1>
+    <p>Three provider databases share compute in one Hyperscale elastic pool.</p>
+</section>
+@if (resourceError is not null) { <p class="callout callout-error" role="alert">@resourceError</p> }
+<NetworkPoolCards Resources="resources" Loading="resourceBusy" />
+
+@code {
+    [Parameter] public bool Live { get; set; }
+    private bool ShowingPresentation => Presentation.Enabled && !Live;
+    private bool resourceBusy;
+    private string? resourceError;
+    private NetworkResources? resources;
+    protected override async Task OnInitializedAsync()
+    {
+        if (ShowingPresentation)
+        {
+            resources = Presentation.Snapshot.Resources;
+            return;
+        }
+        resourceBusy = true;
+        try { resources = await Resources.ReadAsync(CancellationToken.None); }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException
+            or System.Text.Json.JsonException or KeyNotFoundException or FormatException or TaskCanceledException
+            or Azure.Identity.AuthenticationFailedException or Azure.Identity.CredentialUnavailableException)
+        {
+            Logger.LogError(ex, "Caldova network resource inspection failed");
+            resourceError = "Resource details could not be verified. Check Azure resource-read access and the configured target. See server logs for details.";
+        }
+        finally { resourceBusy = false; }
+    }
+}

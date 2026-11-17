@@ -1,0 +1,11 @@
+<article class="provider-card acquisition-card provider-@Profile.Key">
+    <header><span class="provider-tag">@Profile.Role</span><h2>@Profile.Name</h2></header>
+    @ChildContent
+    @if (ShowProfile) { <ProviderProfile Profile="Profile" /> }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public ProviderDemoProfile Profile { get; set; } = default!;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool ShowProfile { get; set; } = true;
+}

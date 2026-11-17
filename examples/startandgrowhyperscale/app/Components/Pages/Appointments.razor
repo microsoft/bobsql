@@ -1,0 +1,178 @@
+@page "/appointments"
+@inject IAppointmentAvailabilityService Availability
+@inject ILogger<Appointments> Logger
+
+<PageTitle>Step 5 · Search and book · Caldova</PageTitle>
+<section class="page-header">
+    <p class="eyebrow">Step 5 · One network search, one provider write</p>
+    <h1>Find and book the next available appointment</h1>
+    <p>One connection to Caldova,
+        a native cross-database join view for reads, and one transaction that writes only to the selected provider's database.</p>
+</section>
+<section class="panel">
+    <div class="transport">
+        <div class="search-box">
+            <label for="specialty">Specialty</label>
+            <select id="specialty" @bind="specialty" disabled="@busy">
+                @foreach (var value in Availability.Specialties) { <option value="@value">@value</option> }
+            </select>
+        </div>
+        <label><input type="checkbox" @bind="networkWide" disabled="@busy" /> Search the entire network</label>
+        <button class="btn btn-primary" disabled="@busy" @onclick="SearchAsync">@(busy ? "Working..." : "Find openings")</button>
+    </div>
+</section>
+@if (error is not null) { <div class="callout callout-error" role="alert">@error</div> }
+@if (message is not null) { <div class="callout callout-info" role="status">@message</div> }
+@if (result is not null)
+{
+    <section class="compare">
+        <div class="compare-card compare-before">
+            <span>Caldova's schedule only</span>
+            <strong>@LeadTime(result.EarliestCaldovaOnly)</strong>
+        </div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-card compare-after">
+            <span>@(result.NetworkWide ? "Across the network" : "Caldova only")</span>
+            <strong>@LeadTime(result.Slots.FirstOrDefault())</strong>
+        </div>
+    </section>
+    <section class="panel">
+        <h2>Next openings · @searchedSpecialty</h2>
+        @if (result.Slots.Count == 0) { <p>No openings. Verify the seed data or try another specialty.</p> }
+        else
+        {
+            <table class="slots">
+                <thead><tr><th>When (UTC)</th><th>Provider / location</th><th>Clinician</th><th>Source</th><th>Book</th></tr></thead>
+                <tbody>
+                    @foreach (var slot in result.Slots)
+                    {
+                        <tr @key="(slot.ProviderKey, slot.SlotId)">
+                            <td>@slot.SlotStart.ToString("ddd MMM d · h:mm tt")<br />@slot.DurationMinutes min</td>
+                            <td><strong>@slot.ProviderName</strong><br />@slot.Location</td>
+                            <td>@slot.Clinician</td><td><code>@slot.SourceObject</code></td>
+                            <td><button class="btn btn-primary" disabled="@(busy || bookedSlots.Contains((slot.ProviderKey, slot.SlotId)))"
+                                        @onclick="() => BookAsync(slot)">@(bookedSlots.Contains((slot.ProviderKey, slot.SlotId)) ? "Booked" : "Book slot")</button>
+                                @if (Availability is IAppointmentBookingResetService { ResetEnabled: true }
+                                    && bookingReceipts.ContainsKey((slot.ProviderKey, slot.SlotId)))
+                                {
+                                    <button class="btn" disabled="@busy" @onclick="() => ResetAsync(slot)">Reset booking</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+    <section class="panel"><h2>What the app runs</h2><pre class="code">@result.QueryText</pre></section>
+}
+<details class="panel">
+    <summary>Behind the view · native cross-database joins</summary>
+    <pre class="code">@Availability.ViewDefinition</pre>
+    <p>Caldova's provider directory uses three LEFT JOINs to the provider schedules.
+        Each join matches the provider key and clinic ID, so schedules are not multiplied or mixed.
+        Each database checks the application's permissions.</p>
+</details>
+@if (bookingQuery is not null)
+{
+    <section class="panel"><h2>Booking · one transaction, one write database</h2><pre class="code">@bookingQuery</pre>
+        <p>From the Caldova connection: update the slot and insert the appointment, both in the provider's database.
+            A transaction can write to only one database. A slot already taken produces no write.</p></section>
+}
+
+@code {
+    private string specialty = "Cardiology";
+    private string searchedSpecialty = "Cardiology";
+    private bool networkWide;
+    private bool busy;
+    private AvailabilityResult? result;
+    private string? error;
+    private string? message;
+    private string? bookingQuery;
+    private readonly HashSet<(string ProviderKey, long SlotId)> bookedSlots = [];
+    private readonly Dictionary<(string ProviderKey, long SlotId), long> bookingReceipts = [];
+
+    private static string LeadTime(AppointmentSlot? slot) => slot is null
+        ? "No openings" : $"{Math.Max(0, (slot.SlotStart.Date - DateTime.UtcNow.Date).Days)} days";
+
+    private async Task SearchAsync()
+    {
+        busy = true;
+        error = message = null;
+        result = null;
+        bookedSlots.Clear();
+        bookingReceipts.Clear();
+        try
+        {
+            searchedSpecialty = specialty;
+            result = await Availability.FindNextAsync(specialty, networkWide);
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException or InvalidOperationException)
+        {
+            Logger.LogError(ex, "Appointment search failed");
+            error = "Search failed. Check pool membership, SQL setup, identity grants, and connectivity. See server logs for details.";
+        }
+        finally { busy = false; }
+    }
+
+    private async Task BookAsync(AppointmentSlot slot)
+    {
+        if (busy || bookedSlots.Contains((slot.ProviderKey, slot.SlotId))) return;
+        busy = true;
+        error = message = null;
+        var bookingCompleted = false;
+        try
+        {
+            var booking = await Availability.BookAsync(slot.ProviderKey, slot.SlotId);
+            bookingCompleted = true;
+            bookingQuery = booking.QueryText;
+            message = booking.Booked
+                ? $"Booked {slot.ProviderName}, slot {slot.SlotId}: slot updated and appointment inserted in {SqlAppointmentAvailabilityService.GetDatabase(slot.ProviderKey)}, one transaction."
+                : "That slot is no longer available. No booking was made; choose another opening.";
+            if (booking.Booked)
+            {
+                bookedSlots.Add((slot.ProviderKey, slot.SlotId));
+                if (booking.AppointmentId is > 0)
+                    bookingReceipts[(slot.ProviderKey, slot.SlotId)] = booking.AppointmentId.Value;
+                return;
+            }
+            var scope = result?.NetworkWide ?? networkWide;
+            result = null;
+            result = await Availability.FindNextAsync(searchedSpecialty, scope);
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException or InvalidOperationException)
+        {
+            Logger.LogError(ex, "Appointment booking or refresh failed for {ProviderKey}, slot {SlotId}", slot.ProviderKey, slot.SlotId);
+            result = null;
+            error = bookingCompleted
+                ? "Availability refresh failed after the booking response above. Search again before selecting another slot."
+                : $"Booking could not be confirmed for {slot.ProviderName}, slot {slot.SlotId}. Do not retry blindly: check the slot in SQL first. See server logs for details.";
+        }
+        finally { busy = false; }
+    }
+
+    private async Task ResetAsync(AppointmentSlot slot)
+    {
+        if (busy) return;
+        busy = true;
+        error = message = null;
+        try
+        {
+            if (Availability is not IAppointmentBookingResetService { ResetEnabled: true } reset
+                || !bookingReceipts.TryGetValue((slot.ProviderKey, slot.SlotId), out var appointmentId))
+                throw new InvalidOperationException("No confirmed booking is available to reset on this host.");
+            await reset.ResetAsync(slot.ProviderKey, slot.SlotId, appointmentId);
+            bookedSlots.Remove((slot.ProviderKey, slot.SlotId));
+            bookingReceipts.Remove((slot.ProviderKey, slot.SlotId));
+            bookingQuery = null;
+            message = $"Reset {slot.ProviderName}, slot {slot.SlotId}: appointment removed and slot reopened.";
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.SqlClient.SqlException or InvalidOperationException)
+        {
+            Logger.LogError(ex, "Booking reset failed for {ProviderKey}, slot {SlotId}", slot.ProviderKey, slot.SlotId);
+            result = null;
+            error = $"Reset could not be confirmed for {slot.ProviderName}, slot {slot.SlotId}. Do not retry blindly: check the slot in SQL first. See server logs for details.";
+        }
+        finally { busy = false; }
+    }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5191",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "part1": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5099",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__Scheduling": "Server=tcp:{start-server}.database.windows.net,1433;Initial Catalog=caldova-scheduling;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connect Timeout=30",
+        "ServerlessMonitor__ResourceId": "/subscriptions/{subscription-id}/resourceGroups/caldova-network-rg/providers/Microsoft.Sql/servers/{start-server}/databases/caldova-scheduling",
+        "ServerlessMonitor__EnableWorkload": "true"
+      }
+    },
+    "resume-recording": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5096",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Demo__Playback": "true",
+        "ServerlessRecording__Mode": "Live",
+        "ServerlessRecording__File": "",
+        "Playback__StartPaused": "true",
+        "Playback__AutoPauseSeconds": "60",
+        "Playback__ResumeSeconds": "14",
+        "PoolPresentation__Enabled": "false",
+        "PoolScaling__Enabled": "false",
+        "PoolGrowth__Enabled": "false",
+        "BookingReset__Enabled": "false",
+        "ServerlessMonitor__EnableWorkload": "true"
+      }
+    },
+    "playback": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5096",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Demo__Playback": "true",
+        "Playback__AutoPauseSeconds": "60",
+        "Playback__ResumeSeconds": "14",
+        "ConnectionStrings__Scheduling": "Server=tcp:{start-server}.database.windows.net,1433;Initial Catalog=caldova-scheduling;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connect Timeout=30",
+        "ServerlessMonitor__ResourceId": "/subscriptions/{subscription-id}/resourceGroups/caldova-network-rg/providers/Microsoft.Sql/servers/{start-server}/databases/caldova-scheduling",
+        "ServerlessMonitor__EnableWorkload": "true"
+      }
+    }
+  }
+}

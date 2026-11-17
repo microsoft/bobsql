@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap');
+
+:root {
+  --canvas: #f8f9f6;
+  --ink: #183129;
+  --forest: #1b5343;
+  --muted: #6d7973;
+  --line: #d7ddd9;
+  --coral: #e27156;
+  --coral-dark: #b34f39;
+  --sans: 'Manrope', sans-serif;
+  --display: 'Newsreader', serif;
+  --mono: 'DM Mono', monospace;
+  color: var(--ink);
+  background: var(--canvas);
+  font-family: var(--sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, input { letter-spacing: 0; }
+button, a { -webkit-tap-highlight-color: transparent; }
