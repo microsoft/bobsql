@@ -1,0 +1,13 @@
+{
+  "name": "caldova-architecture-animation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs",
+    "test": "node render.mjs --check"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "playwright-core": "^1.56.1"
+  }
+}

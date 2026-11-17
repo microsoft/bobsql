@@ -1,0 +1,15 @@
+{
+  "name": "caldova-serverless-workload",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Scheduled Azure SQL Hyperscale serverless workload for the Caldova research database.",
+  "main": "run-workload.mjs",
+  "scripts": {
+    "start": "node run-workload.mjs"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.5.0",
+    "mssql": "^12.7.1"
+  }
+}

@@ -1,0 +1,1 @@
+Reset Scene 2 for a fresh deployment. Delete only `caldova-scheduling` on the Start server (the `sql-caldova-start-*` server in `caldova-network-rg`). Keep the resource group, both servers, and all databases on the network server. Show the plan and wait for approval.

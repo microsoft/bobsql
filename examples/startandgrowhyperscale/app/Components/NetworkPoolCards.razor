@@ -1,0 +1,37 @@
+<fieldset class="network-pool @(PoolVerified ? "pool-verified" : "pool-unverified")">
+    <legend>@(PoolVerified ? $"Hyperscale elastic pool · {Resources!.Pool}" : Loading ? "Checking pool membership..." : "Pool membership not verified")</legend>
+    <div class="provider-grid">
+        @foreach (var provider in ProviderProfiles.All)
+        {
+            var database = Resources?.Databases.FirstOrDefault(db => db.Name == provider.Database);
+            <ProviderCard Profile="provider" ShowProfile="ShowProfiles">
+                <dl>
+                    <div><dt>Database</dt><dd><code>@provider.Database</code></dd></div>
+                    <div><dt>Compute</dt><dd>
+                        @if (database?.Pool is not null && Resources is { } pool)
+                        {
+                            <span class="shared-vcores">@($"Shared {F(pool.VCores)} vCores")</span>
+                            <small class="database-vcore-limits">@($"Min {F(pool.MinVCoresPerDatabase)} / Max {F(pool.MaxVCoresPerDatabase)} vCores per database")</small>
+                        }
+                        else
+                        {
+                            @(database is null ? Loading ? "Loading..." : "Not verified" : "Not shared")
+                        }
+                    </dd></div>
+                    <div><dt>Database state</dt><dd>@(database?.Status ?? (Loading ? "Loading..." : "Not verified"))</dd></div>
+                </dl>
+                @if (Metrics is not null) { @Metrics(provider) }
+            </ProviderCard>
+        }
+    </div>
+</fieldset>
+
+@code {
+    [Parameter] public NetworkResources? Resources { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public bool ShowProfiles { get; set; } = true;
+    [Parameter] public RenderFragment<ProviderDemoProfile>? Metrics { get; set; }
+    private bool PoolVerified => Resources is { } pool && ProviderProfiles.All.All(provider =>
+        pool.Databases.Any(database => database.Name == provider.Database && database.Pool == pool.Pool));
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

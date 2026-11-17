@@ -1,0 +1,24 @@
+@page "/network"
+@using System.Globalization
+
+<PageTitle>Step 2 · Caldova acquisitions</PageTitle>
+<section class="page-header acquisitions-header">
+    <p class="eyebrow">Step 2 · Grow the Caldova network</p>
+    <h1>Caldova Health just acquired two providers</h1>
+    <p>Bring their scheduling databases together without merging their data or rewriting their schedules.</p>
+</section>
+<div class="provider-grid">
+    @foreach (var provider in ProviderProfiles.All)
+    {
+        <ProviderCard Profile="provider">
+            <dl>
+                <div><dt>Database</dt><dd><code>@provider.Database</code></dd></div>
+                <div><dt>Starting configuration</dt><dd>@provider.Compute</dd></div>
+            </dl>
+        </ProviderCard>
+    }
+</div>
+<section class="panel">
+    <h2>Three providers. Three separate databases.</h2>
+    <p>Caldova staff currently search each provider's schedule separately.</p>
+</section>

@@ -1,0 +1,79 @@
+/*
+    Research database schema for the Caldova demo.
+
+    Mirrors the source corpus schema so the application query is the same statement
+    against the small and the large database. The embedding column holds the vectors
+    produced during ingestion; nothing is re-encoded here.
+
+    chunk_id exists only because a full-text index needs a single-column unique key.
+    It is additive and does not change the shape of the corpus tables.
+*/
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+DECLARE @DeploymentApproved BIT = 0;
+
+IF @DeploymentApproved <> 1
+    THROW 51250, 'Deployment is blocked. Set @DeploymentApproved = 1 only after explicit approval.', 1;
+
+ALTER DATABASE CURRENT SET COMPATIBILITY_LEVEL = 170;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    /* Retire the earlier sidecar lane. The corpus now carries its own embeddings. */
+    IF OBJECT_ID(N'dbo.CaldovaPotionEmbedding', N'U') IS NOT NULL
+        DROP TABLE dbo.CaldovaPotionEmbedding;
+    IF OBJECT_ID(N'dbo.CaldovaVectorContract', N'U') IS NOT NULL
+        DROP TABLE dbo.CaldovaVectorContract;
+
+    IF OBJECT_ID(N'dbo.pmc_chunks', N'U') IS NOT NULL
+        DROP TABLE dbo.pmc_chunks;
+    IF OBJECT_ID(N'dbo.pmc_documents', N'U') IS NOT NULL
+        DROP TABLE dbo.pmc_documents;
+
+    CREATE TABLE dbo.pmc_documents
+    (
+        document_id INT NOT NULL,
+        pmcid INT NOT NULL,
+        package_version INT NOT NULL
+            CONSTRAINT DF_pmc_documents_package_version DEFAULT 1,
+        pmid INT NULL,
+        doi VARCHAR(255) NULL,
+        title NVARCHAR(2000) NULL,
+        CONSTRAINT PK_pmc_documents PRIMARY KEY CLUSTERED (document_id),
+        CONSTRAINT UQ_pmc_documents_pmcid UNIQUE (pmcid),
+        CONSTRAINT CK_pmc_documents_document_id CHECK (document_id > 0)
+    );
+
+    CREATE TABLE dbo.pmc_chunks
+    (
+        document_id INT NOT NULL,
+        chunk_number INT NOT NULL,
+        text_chunk NVARCHAR(MAX) NOT NULL,
+        embedding VECTOR(512) NOT NULL,
+        chunk_id INT IDENTITY(1,1) NOT NULL,
+        is_preprint BIT NOT NULL
+            CONSTRAINT DF_pmc_chunks_is_preprint DEFAULT 0,
+        CONSTRAINT PK_pmc_chunks PRIMARY KEY CLUSTERED (document_id, chunk_number),
+        CONSTRAINT UQ_pmc_chunks_chunk_id UNIQUE (chunk_id),
+        CONSTRAINT FK_pmc_chunks_pmc_documents
+            FOREIGN KEY (document_id) REFERENCES dbo.pmc_documents (document_id),
+        CONSTRAINT CK_pmc_chunks_chunk_number CHECK (chunk_number >= 0),
+        CONSTRAINT CK_pmc_chunks_text_chunk CHECK (DATALENGTH(text_chunk) > 0)
+    );
+
+    IF DATABASE_PRINCIPAL_ID(N'CaldovaSearchReader') IS NULL
+        CREATE ROLE CaldovaSearchReader AUTHORIZATION dbo;
+
+    GRANT SELECT ON OBJECT::dbo.pmc_chunks TO CaldovaSearchReader;
+    GRANT SELECT ON OBJECT::dbo.pmc_documents TO CaldovaSearchReader;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;

@@ -1,0 +1,506 @@
+/*
+    Common PMC vector-search schema for both caldovadb targets.
+
+    Schema contract: pmc-vector-schema-v1
+    Embedding contract: text-embedding-3-small v1, 384 float32 dimensions
+
+    The vector index is intentionally created by 02-create-vector-index.sql.template
+    after at least 1,000 vectors have been loaded.
+*/
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+ALTER DATABASE CURRENT SET COMPATIBILITY_LEVEL = 170;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.SchemaVersion', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.SchemaVersion
+        (
+            SchemaVersionId INT NOT NULL,
+            VersionName VARCHAR(64) NOT NULL,
+            EmbeddingModel VARCHAR(128) NOT NULL,
+            EmbeddingModelVersion VARCHAR(32) NOT NULL,
+            EmbeddingDimensions SMALLINT NOT NULL,
+            DistanceMetric VARCHAR(16) NOT NULL,
+            AppliedAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_SchemaVersion_AppliedAtUtc DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT PK_SchemaVersion
+                PRIMARY KEY CLUSTERED (SchemaVersionId),
+            CONSTRAINT UQ_SchemaVersion_VersionName
+                UNIQUE (VersionName),
+            CONSTRAINT CK_SchemaVersion_EmbeddingDimensions
+                CHECK (EmbeddingDimensions > 0),
+            CONSTRAINT CK_SchemaVersion_DistanceMetric
+                CHECK (DistanceMetric IN ('COSINE'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.IngestionRun', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.IngestionRun
+        (
+            IngestionRunId UNIQUEIDENTIFIER NOT NULL,
+            InventoryTimestampUtc DATETIME2(0) NOT NULL,
+            InventoryManifestSha256 BINARY(32) NOT NULL,
+            ExtractionVersion VARCHAR(64) NOT NULL,
+            EmbeddingModel VARCHAR(128) NOT NULL,
+            EmbeddingModelVersion VARCHAR(32) NOT NULL,
+            EmbeddingDimensions SMALLINT NOT NULL,
+            CorpusRole VARCHAR(16) NOT NULL,
+            RunStatus VARCHAR(20) NOT NULL,
+            StartedAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_IngestionRun_StartedAtUtc DEFAULT SYSUTCDATETIME(),
+            CompletedAtUtc DATETIME2(0) NULL,
+            CONSTRAINT PK_IngestionRun
+                PRIMARY KEY CLUSTERED (IngestionRunId),
+            CONSTRAINT CK_IngestionRun_CorpusRole
+                CHECK (CorpusRole IN ('Anchor', 'LargeGrowth')),
+            CONSTRAINT CK_IngestionRun_RunStatus
+                CHECK (RunStatus IN ('Planned', 'Running', 'Succeeded', 'Failed', 'Cancelled')),
+            CONSTRAINT CK_IngestionRun_EmbeddingDimensions
+                CHECK (EmbeddingDimensions = 384)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.LoadBatch', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.LoadBatch
+        (
+            LoadBatchId BIGINT NOT NULL,
+            IngestionRunId UNIQUEIDENTIFIER NOT NULL,
+            EntityName VARCHAR(64) NOT NULL,
+            ShardNumber INT NOT NULL,
+            StagedObjectUri NVARCHAR(2048) NOT NULL,
+            StagedObjectSha256 BINARY(32) NOT NULL,
+            ExpectedRowCount BIGINT NOT NULL,
+            LoadedRowCount BIGINT NULL,
+            BatchStatus VARCHAR(20) NOT NULL,
+            AttemptCount SMALLINT NOT NULL
+                CONSTRAINT DF_LoadBatch_AttemptCount DEFAULT (0),
+            StartedAtUtc DATETIME2(0) NULL,
+            CompletedAtUtc DATETIME2(0) NULL,
+            LastError NVARCHAR(2048) NULL,
+            CONSTRAINT PK_LoadBatch
+                PRIMARY KEY CLUSTERED (LoadBatchId),
+            CONSTRAINT UQ_LoadBatch_Run_Entity_Shard
+                UNIQUE (IngestionRunId, EntityName, ShardNumber),
+            CONSTRAINT FK_LoadBatch_IngestionRun
+                FOREIGN KEY (IngestionRunId) REFERENCES dbo.IngestionRun (IngestionRunId),
+            CONSTRAINT CK_LoadBatch_ExpectedRowCount
+                CHECK (ExpectedRowCount >= 0),
+            CONSTRAINT CK_LoadBatch_LoadedRowCount
+                CHECK (LoadedRowCount IS NULL OR LoadedRowCount >= 0),
+            CONSTRAINT CK_LoadBatch_BatchStatus
+                CHECK (BatchStatus IN ('Pending', 'Loading', 'Succeeded', 'Failed', 'Skipped'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.SourceObjectLedger', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.SourceObjectLedger
+        (
+            SourceObjectId BIGINT NOT NULL,
+            IngestionRunId UNIQUEIDENTIFIER NOT NULL,
+            PmcId VARCHAR(20) NOT NULL,
+            ArticleVersion SMALLINT NOT NULL,
+            MetadataObjectKey NVARCHAR(1024) NOT NULL,
+            MetadataEtag VARCHAR(128) NOT NULL,
+            XmlObjectKey NVARCHAR(1024) NOT NULL,
+            XmlMd5 CHAR(32) NOT NULL,
+            LicenseCode VARCHAR(32) NULL,
+            ProcessingStatus VARCHAR(20) NOT NULL,
+            RejectionReasonCode VARCHAR(64) NULL,
+            LastAttemptAtUtc DATETIME2(0) NULL,
+            CONSTRAINT PK_SourceObjectLedger
+                PRIMARY KEY CLUSTERED (SourceObjectId),
+            CONSTRAINT UQ_SourceObjectLedger_Run_PmcId_Version
+                UNIQUE (IngestionRunId, PmcId, ArticleVersion),
+            CONSTRAINT FK_SourceObjectLedger_IngestionRun
+                FOREIGN KEY (IngestionRunId) REFERENCES dbo.IngestionRun (IngestionRunId),
+            CONSTRAINT CK_SourceObjectLedger_ArticleVersion
+                CHECK (ArticleVersion > 0),
+            CONSTRAINT CK_SourceObjectLedger_ProcessingStatus
+                CHECK (ProcessingStatus IN ('Pending', 'Accepted', 'Rejected', 'Removed', 'Failed'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.Article', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.Article
+        (
+            ArticleId BIGINT NOT NULL,
+            PmcId VARCHAR(20) NOT NULL,
+            ArticleVersion SMALLINT NOT NULL,
+            Pmid BIGINT NULL,
+            Doi NVARCHAR(255) NULL,
+            ArticleTitle NVARCHAR(2000) NOT NULL,
+            JournalTitle NVARCHAR(512) NULL,
+            PublicationDate DATE NULL,
+            PublicationYear SMALLINT NULL,
+            ArticleType NVARCHAR(128) NULL,
+            LanguageCode VARCHAR(16) NULL,
+            LicenseCode VARCHAR(32) NOT NULL,
+            LicenseClass VARCHAR(32) NOT NULL,
+            LicenseUrl NVARCHAR(1024) NULL,
+            AttributionParty NVARCHAR(2000) NULL,
+            IsRetracted BIT NOT NULL,
+            IsCorrection BIT NOT NULL,
+            HasExpressionOfConcern BIT NOT NULL,
+            VersionFamilyId BIGINT NOT NULL,
+            SourceJsonUrl NVARCHAR(2048) NOT NULL,
+            SourceXmlUrl NVARCHAR(2048) NOT NULL,
+            SourceEtag VARCHAR(128) NOT NULL,
+            XmlMd5 CHAR(32) NOT NULL,
+            InventoryTimestampUtc DATETIME2(0) NOT NULL,
+            SourceRecordSha256 BINARY(32) NOT NULL,
+            CreatedAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_Article_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
+            UpdatedAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_Article_UpdatedAtUtc DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT PK_Article
+                PRIMARY KEY CLUSTERED (ArticleId),
+            CONSTRAINT UQ_Article_PmcId_ArticleVersion
+                UNIQUE (PmcId, ArticleVersion),
+            CONSTRAINT CK_Article_ArticleVersion
+                CHECK (ArticleVersion > 0),
+            CONSTRAINT CK_Article_PublicationYear
+                CHECK (PublicationYear IS NULL OR PublicationYear BETWEEN 1600 AND 2200),
+            CONSTRAINT CK_Article_LicenseClass
+                CHECK (LicenseClass IN ('CC0', 'CC BY'))
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.PassageContent', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.PassageContent
+        (
+            PassageId BIGINT NOT NULL,
+            ExtractionVersion VARCHAR(64) NOT NULL,
+            TokenCount INT NOT NULL,
+            ContentSha256 BINARY(32) NOT NULL,
+            PassageText NVARCHAR(MAX) NOT NULL,
+            CreatedAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_PassageContent_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT PK_PassageContent
+                PRIMARY KEY CLUSTERED (PassageId),
+            CONSTRAINT UQ_PassageContent_ExtractionVersion_ContentSha256
+                UNIQUE (ExtractionVersion, ContentSha256),
+            CONSTRAINT CK_PassageContent_TokenCount
+                CHECK (TokenCount > 0)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.ArticlePassage', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.ArticlePassage
+        (
+            ArticlePassageId BIGINT NOT NULL,
+            ArticleId BIGINT NOT NULL,
+            PassageId BIGINT NOT NULL,
+            SectionPath NVARCHAR(1000) NULL,
+            PassageOrdinal INT NOT NULL,
+            SourceXmlMd5 CHAR(32) NOT NULL,
+            ExtractionVersion VARCHAR(64) NOT NULL,
+            VersionFamilyId BIGINT NOT NULL,
+            CONSTRAINT PK_ArticlePassage
+                PRIMARY KEY CLUSTERED (ArticlePassageId),
+            CONSTRAINT UQ_ArticlePassage_Article_Ordinal_ExtractionVersion
+                UNIQUE (ArticleId, PassageOrdinal, ExtractionVersion),
+            CONSTRAINT UQ_ArticlePassage_Id_Passage
+                UNIQUE (ArticlePassageId, PassageId),
+            CONSTRAINT FK_ArticlePassage_Article
+                FOREIGN KEY (ArticleId) REFERENCES dbo.Article (ArticleId),
+            CONSTRAINT FK_ArticlePassage_PassageContent
+                FOREIGN KEY (PassageId) REFERENCES dbo.PassageContent (PassageId),
+            CONSTRAINT CK_ArticlePassage_PassageOrdinal
+                CHECK (PassageOrdinal >= 0)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.EmbeddingLedger', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.EmbeddingLedger
+        (
+            PassageId BIGINT NOT NULL,
+            ContentSha256 BINARY(32) NOT NULL,
+            EmbeddingModel VARCHAR(128) NOT NULL,
+            EmbeddingModelVersion VARCHAR(32) NOT NULL,
+            EmbeddingDimensions SMALLINT NOT NULL,
+            EmbeddingSha256 BINARY(32) NULL,
+            GenerationStatus VARCHAR(20) NOT NULL,
+            PromptTokenCount INT NULL,
+            AttemptCount SMALLINT NOT NULL
+                CONSTRAINT DF_EmbeddingLedger_AttemptCount DEFAULT (0),
+            GeneratedAtUtc DATETIME2(0) NULL,
+            LastError NVARCHAR(2048) NULL,
+            CONSTRAINT PK_EmbeddingLedger
+                PRIMARY KEY CLUSTERED (PassageId),
+            CONSTRAINT FK_EmbeddingLedger_PassageContent
+                FOREIGN KEY (PassageId) REFERENCES dbo.PassageContent (PassageId),
+            CONSTRAINT CK_EmbeddingLedger_EmbeddingDimensions
+                CHECK (EmbeddingDimensions = 384),
+            CONSTRAINT CK_EmbeddingLedger_GenerationStatus
+                CHECK (GenerationStatus IN ('Pending', 'Succeeded', 'Failed', 'Quarantined')),
+            CONSTRAINT CK_EmbeddingLedger_PromptTokenCount
+                CHECK (PromptTokenCount IS NULL OR PromptTokenCount > 0)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.PassageVector', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.PassageVector
+        (
+            PassageId BIGINT NOT NULL,
+            CanonicalArticlePassageId BIGINT NOT NULL,
+            Embedding VECTOR(384) NOT NULL,
+            EmbeddingSha256 BINARY(32) NOT NULL,
+            EmbeddingModel VARCHAR(128) NOT NULL,
+            EmbeddingModelVersion VARCHAR(32) NOT NULL,
+            ExtractionVersion VARCHAR(64) NOT NULL,
+            PublicationYear SMALLINT NULL,
+            LicenseClass VARCHAR(32) NOT NULL,
+            SafetyState TINYINT NOT NULL,
+            LanguageCode VARCHAR(16) NULL,
+            DomainCode VARCHAR(64) NULL,
+            ArticleTypeCode VARCHAR(64) NULL,
+            CONSTRAINT PK_PassageVector
+                PRIMARY KEY CLUSTERED (PassageId),
+            CONSTRAINT UQ_PassageVector_EmbeddingSha256
+                UNIQUE (EmbeddingSha256),
+            CONSTRAINT FK_PassageVector_PassageContent
+                FOREIGN KEY (PassageId) REFERENCES dbo.PassageContent (PassageId),
+            CONSTRAINT FK_PassageVector_CanonicalArticlePassage
+                FOREIGN KEY (CanonicalArticlePassageId, PassageId)
+                REFERENCES dbo.ArticlePassage (ArticlePassageId, PassageId),
+            CONSTRAINT CK_PassageVector_PublicationYear
+                CHECK (PublicationYear IS NULL OR PublicationYear BETWEEN 1600 AND 2200),
+            CONSTRAINT CK_PassageVector_LicenseClass
+                CHECK (LicenseClass IN ('CC0', 'CC BY')),
+            CONSTRAINT CK_PassageVector_SafetyState
+                CHECK (SafetyState BETWEEN 0 AND 3)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.CorpusSelectionManifest', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.CorpusSelectionManifest
+        (
+            IngestionRunId UNIQUEIDENTIFIER NOT NULL,
+            PassageId BIGINT NOT NULL,
+            ArticlePassageId BIGINT NOT NULL,
+            IsAnchor BIT NOT NULL,
+            IsCanonical BIT NOT NULL,
+            SelectionRank BIGINT NOT NULL,
+            ContentSha256 BINARY(32) NOT NULL,
+            EmbeddingSha256 BINARY(32) NOT NULL,
+            SourceXmlMd5 CHAR(32) NOT NULL,
+            ExtractionVersion VARCHAR(64) NOT NULL,
+            CONSTRAINT PK_CorpusSelectionManifest
+                PRIMARY KEY CLUSTERED (IngestionRunId, PassageId, ArticlePassageId),
+            CONSTRAINT FK_CorpusSelectionManifest_IngestionRun
+                FOREIGN KEY (IngestionRunId) REFERENCES dbo.IngestionRun (IngestionRunId),
+            CONSTRAINT FK_CorpusSelectionManifest_PassageVector
+                FOREIGN KEY (PassageId) REFERENCES dbo.PassageVector (PassageId),
+            CONSTRAINT FK_CorpusSelectionManifest_ArticlePassage
+                FOREIGN KEY (ArticlePassageId, PassageId)
+                REFERENCES dbo.ArticlePassage (ArticlePassageId, PassageId),
+            CONSTRAINT CK_CorpusSelectionManifest_SelectionRank
+                CHECK (SelectionRank > 0)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.DemoQuery', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.DemoQuery
+        (
+            DemoQueryId INT NOT NULL,
+            QueryName NVARCHAR(200) NOT NULL,
+            QueryText NVARCHAR(2000) NOT NULL,
+            QueryVector VECTOR(384) NOT NULL,
+            QueryVectorSha256 BINARY(32) NOT NULL,
+            EmbeddingModel VARCHAR(128) NOT NULL,
+            EmbeddingModelVersion VARCHAR(32) NOT NULL,
+            IsActive BIT NOT NULL,
+            CreatedAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_DemoQuery_CreatedAtUtc DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT PK_DemoQuery
+                PRIMARY KEY CLUSTERED (DemoQueryId),
+            CONSTRAINT UQ_DemoQuery_QueryName
+                UNIQUE (QueryName),
+            CONSTRAINT UQ_DemoQuery_QueryVectorSha256
+                UNIQUE (QueryVectorSha256)
+        );
+    END;
+
+    IF OBJECT_ID(N'dbo.DemoMeasurement', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.DemoMeasurement
+        (
+            DemoMeasurementId BIGINT IDENTITY(1,1) NOT NULL,
+            DemoQueryId INT NOT NULL,
+            DatabaseRole VARCHAR(16) NOT NULL,
+            ServiceObjective VARCHAR(64) NOT NULL,
+            PassageRowCount BIGINT NOT NULL,
+            IsColdOrResumeRun BIT NOT NULL,
+            IterationNumber SMALLINT NOT NULL,
+            DurationMilliseconds DECIMAL(18,3) NOT NULL,
+            ResultSetSha256 BINARY(32) NULL,
+            MeasuredAtUtc DATETIME2(0) NOT NULL
+                CONSTRAINT DF_DemoMeasurement_MeasuredAtUtc DEFAULT SYSUTCDATETIME(),
+            CONSTRAINT PK_DemoMeasurement
+                PRIMARY KEY CLUSTERED (DemoMeasurementId),
+            CONSTRAINT FK_DemoMeasurement_DemoQuery
+                FOREIGN KEY (DemoQueryId) REFERENCES dbo.DemoQuery (DemoQueryId),
+            CONSTRAINT CK_DemoMeasurement_DatabaseRole
+                CHECK (DatabaseRole IN ('Small', 'Large')),
+            CONSTRAINT CK_DemoMeasurement_PassageRowCount
+                CHECK (PassageRowCount >= 0),
+            CONSTRAINT CK_DemoMeasurement_IterationNumber
+                CHECK (IterationNumber > 0),
+            CONSTRAINT CK_DemoMeasurement_DurationMilliseconds
+                CHECK (DurationMilliseconds >= 0)
+        );
+    END;
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.LoadBatch')
+          AND name = N'IX_LoadBatch_Run_Status'
+    )
+        CREATE INDEX IX_LoadBatch_Run_Status
+            ON dbo.LoadBatch (IngestionRunId, BatchStatus, EntityName, ShardNumber);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.SourceObjectLedger')
+          AND name = N'IX_SourceObjectLedger_Status'
+    )
+        CREATE INDEX IX_SourceObjectLedger_Status
+            ON dbo.SourceObjectLedger (IngestionRunId, ProcessingStatus, SourceObjectId);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.Article')
+          AND name = N'IX_Article_VersionFamilyId'
+    )
+        CREATE INDEX IX_Article_VersionFamilyId
+            ON dbo.Article (VersionFamilyId, IsRetracted)
+            INCLUDE (PmcId, ArticleVersion, ArticleTitle, JournalTitle, LicenseClass);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.ArticlePassage')
+          AND name = N'IX_ArticlePassage_PassageId'
+    )
+        CREATE INDEX IX_ArticlePassage_PassageId
+            ON dbo.ArticlePassage (PassageId, ArticleId)
+            INCLUDE (ArticlePassageId, PassageOrdinal, VersionFamilyId);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.PassageVector')
+          AND name = N'IX_PassageVector_SearchFilters'
+    )
+        CREATE INDEX IX_PassageVector_SearchFilters
+            ON dbo.PassageVector
+            (
+                SafetyState,
+                LicenseClass,
+                LanguageCode,
+                DomainCode,
+                PublicationYear
+            )
+            INCLUDE (PassageId, CanonicalArticlePassageId);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.CorpusSelectionManifest')
+          AND name = N'IX_CorpusSelectionManifest_Anchor_Rank'
+    )
+        CREATE INDEX IX_CorpusSelectionManifest_Anchor_Rank
+            ON dbo.CorpusSelectionManifest (IsAnchor, SelectionRank)
+            INCLUDE (PassageId, ArticlePassageId, IsCanonical);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.CorpusSelectionManifest')
+          AND name = N'UQ_CorpusSelectionManifest_Run_Passage_Canonical'
+    )
+        CREATE UNIQUE INDEX UQ_CorpusSelectionManifest_Run_Passage_Canonical
+            ON dbo.CorpusSelectionManifest (IngestionRunId, PassageId)
+            WHERE IsCanonical = 1;
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.CorpusSelectionManifest')
+          AND name = N'IX_CorpusSelectionManifest_PassageId'
+    )
+        CREATE INDEX IX_CorpusSelectionManifest_PassageId
+            ON dbo.CorpusSelectionManifest (PassageId, IngestionRunId)
+            INCLUDE (ArticlePassageId, IsAnchor, IsCanonical, SelectionRank);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.DemoMeasurement')
+          AND name = N'IX_DemoMeasurement_Query_Role_Time'
+    )
+        CREATE INDEX IX_DemoMeasurement_Query_Role_Time
+            ON dbo.DemoMeasurement (DemoQueryId, DatabaseRole, MeasuredAtUtc)
+            INCLUDE (DurationMilliseconds, PassageRowCount, IsColdOrResumeRun);
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.SchemaVersion
+        WHERE SchemaVersionId = 1
+    )
+    BEGIN
+        INSERT INTO dbo.SchemaVersion
+        (
+            SchemaVersionId,
+            VersionName,
+            EmbeddingModel,
+            EmbeddingModelVersion,
+            EmbeddingDimensions,
+            DistanceMetric
+        )
+        VALUES
+        (
+            1,
+            'pmc-vector-schema-v1',
+            'text-embedding-3-small',
+            '1',
+            384,
+            'COSINE'
+        );
+    END;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;

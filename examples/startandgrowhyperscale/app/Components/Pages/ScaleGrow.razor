@@ -1,0 +1,186 @@
+@page "/pool"
+@implements IDisposable
+@using System.Globalization
+@using CaldovaNetworkScheduling.Services.Playback
+@inject IServiceProvider Services
+
+<PageTitle>Scale and grow · Caldova</PageTitle>
+@if (Pool is null)
+{
+    <section class="page-header"><h1>Not available</h1><p>This scene is disabled on this host.</p></section>
+    return;
+}
+<section class="page-header heading-row">
+    <div>
+        <p class="eyebrow">Step 3 · Grow without redesigning · caldova-network-pool</p>
+        <h1>Scale the pool and grow storage while staff keep working</h1>
+        <p>Network scheduling traffic runs against all three pooled databases. Compute changes online;
+            storage grows on its own, separate from compute.</p>
+    </div>
+    <div class="transport">
+        @if (snap.WorkloadRunning)
+        {
+            <button class="btn btn-secondary" @onclick="() => Pool!.StopWorkload()">■ Stop workload</button>
+        }
+        else
+        {
+            <button class="btn btn-primary btn-play" @onclick="() => Pool!.StartWorkload()">▶ Start workload</button>
+        }
+        <button class="btn btn-secondary" disabled="@(snap.WorkloadRunning || snap.Loading || snap.ScaleState != "Ready")" @onclick="() => Pool!.Reset()">↺ Reset</button>
+    </div>
+</section>
+
+<section class="pool-board">
+    <div class="panel pool-capacity">
+        <small class="muted">Hyperscale elastic pool</small>
+        <strong class="mono">caldova-network-pool</strong>
+        <div class="pool-vcores">
+            @if (snap.TargetVCores is { } target)
+            {
+                <span>@snap.VCores</span><span class="pool-arrow">→</span><span>@target</span>
+            }
+            else
+            {
+                <span>@snap.VCores</span>
+            }
+            <small>vCores shared</small>
+        </div>
+        <div class="status-pill pool-state pool-state-@snap.ScaleState.ToLowerInvariant()">
+            <span class="status-dot"></span>
+            <strong>@StateLabel</strong>
+        </div>
+        <p class="status-detail">@StateDetail</p>
+        <button class="btn btn-primary" disabled="@(!snap.WorkloadRunning || snap.ScaleState != "Ready" || snap.VCores >= 16)"
+                @onclick="() => Pool!.Scale(16)">Scale pool to 16 vCores</button>
+    </div>
+
+    <div class="panel pool-traffic">
+        <div class="kpis">
+            <div class="kpi"><span>Successful requests / s</span><strong>@Last(s => s.Succeeded, "0")</strong></div>
+            <div class="kpi"><span>p95 latency</span><strong>@(LastLatency)</strong></div>
+            <div class="kpi"><span>Pool CPU</span><strong>@Last(s => s.CpuPercent, "0")%</strong></div>
+            <div class="kpi"><span>Failed requests</span><strong>@snap.FailedTotal.ToString("N0", CultureInfo.InvariantCulture)</strong></div>
+        </div>
+        <svg class="pool-chart" viewBox="0 0 @W @H" preserveAspectRatio="none" aria-label="Successful and failed requests per second, last three minutes">
+            @foreach (var band in Bands())
+            {
+                <rect class="pool-band pool-band-@band.Phase.ToLowerInvariant()" x="@F(X(band.From))" y="0" width="@F(Math.Max(2, X(band.To) - X(band.From)))" height="@H" />
+            }
+            @for (var i = 0; i < snap.Seconds.Count; i++)
+            {
+                var s = snap.Seconds[i];
+                if (s.Failed > 0)
+                {
+                    <rect class="pool-fail" x="@F(X(i) - 1.5)" y="@F(Y(s.Failed))" width="3" height="@F(H - Y(s.Failed))" />
+                }
+            }
+            @if (snap.Seconds.Count > 1)
+            {
+                <polyline class="pool-line" points="@Line()" />
+            }
+        </svg>
+        <div class="gauge-scale"><span>3 minutes ago</span><span>Requests per second · failures in red</span><span>now</span></div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-heading">
+        <h2>Database storage</h2>
+        <button class="btn btn-secondary" disabled="@(!snap.WorkloadRunning || snap.Loading || HistoryLoaded)" @onclick="() => Pool!.LoadHistory()">Load Northbrook encounter history</button>
+    </div>
+    <table class="slots pool-storage">
+        <thead><tr><th>Database</th><th>Provider</th><th>Data space used</th><th></th><th>Compute</th></tr></thead>
+        <tbody>
+            @foreach (var db in snap.Databases)
+            {
+                <tr class="@(db.Loading ? "pool-loading" : "")">
+                    <td><code>@db.Name</code></td>
+                    <td>@db.Provider</td>
+                    <td><strong>@db.DataGb.ToString("0.0", CultureInfo.InvariantCulture) GB</strong></td>
+                    <td class="pool-bar-cell"><div class="pool-bar"><div style="width:@F(Math.Min(100, db.DataGb / 60 * 100))%"></div></div></td>
+                    <td>Pooled · @snap.VCores vCores shared</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p class="footnote">No data files, maximum size, or storage tier is set. Hyperscale storage grows as data arrives,
+        independently of the pool's compute.</p>
+</section>
+
+<section class="panel">
+    <h2>Operations</h2>
+    @if (snap.Events.Count == 0)
+    {
+        <p class="muted">No operations yet.</p>
+    }
+    else
+    {
+        <ol class="pool-events">
+            @foreach (var e in snap.Events)
+            {
+                <li class="pool-event-@e.Kind"><time>@e.At.UtcDateTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture)</time> @e.Text</li>
+            }
+        </ol>
+    }
+</section>
+
+@code {
+    private const double W = 600, H = 160, MaxRps = 760;
+    private PoolSnapshot snap = default!;
+    private PlaybackPool? Pool;
+
+    protected override void OnInitialized()
+    {
+        Pool = Services.GetService<PlaybackPool>();
+        if (Pool is null) return;
+        snap = Pool.GetSnapshot();
+        Pool.Changed += OnChanged;
+    }
+
+    private void OnChanged() => _ = InvokeAsync(() => { snap = Pool!.GetSnapshot(); StateHasChanged(); });
+
+    private bool HistoryLoaded => snap.Events.Any(e => e.Text.StartsWith("History loaded", StringComparison.Ordinal));
+
+    private string StateLabel => snap.ScaleState switch
+    {
+        "Preparing" => "Scaling · preparing",
+        "Switching" => "Scaling · switching over",
+        _ => snap.WorkloadRunning ? "Online · serving" : "Online",
+    };
+
+    private string StateDetail => snap.ScaleState switch
+    {
+        "Preparing" => "The service prepares the new compute while the databases keep serving requests.",
+        "Switching" => "Switching to the new compute. Connections reset briefly; the app reconnects.",
+        _ => snap.VCores >= 16 ? "Scaled online. No application or schema changes." : "Three databases share this pool's compute.",
+    };
+
+    private string Last(Func<PoolSecond, double> value, string format) =>
+        snap.Seconds.Count == 0 ? "–" : value(snap.Seconds[^1]).ToString(format, CultureInfo.InvariantCulture);
+
+    private string LastLatency => snap.Seconds.Count == 0 ? "–"
+        : snap.Seconds[^1].LatencyMs <= 0 ? "–" : $"{snap.Seconds[^1].LatencyMs:0} ms";
+
+    private double X(int index) => snap.Seconds.Count <= 1 ? W : W - (snap.Seconds.Count - 1 - index) * (W / 179.0);
+    private static double Y(double value) => H - Math.Min(value, MaxRps) / MaxRps * (H - 6);
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+    private string Line() => string.Join(' ', snap.Seconds.Select((s, i) => $"{F(X(i))},{F(Y(s.Succeeded))}"));
+
+    private IEnumerable<(string Phase, int From, int To)> Bands()
+    {
+        var start = -1;
+        var phase = "";
+        for (var i = 0; i <= snap.Seconds.Count; i++)
+        {
+            var current = i < snap.Seconds.Count ? snap.Seconds[i].Phase : "Ready";
+            if (current != phase)
+            {
+                if (start >= 0 && phase != "Ready") yield return (phase, start, i - 1);
+                start = i;
+                phase = current;
+            }
+        }
+    }
+
+    public void Dispose() { if (Pool is not null) Pool.Changed -= OnChanged; }
+}

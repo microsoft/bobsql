@@ -1,0 +1,27 @@
+id: caldova-evidence
+name: caldova-evidence
+version: 1.0.0
+services:
+  auth:
+    enabled: true
+    fabric:
+      enabled: true
+    password:
+      enabled: false
+    allowedRedirectUris:
+      - http://localhost:5173
+  # The Rayfin data service provisions its own SQL database and exposes it through
+  # Data API Builder GraphQL, which has no VECTOR_SEARCH. Caldova's search runs against
+  # an existing Hyperscale database, so this stays off and the UI calls the search API.
+  data:
+    enabled: false
+  staticHosting:
+    enabled: true
+    folder: dist
+    buildCommand: npm run build
+    indexDocument: index.html
+  storage:
+    enabled: false
+  functions:
+    enabled: false
+publishable_key: REPLACE_WITH_YOUR_PUBLISHABLE_KEY

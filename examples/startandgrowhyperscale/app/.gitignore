@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.log
+
+# Private demo resource names (see README: Private local configuration)
+appsettings.Local.json

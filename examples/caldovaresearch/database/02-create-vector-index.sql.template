@@ -1,0 +1,40 @@
+/*
+    Run identically on each target after at least 1,000 PassageVector rows exist.
+    The index remains online while the large corpus grows through supported DML.
+*/
+
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+IF (SELECT COUNT_BIG(*) FROM dbo.PassageVector) < 1000
+    THROW 51000, 'At least 1,000 passage vectors are required before DiskANN index creation.', 1;
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.vector_indexes AS vector_index
+    INNER JOIN sys.indexes AS index_definition
+        ON index_definition.object_id = vector_index.object_id
+       AND index_definition.index_id = vector_index.index_id
+    WHERE vector_index.object_id = OBJECT_ID(N'dbo.PassageVector')
+      AND index_definition.name = N'IX_PassageVector_Embedding'
+)
+BEGIN
+    CREATE VECTOR INDEX IX_PassageVector_Embedding
+        ON dbo.PassageVector (Embedding)
+        WITH (METRIC = 'COSINE', TYPE = 'DISKANN');
+END;
+
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM sys.vector_indexes AS vector_index
+    INNER JOIN sys.indexes AS index_definition
+        ON index_definition.object_id = vector_index.object_id
+       AND index_definition.index_id = vector_index.index_id
+    WHERE vector_index.object_id = OBJECT_ID(N'dbo.PassageVector')
+      AND index_definition.name = N'IX_PassageVector_Embedding'
+      AND JSON_VALUE(vector_index.build_parameters, '$.Version') = '3'
+      AND vector_index.distance_metric = 'COSINE'
+)
+    THROW 51001, 'The expected cosine DiskANN version 3 index was not found.', 1;

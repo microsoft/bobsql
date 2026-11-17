@@ -1,0 +1,64 @@
+@page "/scale-presentation"
+@implements IAsyncDisposable
+@inject PoolPresentation Presentation
+
+<PageTitle>Step 4 · Scale · Caldova</PageTitle>
+@{
+    var frame = Presentation.Snapshot;
+}
+@if (Presentation.Enabled)
+{
+<div class="pool-scale-page">
+    <section class="page-header heading-row network-header">
+        <div>
+            <p class="eyebrow">Step 4 · Scale shared compute</p>
+            <h1>Scale shared compute</h1>
+            <p>CPU-used across pool: <strong>@Math.Ceiling(frame.Clinics.Sum(clinic => clinic.Samples[^1].UsedVCores)).ToString("0", CultureInfo.InvariantCulture)</strong> / @frame.Resources.VCores vCores</p>
+        </div>
+        <div class="transport">
+            <button class="btn btn-primary" disabled="@(!Presentation.Enabled || frame.Resources.VCores == 24)" @onclick="() => Presentation.SetCapacity(24)">Scale Pool to 24</button>
+            <button class="btn btn-secondary" disabled="@(!Presentation.Enabled || frame.Resources.VCores == 8)" @onclick="() => Presentation.SetCapacity(8)">Scale Pool to 8</button>
+            @if (frame.Running)
+            {
+                <button class="btn btn-secondary" @onclick="Presentation.Stop">■ Stop</button>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled="@(!Presentation.Enabled)" @onclick="Presentation.Start">▶ Run Scheduling &amp; Grow</button>
+            }
+        </div>
+    </section>
+    <PoolActivityCards Resources="frame.Resources" Clinics="frame.Clinics"
+                       StorageReading="key => frame.Clinics.First(clinic => clinic.Key == key).Storage" />
+    <p class="footnote">Compute sharing and automatic storage allocation. Scheduling does not book appointments.</p>
+</div>
+}
+else
+{
+    <p class="callout callout-info" role="status">Pool presentation is disabled on this host. <a href="/scale">Open Scale</a>.</p>
+}
+
+@code {
+    private readonly CancellationTokenSource closing = new();
+    private Task? watching;
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) watching = WatchAsync();
+    }
+    private async Task WatchAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(200));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(closing.Token))
+                await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException) when (closing.IsCancellationRequested) { }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        closing.Cancel();
+        if (watching is not null) await watching;
+        closing.Dispose();
+    }
+}

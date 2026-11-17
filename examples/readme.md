@@ -8,7 +8,10 @@ There is no shared application or universal setup command.
 | [adventureworks](adventureworks/readme.md) | AdventureWorksLT sample database import |
 | [auto_index_compaction](auto_index_compaction/readme.md) | Azure SQL Hyperscale index compaction and measurement |
 | [azuresqlai](azuresqlai/readme.md) | Azure SQL embeddings, approximate vector search, and RAG |
+| [caldovaevidenceagent](caldovaevidenceagent/README.md) | Hyperscale native embeddings and DiskANN search with governed SQL MCP tools and a Microsoft Foundry hosted evidence agent |
+| [caldovaresearch](caldovaresearch/README.md) | Hyperscale evidence search from a serverless pilot to a one-million-row vector-search target and named replicas |
 | [debugging_sql](debugging_sql/readme.md) | SQL Server process and query debugging with WinDbg |
+| [handsfreeindexing](handsfreeindexing/README.md) | Hyperscale automatic index creation and Automatic Index Compaction with live query and index-health measurements |
 | [insidetlog](insidetlog/readme.md) | Transaction log internals and recovery labs |
 | [insidewaitslatchesspinlocks](insidewaitslatchesspinlocks/readme.md) | Wait, latch, spinlock, and log-rate investigations |
 | [insidewaitslatchesspinlocks_workshop](insidewaitslatchesspinlocks_workshop/readme.md) | Numbered debugging and synchronization workshop |
@@ -21,7 +24,14 @@ There is no shared application or universal setup command.
 | [sqlserver2022](sqlserver2022/readme.md) | SQL Server 2022 features and deployment scenarios |
 | [sqlserver2025](sqlserver2025/readme.md) | SQL Server 2025 engine, developer, and AI capabilities |
 | [sqlversioning](sqlversioning/README.md) | SQLBits 2026 row-versioning and ADR demonstrations |
+| [startandgrowhyperscale](startandgrowhyperscale/README.md) | A Hyperscale scheduling app that grows from serverless to an elastic pool with native cross-database queries |
 | [wardgeneral](wardgeneral/readme.md) | The cumulative Ward General Hyperscale application |
+
+The four Caldova Hyperscale examples are independent collections with their own
+prerequisites and deployment instructions. Automatic Index Compaction requires
+preview access. The Start and Grow README distinguishes live operations from opt-in
+presentation illustrations. For the evidence-search corpora, see
+[third-party notices](THIRD-PARTY-NOTICES.md) for CC BY attribution and licensing.
 
 ## Running safely
 
@@ -35,6 +45,7 @@ There is no shared application or universal setup command.
   guarantees. Source folders have Markdown READMEs; generated build output is
   not part of this documentation coverage.
 
-Each collection has a matching [workspace skill](../.github/skills/) listed in
-the [repository overview](../readme.md). Before publishing changes, follow
+Existing [workspace skills](../.github/skills/) are described in
+the [repository overview](../readme.md). For the new Caldova collections, start
+with their linked READMEs and runbooks. Before publishing changes, follow
 [Secret scanning](../SECRET-SCANNING.md).

@@ -1,0 +1,62 @@
+# Replace every REPLACE_* value before applying this Container Apps YAML.
+location: REPLACE_LOCATION
+identity:
+  type: UserAssigned
+  userAssignedIdentities:
+    REPLACE_MANAGED_IDENTITY_RESOURCE_ID: {}
+properties:
+  managedEnvironmentId: REPLACE_CONTAINER_APPS_ENVIRONMENT_RESOURCE_ID
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8000
+      transport: auto
+      allowInsecure: false
+      traffic:
+        - latestRevision: true
+          weight: 100
+    registries:
+      - server: REPLACE_REGISTRY_SERVER
+        identity: REPLACE_MANAGED_IDENTITY_RESOURCE_ID
+  template:
+    containers:
+      - name: caldova-app
+        image: REPLACE_APP_IMAGE
+        resources:
+          cpu: 1.0
+          memory: 2Gi
+        env:
+          - name: AZURE_SQL_SMALL_SERVER
+            value: REPLACE_SMALL_SQL_SERVER
+          - name: AZURE_SQL_SMALL_DATABASE
+            value: REPLACE_SMALL_SQL_DATABASE
+          - name: AZURE_SQL_LARGE_SERVER
+            value: REPLACE_LARGE_SQL_SERVER
+          - name: AZURE_SQL_LARGE_DATABASE
+            value: REPLACE_LARGE_SQL_DATABASE
+          - name: AZURE_SQL_REPLICA_SERVER
+            value: REPLACE_REPLICA_SQL_SERVER
+          - name: AZURE_SQL_REPLICA_DATABASE
+            value: REPLACE_REPLICA_SQL_DATABASE
+          - name: AZURE_CLIENT_ID
+            value: REPLACE_MANAGED_IDENTITY_CLIENT_ID
+          - name: CALDOVA_DEMO_SCALE
+            value: 1M
+          - name: EMBEDDING_SERVICE_URL
+            value: http://127.0.0.1:8081
+          - name: HOST
+            value: 0.0.0.0
+          - name: PORT
+            value: "8000"
+      - name: caldova-embedding
+        image: REPLACE_EMBEDDING_IMAGE
+        resources:
+          cpu: 1.0
+          memory: 2Gi
+        env:
+          - name: PORT
+            value: "8081"
+    scale:
+      minReplicas: 1
+      maxReplicas: 2

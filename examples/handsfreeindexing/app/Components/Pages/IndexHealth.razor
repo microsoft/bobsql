@@ -1,0 +1,434 @@
+@page "/index-health"
+@implements IDisposable
+@inject IOperationsDataService DataService
+
+<PageTitle>Index Health</PageTitle>
+
+<section class="page-header dashboard-heading">
+    <div>
+        <p class="eyebrow">Automatic Index Compaction</p>
+            <h1>Index Health</h1>
+        <p>Every frame is persisted from Azure SQL. Playback accelerates the captured timeline.</p>
+    </div>
+</section>
+
+@if (actionMessage is not null)
+{
+    <section class="status-panel" aria-live="polite"><strong>@actionMessage</strong></section>
+}
+
+@if (errorMessage is not null)
+{
+    <section class="status-panel status-error"><strong>Telemetry unavailable</strong><p>@errorMessage</p></section>
+}
+else if (timeline.Count == 0)
+{
+    <section class="status-panel"><strong>Waiting for measured samples...</strong><p>The capture service records index health every 10 seconds.</p></section>
+}
+else
+{
+    var sample = timeline[currentSampleIndex];
+    var maxPages = Math.Max(1, timeline.Where(item => item.PageCount.HasValue).Select(item => item.PageCount!.Value).DefaultIfEmpty(1).Max());
+    const int footprintSlots = 32;
+    var visiblePages = sample.PageCount.HasValue ? Math.Max(1, (int)Math.Ceiling(sample.PageCount.Value * (double)footprintSlots / maxPages)) : 0;
+    var density = sample.DensityPercent ?? 0;
+    var hasPairedQueryMeasurement = sample.MeasurementCapturedAtUtc.HasValue &&
+        sample.LogicalReads.HasValue &&
+        sample.DashboardDurationMs.HasValue;
+    var queryMetricClass = QueryMetricClass(sample, hasPairedQueryMeasurement);
+
+    <section class="controls" aria-label="Playback controls">
+        <button type="button" @onclick="Start">Play time lapse</button>
+        <button type="button" @onclick="Pause">Pause</button>
+        <button type="button" @onclick="PreviousStep" disabled="@(currentSampleIndex == 0)">Previous step</button>
+        <button type="button" @onclick="NextStep" disabled="@(currentSampleIndex >= timeline.Count - 1)">Next step</button>
+        <button type="button" @onclick="Reset">Reset</button>
+        <div class="sample-label">Step @(currentSampleIndex + 1) of @timeline.Count</div>
+    </section>
+
+    <section class="phase-banner @PhaseBannerClass(sample)">
+        <div><span>Scenario phase</span><strong>@DisplayPhase(sample.Phase)</strong></div>
+        <div><span>Automatic index compaction</span><strong>@(sample.AutomaticIndexCompactionOn ? "ON" : "OFF")</strong></div>
+        <div><span>Index</span><strong>@IndexLabel(sample)</strong></div>
+        <div><span>Captured</span><strong>@sample.TimestampUtc.ToString("HH:mm:ss") UTC</strong></div>
+    </section>
+
+    <section class="metric-grid" aria-label="Current telemetry sample">
+        <article class="metric-card accent-card"><h3>Page Density</h3><div class="metric-value">@density.ToString("0.0")%</div><p>Leaf-page fullness</p></article>
+        <article class="metric-card"><h3>Leaf Pages</h3><div class="metric-value">@(sample.PageCount?.ToString("N0") ?? "--")</div><p>Physical pages read</p></article>
+        <article class="metric-card"><h3>Records</h3><div class="metric-value">@(sample.RecordCount?.ToString("N0") ?? "--")</div><p>Rows in the index</p></article>
+        <article class="metric-card"><h3>Logical Reads</h3><div class="metric-value @queryMetricClass">@(hasPairedQueryMeasurement ? sample.LogicalReads?.ToString("N0") : "--")</div><p>@(hasPairedQueryMeasurement ? "Measured for this step" : "Not measured for this step")</p></article>
+        <article class="metric-card"><h3>Query Duration</h3><div class="metric-value @queryMetricClass">@(hasPairedQueryMeasurement ? $"{sample.DashboardDurationMs:N0} ms" : "--")</div><p>@(hasPairedQueryMeasurement ? "Measured for this step" : "Not measured for this step")</p></article>
+    </section>
+
+    <section class="detail-grid index-health-grid">
+        <article>
+            <div class="section-title"><div><p class="eyebrow">Physical structure</p><h2>Pages and Density</h2></div><span>@visiblePages proportional blocks</span></div>
+            <p>Each visible block represents leaf pages. More blocks means a larger index; fill height shows density, so sparse pages appear mostly empty.</p>
+            <div class="density-breakdown" aria-label="@($"{density:0.0} percent used and {100m - density:0.0} percent free")">
+                <strong>@density.ToString("0.0")% used</strong>
+                <span>@((100m - density).ToString("0.0"))% free</span>
+            </div>
+            <div class="page-block-grid" role="img" aria-label="@($"{visiblePages} proportional leaf-page blocks filled to {density:0.0} percent density; maximum observed footprint is {footprintSlots} blocks")">
+                @for (var slot = 0; slot < visiblePages; slot++)
+                {
+                    <div class="page-block active" title="@($"{density:0.0}% used, {100m - density:0.0}% free")"><div class="page-block-fill" style="@($"height:{density:0.##}%")"></div></div>
+                }
+            </div>
+            <div class="footprint-key"><span><i class="active"></i>Used page space</span><span><i class="free"></i>Free page space</span><span>Maximum observed footprint = @footprintSlots blocks</span></div>
+        </article>
+
+        <article>
+            <div class="section-title"><div><p class="eyebrow">Measured recovery</p><h2>Leaf Pages by Step</h2></div><span>@timeline.Count key measurements</span></div>
+            <div class="timeline-chart live-timeline" role="img" aria-label="Measured leaf-page count across key compaction steps">
+                @for (var index = 0; index < timeline.Count; index++)
+                {
+                    var pages = timeline[index].PageCount ?? 0;
+                    var height = Math.Max(4, (int)Math.Round(pages * 100d / maxPages));
+                    var state = index == currentSampleIndex ? "active" : index < currentSampleIndex ? "played" : "pending";
+                    <div class="timeline-column">
+                        <div class="timeline-bar @state" style="@($"height:{height}%")" title="@($"{pages:N0} pages - {timeline[index].Phase}")"></div>
+                        <span>@(index + 1)</span>
+                    </div>
+                }
+            </div>
+            <div class="phase-caption">Playback shows persisted measurements captured during the live indexing lifecycle.</div>
+        </article>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<IndexHealthSample> timeline = Array.Empty<IndexHealthSample>();
+    private DemoControlState? controlState;
+    private int currentSampleIndex;
+    private string? errorMessage;
+    private string? actionMessage;
+    private bool isRefreshingTimeline;
+    private System.Timers.Timer? timer;
+    private System.Timers.Timer? monitorTimer;
+
+    protected override Task OnInitializedAsync() => LoadTimelineAsync();
+
+    private async Task LoadTimelineAsync()
+    {
+        Pause();
+        errorMessage = null;
+        try
+        {
+            var samples = await DataService.GetIndexHealthTimelineAsync();
+            timeline = BuildPlaybackTimeline(samples);
+            controlState = await DataService.GetDemoControlStateAsync();
+            if (controlState.Phase == "Compaction Running")
+            {
+                currentSampleIndex = Math.Max(0, timeline.Count - 1);
+                StartMonitoring();
+            }
+            else
+            {
+                StopMonitoring();
+                currentSampleIndex = Math.Max(0, timeline.Count - 1);
+            }
+        }
+        catch (Exception exception)
+        {
+            timeline = Array.Empty<IndexHealthSample>();
+            errorMessage = exception.Message;
+        }
+    }
+
+    private void Start()
+    {
+        if (timer is not null || timeline.Count < 2) return;
+        timer = new System.Timers.Timer(700) { AutoReset = true };
+        timer.Elapsed += OnTick;
+        timer.Start();
+    }
+
+    private void Pause()
+    {
+        if (timer is null) return;
+        timer.Elapsed -= OnTick;
+        timer.Stop();
+        timer.Dispose();
+        timer = null;
+    }
+
+    private void StartMonitoring()
+    {
+        if (monitorTimer is not null) return;
+        monitorTimer = new System.Timers.Timer(10000) { AutoReset = true };
+        monitorTimer.Elapsed += OnMonitorTick;
+        monitorTimer.Start();
+    }
+
+    private void StopMonitoring()
+    {
+        if (monitorTimer is null) return;
+        monitorTimer.Elapsed -= OnMonitorTick;
+        monitorTimer.Stop();
+        monitorTimer.Dispose();
+        monitorTimer = null;
+    }
+
+    private async void OnMonitorTick(object? sender, System.Timers.ElapsedEventArgs eventArgs)
+    {
+        if (isRefreshingTimeline) return;
+        isRefreshingTimeline = true;
+        try
+        {
+            var samples = await DataService.GetIndexHealthTimelineAsync();
+            timeline = BuildPlaybackTimeline(samples);
+            controlState = await DataService.GetDemoControlStateAsync();
+            currentSampleIndex = Math.Max(0, timeline.Count - 1);
+
+            if (controlState.Phase == "Compaction Complete")
+            {
+                actionMessage = "Compaction complete. Refresh the Operations Dashboard for the final audience measurement.";
+                StopMonitoring();
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception exception)
+        {
+            errorMessage = exception.Message;
+            StopMonitoring();
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            isRefreshingTimeline = false;
+        }
+    }
+
+    private void Reset()
+    {
+        Pause();
+        currentSampleIndex = 0;
+    }
+
+    private void NextStep()
+    {
+        Pause();
+        if (currentSampleIndex < timeline.Count - 1)
+        {
+            currentSampleIndex++;
+        }
+    }
+
+    private void PreviousStep()
+    {
+        Pause();
+        if (currentSampleIndex > 0)
+        {
+            currentSampleIndex--;
+        }
+    }
+
+    private static string DisplayPhase(string phase) => phase switch
+    {
+        "Indexed Baseline" => "Healthy Indexed Baseline",
+        "Bloat Progress" => "Building Index Bloat",
+        "Index Bloat" => "Bloated Index",
+        "Compaction Complete" => "Compaction Complete",
+        _ => phase
+    };
+
+    private static string IndexLabel(IndexHealthSample sample)
+    {
+        if (sample.IndexName is null)
+        {
+            return "Not created";
+        }
+
+        return sample.AutoCreated
+            ? $"{sample.IndexName} (auto-created)"
+            : $"{sample.IndexName} (manual)";
+    }
+
+    private static string PhaseBannerClass(IndexHealthSample sample) => sample.Phase switch
+    {
+        "Indexed Baseline" => "phase-on",
+        "Automatically Indexed" => "phase-on",
+        "Bloat Progress" => "phase-off",
+        "Compaction Running" => "phase-running",
+        "Compaction Complete" => "phase-on",
+        _ => "phase-off"
+    };
+
+    private static string QueryMetricClass(IndexHealthSample sample, bool hasPairedQueryMeasurement)
+    {
+        if (!hasPairedQueryMeasurement || !sample.DashboardDurationMs.HasValue)
+        {
+            return string.Empty;
+        }
+
+        return sample.DashboardDurationMs.Value switch
+        {
+            < 1000 => "metric-value-good",
+            > 2000 => "metric-value-bad",
+            _ => string.Empty
+        };
+    }
+
+    private async void OnTick(object? sender, System.Timers.ElapsedEventArgs eventArgs)
+    {
+        if (currentSampleIndex >= timeline.Count - 1)
+        {
+            Pause();
+            return;
+        }
+
+        currentSampleIndex++;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static IReadOnlyList<IndexHealthSample> BuildPlaybackTimeline(IReadOnlyList<IndexHealthSample> samples)
+    {
+        var pairedSamples = DistinctPairedSamples(samples);
+        return LimitFrames(pairedSamples.ToList(), 12);
+    }
+
+    private static IReadOnlyList<IndexHealthSample> DistinctPairedSamples(IReadOnlyList<IndexHealthSample> samples)
+    {
+        var paired = new List<IndexHealthSample>();
+        DateTime? lastMeasurementAtUtc = null;
+
+        foreach (var sample in samples)
+        {
+            if (!sample.MeasurementCapturedAtUtc.HasValue ||
+                !sample.LogicalReads.HasValue ||
+                !sample.DashboardDurationMs.HasValue ||
+                sample.MeasurementCapturedAtUtc == lastMeasurementAtUtc)
+            {
+                continue;
+            }
+
+            paired.Add(sample);
+            lastMeasurementAtUtc = sample.MeasurementCapturedAtUtc;
+        }
+
+        return paired;
+    }
+
+    private static int FindHealthyBaselineIndex(IReadOnlyList<IndexHealthSample> samples, int bloatIndex)
+    {
+        var segmentEnd = bloatIndex - 1;
+        while (segmentEnd >= 0 && !IsHealthyBaseline(samples[segmentEnd]))
+        {
+            segmentEnd--;
+        }
+
+        if (segmentEnd < 0)
+        {
+            return -1;
+        }
+
+        var segmentStart = segmentEnd;
+        while (segmentStart > 0 && IsHealthyBaseline(samples[segmentStart - 1]))
+        {
+            segmentStart--;
+        }
+
+        var segmentIndexes = Enumerable.Range(segmentStart, segmentEnd - segmentStart + 1).ToArray();
+        var maximumDensity = segmentIndexes
+            .Select(index => samples[index].DensityPercent ?? 0m)
+            .DefaultIfEmpty(0m)
+            .Max();
+        var minimumPages = segmentIndexes
+            .Select(index => samples[index].PageCount ?? long.MaxValue)
+            .DefaultIfEmpty(long.MaxValue)
+            .Min();
+
+        return segmentIndexes
+            .Where(index =>
+                (samples[index].DensityPercent ?? 0m) >= maximumDensity - 1m &&
+                (samples[index].PageCount ?? long.MaxValue) <= minimumPages * 1.05m)
+            .OrderBy(index => samples[index].DashboardDurationMs ?? long.MaxValue)
+            .ThenBy(index => samples[index].LogicalReads ?? long.MaxValue)
+            .ThenByDescending(index => samples[index].SampleNumber)
+            .First();
+    }
+
+    private static bool IsHealthyBaseline(IndexHealthSample sample) =>
+        sample.Phase is "Indexed Baseline" or "Automatically Indexed";
+
+    private static bool HasMaterialChange(IndexHealthSample previous, IndexHealthSample current) =>
+        previous.Phase != current.Phase ||
+        previous.AutomaticIndexCompactionOn != current.AutomaticIndexCompactionOn ||
+        PercentageChange(previous.PageCount, current.PageCount) >= 0.05m ||
+        AbsoluteChange(previous.DensityPercent, current.DensityPercent) >= 3m;
+
+    private static decimal PercentageChange(long? previous, long? current)
+    {
+        if (!previous.HasValue || !current.HasValue || previous.Value == 0)
+        {
+            return previous == current ? 0m : 1m;
+        }
+
+        return Math.Abs(current.Value - previous.Value) / (decimal)previous.Value;
+    }
+
+    private static decimal AbsoluteChange(decimal? previous, decimal? current) =>
+        previous.HasValue && current.HasValue
+            ? Math.Abs(current.Value - previous.Value)
+            : previous == current ? 0m : decimal.MaxValue;
+
+    private static IReadOnlyList<IndexHealthSample> LimitFrames(List<IndexHealthSample> samples, int maximum)
+    {
+        if (samples.Count <= maximum)
+        {
+            return samples;
+        }
+
+        var selectedIndexes = new HashSet<int> { 0, samples.Count - 1 };
+        for (var index = 1; index < samples.Count; index++)
+        {
+            if (samples[index].Phase != samples[index - 1].Phase)
+            {
+                selectedIndexes.Add(index - 1);
+                selectedIndexes.Add(index);
+            }
+        }
+
+        var candidates = Enumerable.Range(0, samples.Count)
+            .Where(index => !selectedIndexes.Contains(index))
+            .ToArray();
+        var availableSlots = Math.Max(0, maximum - selectedIndexes.Count);
+        for (var slot = 0; slot < availableSlots && candidates.Length > 0; slot++)
+        {
+            var candidateOffset = availableSlots == 1
+                ? candidates.Length / 2
+                : (int)Math.Round(slot * (candidates.Length - 1d) / (availableSlots - 1));
+            selectedIndexes.Add(candidates[candidateOffset]);
+        }
+
+        return selectedIndexes
+            .Order()
+            .Take(maximum)
+            .Select(index => samples[index])
+            .ToArray();
+    }
+
+    private static int FindLastIndex(
+        IReadOnlyList<IndexHealthSample> samples,
+        Func<IndexHealthSample, bool> predicate,
+        int? beforeIndex = null)
+    {
+        for (var index = Math.Min(beforeIndex ?? samples.Count - 1, samples.Count - 1); index >= 0; index--)
+        {
+            if (predicate(samples[index]))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    public void Dispose()
+    {
+        Pause();
+        StopMonitoring();
+    }
+}
