@@ -1,0 +1,7 @@
+client/dist/
+server/wwwroot/
+artifacts/
+*.bacpac
+*.dacpac
+*.local.json
+TestResults/

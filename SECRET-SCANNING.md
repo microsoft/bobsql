@@ -52,6 +52,11 @@ Review findings rather than blanket-allowlisting folders or baselining them to
 make a scan pass. If a real credential was committed, revoke or rotate it;
 deleting it in a later commit is not enough.
 
+The local container example has rule-specific exceptions for reviewed runtime
+credential extraction, a cryptographically generated password expression, and
+fixed unit-test values. Each exception combines an exact expression or value
+with specific file paths; it does not exclude the example from scanning.
+
 ## Supplying demo credentials
 
 Use disposable lab credentials. Keep them out of tracked scripts, notebook

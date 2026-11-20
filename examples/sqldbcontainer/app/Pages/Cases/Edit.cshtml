@@ -1,0 +1,14 @@
+@page "{id:int}"
+@model CustomerServiceDesk.Pages.Cases.EditModel
+@{
+    ViewData["Title"] = "Edit case";
+}
+<a class="back-link" asp-page="/Cases/Details" asp-route-id="@RouteData.Values["id"]">&larr; Back to case</a>
+<div class="page-heading"><div><p class="eyebrow">CASE #@RouteData.Values["id"]</p><h1>Move the case forward.</h1><p class="subtitle">Changes are protected by SQL rowversion optimistic concurrency.</p></div></div>
+<div class="notice">Changing title, description, or resolution requires an offline embedding refresh before semantic search. Other edits keep existing vectors valid.</div>
+<form method="post" class="panel padded editor">
+    <input type="hidden" asp-for="Version" />
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <partial name="_CaseFields" model="Model.Input" />
+    <div class="form-actions"><button type="submit" class="button primary">Save changes</button><a class="button quiet" asp-page="/Cases/Edit" asp-route-id="@RouteData.Values["id"]">Reload latest version</a></div>
+</form>

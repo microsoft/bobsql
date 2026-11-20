@@ -1,0 +1,13 @@
+@model CustomerServiceDesk.Data.CaseInput
+@{
+    ViewData.TemplateInfo.HtmlFieldPrefix = "Input";
+}
+<div class="field"><label asp-for="Title"></label><input asp-for="Title" maxlength="200" /><span asp-validation-for="Title" class="validation"></span></div>
+<div class="form-grid">
+    <div class="field"><label asp-for="Status"></label><select asp-for="Status"><option value="Open">Open</option><option value="InProgress">In progress</option><option value="Resolved">Resolved</option></select><span asp-validation-for="Status" class="validation"></span></div>
+    <div class="field"><label asp-for="Priority"></label><select asp-for="Priority"><option>Low</option><option>Normal</option><option>High</option></select><span asp-validation-for="Priority" class="validation"></span></div>
+</div>
+<div class="field"><label asp-for="Topic"></label><input asp-for="Topic" maxlength="40" /><small>Lowercase topic key, for example wifi-dropouts or general.</small><span asp-validation-for="Topic" class="validation"></span></div>
+<div class="field"><label asp-for="Description"></label><textarea asp-for="Description" rows="5" maxlength="2000"></textarea><span asp-validation-for="Description" class="validation"></span></div>
+<div class="field"><label asp-for="Resolution"></label><textarea asp-for="Resolution" rows="4" maxlength="2000"></textarea><small>Required when status is Resolved.</small><span asp-validation-for="Resolution" class="validation"></span></div>
+<div class="field"><label asp-for="Details">Case details (JSON)</label><textarea asp-for="Details" class="code-input" rows="8" maxlength="8000" spellcheck="false"></textarea><small>JSON object with channel set to web, phone, or chat. Product, device, region, and extra fields are flexible.</small><span asp-validation-for="Details" class="validation"></span></div>

@@ -31,6 +31,15 @@ Four standalone Caldova examples are available in the [demo catalog](examples/re
 Read each example's prerequisites and runbook before deploying billable resources.
 See [corpus attribution](examples/THIRD-PARTY-NOTICES.md) for the evidence-search datasets.
 
+## New Azure SQL Database container example
+
+- [Azure SQL Database container](examples/sqldbcontainer/README.md): run the
+  public preview Azure SQL Database engine locally with a Customer Service Desk
+  app demonstrating JSON, dynamic data masking, and vector search, plus a
+  separate approval-gated SQL Migration Studio.
+
+Read the example's README for prerequisites, image license terms, and cleanup.
+
 ## Copilot skills
 
 Open this repository in VS Code to use the

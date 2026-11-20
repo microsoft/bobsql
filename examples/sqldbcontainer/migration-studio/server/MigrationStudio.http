@@ -1,0 +1,115 @@
+@baseUrl = http://localhost:5188
+@tenant = 00000000-0000-0000-0000-000000000000
+@subscription = 00000000-0000-0000-0000-000000000000
+@plan = replace-with-reviewed-plan-id
+@csrf = {{session.response.body.$.csrfToken}}
+
+### Host-only health; no SQL, Azure, or model request
+GET {{baseUrl}}/health
+
+### Establish local browser session (retain cookies in your HTTP client)
+# @name session
+GET {{baseUrl}}/api/session
+
+### Measured dependencies and SDK authentication; no inference
+GET {{baseUrl}}/api/status
+
+### Copilot authentication and models only; no migration preflight or inference
+GET {{baseUrl}}/api/copilot/status
+
+### Current browser's sign-in attempt; code is local-only and must not be shared
+GET {{baseUrl}}/api/copilot/signin
+
+### Explicit GitHub device sign-in; authorize manually on GitHub, not in this file
+POST {{baseUrl}}/api/copilot/signin
+Origin: {{baseUrl}}
+X-CSRF-TOKEN: {{csrf}}
+Content-Type: application/json
+
+{}
+
+### Container discovery
+GET {{baseUrl}}/api/discovery/containers
+
+### Selected source metadata (privileged local credential remains in the host)
+POST {{baseUrl}}/api/discovery/databases
+Origin: {{baseUrl}}
+X-CSRF-TOKEN: {{csrf}}
+Content-Type: application/json
+
+{"containerName":"sqldbcontainer"}
+
+### Azure tenant discovery
+GET {{baseUrl}}/api/azure/tenants
+
+### Azure subscription discovery
+GET {{baseUrl}}/api/azure/subscriptions?tenantId={{tenant}}
+
+### Available regions
+GET {{baseUrl}}/api/azure/locations?tenantId={{tenant}}&subscriptionId={{subscription}}
+
+### Existing resource groups
+GET {{baseUrl}}/api/azure/groups?tenantId={{tenant}}&subscriptionId={{subscription}}
+
+### Existing SQL servers
+GET {{baseUrl}}/api/azure/servers?tenantId={{tenant}}&subscriptionId={{subscription}}&resourceGroup=selected-group
+
+### Current user in selected Azure tenant (separate from GitHub identity)
+GET {{baseUrl}}/api/azure/identity?tenantId={{tenant}}&subscriptionId={{subscription}}
+
+### Create review plan only: does not create resources
+POST {{baseUrl}}/api/plans
+Origin: {{baseUrl}}
+X-CSRF-TOKEN: {{csrf}}
+Content-Type: application/json
+
+{
+  "containerName":"sqldbcontainer",
+  "sourceDatabase":"CustomerServiceDesk",
+  "tenantId":"{{tenant}}",
+  "subscriptionId":"{{subscription}}",
+  "region":"eastus2",
+  "resourceGroup":"selected-group",
+  "createResourceGroup":false,
+  "serverName":"selected-logical-server",
+  "createServer":false,
+  "targetDatabase":"CustomerServiceDesk",
+  "authentication":"Entra"
+}
+
+### Read selected plan (404 with placeholder)
+GET {{baseUrl}}/api/plans/{{plan}}
+
+### Negative approval example: MUST reject; replace only after reviewing exact resources
+POST {{baseUrl}}/api/plans/{{plan}}/run
+Origin: {{baseUrl}}
+X-CSRF-TOKEN: {{csrf}}
+Content-Type: application/json
+
+{"confirmation":"NOT APPROVED","writersStopped":false}
+
+### Read durable state
+GET {{baseUrl}}/api/runs/{{plan}}
+
+### Explicit cancellation; no deletion
+POST {{baseUrl}}/api/runs/{{plan}}/cancel
+Origin: {{baseUrl}}
+X-CSRF-TOKEN: {{csrf}}
+Content-Type: application/json
+
+{}
+
+### Actual Copilot inference: executing this consumes account usage
+POST {{baseUrl}}/api/copilot/message
+Origin: {{baseUrl}}
+X-CSRF-TOKEN: {{csrf}}
+Content-Type: application/json
+
+{"text":"Inspect readiness and migration status, then explain the next safe step.","model":"auto"}
+
+### Event stream (long-lived connection)
+GET {{baseUrl}}/api/events
+Accept: text/event-stream
+
+### OpenAPI
+GET {{baseUrl}}/openapi/v1.json

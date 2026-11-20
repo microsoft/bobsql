@@ -1,0 +1,47 @@
+@page "{id:int}"
+@model CustomerServiceDesk.Pages.Cases.DetailsModel
+@{
+    ViewData["Title"] = $"Case #{Model.Case.CaseId:D4}";
+    var emailMask = """REGEXP_REPLACE("^[^@]+", "*****")""";
+    var phoneMask = """REGEXP_REPLACE("(\+\d{1,3})(?:[ -.]?\d){7,14}", "(\1)-xxxx")""";
+}
+<a class="back-link" asp-page="/Index">&larr; Back to workspace</a>
+<div class="page-heading">
+    <div><p class="eyebrow">CASE #@Model.Case.CaseId.ToString("D4") &middot; @Model.Case.Topic</p><h1>@Model.Case.Title</h1><p class="subtitle">Updated @Model.Case.UpdatedAt.ToString("MMMM d, yyyy HH:mm") UTC</p></div>
+    <a class="button primary" asp-page="/Cases/Edit" asp-route-id="@Model.Case.CaseId">Edit case</a>
+</div>
+<div class="detail-grid">
+    <div>
+        <section class="panel padded">
+            <div class="inline-tags"><span class="badge @Model.Case.Status.ToLowerInvariant()">@(Model.Case.Status == "InProgress" ? "In progress" : Model.Case.Status)</span><span class="priority @Model.Case.Priority.ToLowerInvariant()">@Model.Case.Priority priority</span></div>
+            <h2>What happened</h2><p class="prose">@Model.Case.Description</p>
+            <hr /><h2>Resolution</h2>
+            @if (Model.Case.Resolution is { Length: > 0 } resolution)
+            {
+                <p class="prose">@resolution</p>
+            }
+            else
+            {
+                <p class="muted">A resolution has not been recorded yet.</p>
+            }
+        </section>
+        <section class="panel padded">
+            <div class="panel-heading bare"><h2>Flexible case details</h2><span class="tag">NATIVE JSON</span></div>
+            <p class="muted">Stored in SQL as native JSON, not an application-side document store.</p>
+            <pre>@Model.FormattedDetails</pre>
+        </section>
+    </div>
+    <div>
+        <section class="panel padded">
+            <p class="eyebrow">CUSTOMER</p><h2>@Model.Case.DisplayName</h2>
+            <dl class="facts">
+                <dt>Email</dt><dd id="customer-email" class="mask-help"><span class="masked-value" tabindex="0" aria-describedby="email-mask">@Model.Case.Email</span><span id="email-mask" class="mask-tooltip" role="tooltip"><strong>SQL regex mask</strong><code>@emailMask</code></span></dd>
+                <dt>Phone</dt><dd id="customer-phone" class="mask-help"><span class="masked-value" tabindex="0" aria-describedby="phone-mask">@Model.Case.Phone</span><span id="phone-mask" class="mask-tooltip" role="tooltip"><strong>SQL regex mask</strong><code>@phoneMask</code></span></dd>
+            </dl>
+            <p class="fine muted">Hover over or focus a masked value to see its SQL regex mask. Press Escape to dismiss.</p>
+            <div class="callout"><strong>Masked before it reaches the app</strong><p>SQL applies regex-based dynamic data masking. This application identity has no UNMASK permission.</p></div>
+        </section>
+        <section class="panel padded accent-panel"><p class="eyebrow">REUSE WHAT WORKS</p><h2>Someone may have solved this.</h2><p>Explore resolved cases with a prepared semantic query or ask in your own words.</p><a class="button primary" asp-page="/Search">Find related cases &rarr;</a></section>
+        <p class="muted fine">Created @Model.Case.CreatedAt.ToString("MMMM d, yyyy HH:mm") UTC. All timestamps are database-generated.</p>
+    </div>
+</div>
