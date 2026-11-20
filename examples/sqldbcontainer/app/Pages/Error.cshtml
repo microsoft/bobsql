@@ -1,0 +1,18 @@
+﻿@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<p class="eyebrow">REQUEST COULD NOT COMPLETE</p>
+<h1>The workspace hit a problem.</h1>
+<p>The operation could not complete. Check that the database container is running and the restricted app connection is configured. A failed save may have reached SQL before the connection failed; reload the case before retrying.</p>
+<a class="button primary" asp-page="/Index">Return to workspace</a>
+
+@if (Model.ShowRequestId)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@Model.RequestId</code>
+    </p>
+}
+

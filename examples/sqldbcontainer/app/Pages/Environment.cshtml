@@ -1,0 +1,21 @@
+@page
+@model EnvironmentModel
+@{
+    ViewData["Title"] = "Environment";
+    var s = Model.State;
+}
+<div class="page-heading"><div><p class="eyebrow">MEASURE, DON'T ASSUME</p><h1>Know what is running.</h1><p class="subtitle">Live database configuration and embedding freshness. No credentials or connection strings.</p></div><a class="button quiet" asp-page="/Environment">Refresh status</a></div>
+<div class="notice @(s.SearchReady ? "success" : "warning")" role="status">Semantic search: <strong>@(s.SearchReady ? "ready" : "refresh required")</strong> &middot; @s.PendingEmbeddings pending case embeddings &middot; @s.ReadyQueries / @s.TotalQueries current query embeddings</div>
+<div class="detail-grid">
+    <section class="panel padded">
+        <h2>Application &amp; database</h2>
+        <dl class="facts"><dt>Target label</dt><dd>@Model.DeploymentLabel</dd><dt>Database</dt><dd>@s.DatabaseName</dd><dt>Runtime principal</dt><dd>@s.DatabaseUser</dd><dt>Engine edition</dt><dd>@s.Edition &middot; EngineEdition @s.EngineEdition</dd><dt>Build ID</dt><dd class="break-word">@Model.BuildId</dd><dt>JSON index</dt><dd>@(s.JsonIndexPresent ? "Present" : "Missing")</dd><dt>DiskANN index version</dt><dd>@(s.VectorIndexVersion ?? "Missing")</dd><dt>PREVIEW_FEATURES</dt><dd>@(s.PreviewFeatures == 1 ? "ON" : "OFF")</dd><dt>UNMASK permission</dt><dd>@s.CanUnmask</dd><dt>Direct customer SELECT</dt><dd>@s.CanReadCustomers</dd></dl>
+        <p class="fine muted">Index presence is configuration evidence, not proof this request used an index. EngineEdition 5 identifies the Azure SQL engine; it does not prove Azure cloud hosting.</p>
+    </section>
+    <section class="panel padded">
+        <h2>Active embedding profile</h2>
+        <dl class="facts"><dt>Profile</dt><dd>@(s.ProfileName ?? "Not configured")</dd><dt>Model</dt><dd>@(s.ModelName ?? "Not configured")</dd><dt>Dimensions</dt><dd>@s.Dimensions</dd><dt>Model digest</dt><dd class="break-word code">@s.ModelVersion</dd><dt>Case vectors current</dt><dd>@(s.TotalCases - s.PendingEmbeddings) / @s.TotalCases</dd><dt>Prepared queries current</dt><dd>@s.ReadyQueries / @s.TotalQueries</dd></dl>
+        <div class="callout"><strong>Corpus preparation, live retrieval</strong><p>After creating a case or changing searchable text, run this from the database kit folder:</p><pre>.\build-database.ps1 -UseContainerCredentials</pre><p>Preparation calls local Ollama and regenerates only missing or stale embeddings. Free-text searches also call local Ollama for a query vector; prepared dropdown searches do not. The web app never runs with setup administrator credentials.</p></div>
+    </section>
+</div>
+<section class="panel padded"><h2>Engine version</h2><pre>@s.EngineVersion</pre></section>

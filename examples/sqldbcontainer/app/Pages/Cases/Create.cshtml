@@ -1,0 +1,14 @@
+@page
+@model CustomerServiceDesk.Pages.Cases.CreateModel
+@{
+    ViewData["Title"] = "New case";
+}
+<a class="back-link" asp-page="/Index">&larr; Back to workspace</a>
+<div class="page-heading"><div><p class="eyebrow">CASE WORKSPACE</p><h1>Start a new case.</h1><p class="subtitle">A real SQL record, ready to follow the application to Azure.</p></div></div>
+<div class="notice">Use synthetic details only. New cases need offline embedding preparation before semantic search is available again.</div>
+<form method="post" class="panel padded editor">
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <div class="field"><label asp-for="CustomerId">Customer</label><select asp-for="CustomerId"><option value="">Choose a synthetic customer</option>@foreach (var customer in Model.Customers) { <option value="@customer.CustomerId">@customer.DisplayName</option> }</select><span asp-validation-for="CustomerId" class="validation"></span></div>
+    <partial name="_CaseFields" model="Model.Input" />
+    <div class="form-actions"><button type="submit" class="button primary">Create case</button><a class="button quiet" asp-page="/Index">Cancel</a></div>
+</form>

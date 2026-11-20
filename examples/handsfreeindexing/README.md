@@ -42,6 +42,19 @@ the database selected by the wrapper.
 
 ## Deploy
 
+For an existing local Azure SQL container at `localhost,14332`, see the
+[local app instructions](app/README.md#local-azure-sql-container). This runs the
+same live app against a dedicated local database without deploying Azure
+resources; it does not replace the live lifecycle with static results.
+
+> [!WARNING]
+> **Local Azure SQL DB container support is under construction.** The local app
+> connection and manually created covering index baseline have been validated,
+> but the local bloat and automatic index compaction lifecycle is unfinished.
+> Automatic index creation is not available locally, and the existing Azure
+> lifecycle scripts still require an auto-created index. The original Azure SQL
+> demo is unchanged.
+
 ```powershell
 ./deploy/01-deploy-infrastructure.ps1
 ./deploy/02-initialize-database.ps1

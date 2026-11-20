@@ -1,0 +1,73 @@
+@page
+@model SearchModel
+@{
+    ViewData["Title"] = "Related cases";
+    var vectorSearchSql = """
+        SELECT TOP (@Take) WITH APPROXIMATE c.CaseId, c.Title, c.Resolution,
+            c.Topic, c.Status, s.distance AS CosineDistance
+        FROM VECTOR_SEARCH(TABLE = dbo.CaseEmbeddings AS e, COLUMN = Embedding,
+            SIMILAR_TO = @Query, METRIC = 'cosine') AS s
+        INNER JOIN dbo.Cases AS c ON c.CaseId = e.CaseId
+        WHERE e.ProfileId = @ProfileId AND (@Status IS NULL OR c.Status = @Status)
+        ORDER BY s.distance;
+        """;
+}
+<div class="semantic-search">
+<div class="page-heading"><div><p class="eyebrow">SEMANTIC RETRIEVAL</p><h1>Find the fix, not just the keyword.</h1><p class="subtitle">Different wording. Similar meaning. Resolutions retrieved by SQL vectors.</p></div></div>
+<section class="panel padded" id="search-controls">
+    <form method="post" asp-page="/Search" class="search-form unified-search">
+        <label asp-for="QueryText">Search by meaning</label>
+        <input asp-for="QueryText" maxlength="1000" required placeholder="Type any problem, or choose an example below..." />
+        <div class="search-controls-row">
+            <div>
+                <label for="SearchExample">Example questions (optional)</label>
+                <select id="SearchExample">
+                    <option value="">Choose an example to fill the search box</option>
+                    @foreach (var search in Model.Searches)
+                    {
+                        <option value="@search.PreparedSearchId" data-question="@search.SearchText" selected="@(search.SearchText == Model.QueryText?.Trim())">@search.SearchText</option>
+                    }
+                </select>
+            </div>
+            <div class="mask-help vector-query-help">
+                <button type="submit" class="button primary" aria-describedby="vector-query-tooltip">Search resolved cases &rarr;</button>
+                <span id="vector-query-tooltip" class="mask-tooltip" role="tooltip"><strong>Live SQL: dbo.SearchCaseVectors</strong><span>Both search modes run this query with Take = 5 and Status = 'Resolved'. Query is the embedding vector; ProfileId identifies the active model profile.</span><code>@vectorSearchSql</code></span>
+            </div>
+        </div>
+        <p class="fine muted">Edit any example before searching. Exact example text uses a prepared embedding; new wording uses live local Ollama. Synthetic text only. Hover over the search button to see the SQL.</p>
+    </form>
+</section>
+@if (!ViewData.ModelState.IsValid)
+{
+    <div id="search-results" tabindex="-1" class="notice warning" role="alert"><div asp-validation-summary="All" class="validation"></div></div>
+}
+@if (Model.SearchError is not null)
+{
+    <div id="search-results" tabindex="-1" class="notice warning" role="alert">@Model.SearchError <a asp-page="/Environment">Refresh instructions</a></div>
+}
+else if (Model.SearchedText is not null)
+{
+    <section id="search-results" tabindex="-1" aria-labelledby="search-results-heading">
+    <div class="results-heading"><h2 id="search-results-heading">@Model.Hits.Count related resolutions</h2><a class="button quiet" href="#search-controls">Change search &uarr;</a></div>
+    <div class="notice search-query"><strong>@(Model.IsLiveSearch ? "LIVE OLLAMA EMBEDDING + SQL SEARCH" : "PREPARED EMBEDDING + LIVE SQL SEARCH")</strong><p>@Model.SearchedText</p></div>
+    <p class="fine muted">Lower cosine distance = closer vector match, not a confidence score.</p>
+    @foreach (var hit in Model.Hits)
+    {
+        <article class="panel padded search-result">
+            <div class="distance"><strong>@hit.CosineDistance.ToString("F4")</strong><small>COSINE DISTANCE</small></div>
+            <div><p class="eyebrow">#@hit.CaseId.ToString("D4") &middot; @hit.Topic</p><h2><a asp-page="/Cases/Details" asp-route-id="@hit.CaseId">@hit.Title</a></h2><p class="prose">@hit.Resolution</p><span class="badge resolved">Resolved</span></div>
+        </article>
+    }
+    @if (Model.Hits.Count == 0)
+    {
+        <div class="panel padded empty">No resolved cases matched this question.</div>
+    }
+    </section>
+}
+<details class="panel padded search-explainer">
+    <summary>How vector search works</summary>
+    <ol class="steps"><li>Represent the question as a @Model.State.Dimensions-dimensional vector using @Model.State.ModelName.</li><li>Run VECTOR_SEARCH against the same embedding profile as the cases.</li><li>Return actual resolved cases, ordered by cosine distance—not a keyword predicate.</li></ol>
+    <p class="fine muted">Prepared dropdown: no live model call when the text is unchanged. Edited or new text: live local Ollama embedding. Neither path generates an answer or silently substitutes another question.</p>
+    <p class="fine muted">Related wording can overlap. Vector search does not require the exact phrase, but it does not guarantee relevance. SQL chooses the execution plan; index presence alone does not prove ANN execution.</p>
+</details>
+</div>

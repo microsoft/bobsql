@@ -27,6 +27,10 @@ Demonstrates **Automatic Index Compaction** in Azure SQL Hyperscale — a backgr
 
 ## Scripts
 
+For a local-container presentation, open [aic-results-local.html](aic-results-local.html).
+It labels the target as `localhost,14332` and retains the Hyperscale reference
+metrics, not local measurements. The original result pages are unchanged.
+
 Run these in order. Use `scan-test.sql` between steps to measure cold-cache scan performance.
 
 | Script | Purpose |

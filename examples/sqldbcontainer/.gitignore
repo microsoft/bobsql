@@ -1,0 +1,5 @@
+creds.env
+**/bin/
+**/obj/
+**/node_modules/
+*.log

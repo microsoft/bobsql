@@ -1,8 +1,15 @@
 @inherits LayoutComponentBase
+@inject IConfiguration Configuration
 
 <div class="shell">
     <header class="topbar">
-        <div class="brand">Caldova Patient Access Operations</div>
+        <div>
+            <div class="brand">Caldova Patient Access Operations</div>
+            @if (!string.IsNullOrWhiteSpace(Configuration["Demo:EnvironmentLabel"]))
+            {
+                <small>@Configuration["Demo:EnvironmentLabel"]</small>
+            }
+        </div>
         <nav class="topnav">
             <NavLink href="/" Match="NavLinkMatch.All" class="nav-item">Operations Dashboard</NavLink>
             <NavLink href="/index-health" class="nav-item">Index Health</NavLink>

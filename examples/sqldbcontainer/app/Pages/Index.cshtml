@@ -1,0 +1,60 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Case workspace";
+}
+<div class="page-heading">
+    <div><p class="eyebrow">CUSTOMER OPERATIONS</p><h1>A clearer path to resolution.</h1><p class="subtitle">Your case workspace, powered by live Azure SQL data.</p></div>
+    <a class="button primary" asp-page="/Cases/Create">+ New case</a>
+</div>
+<div class="metrics">
+    <div class="metric"><span>Total cases</span><strong>@Model.State.TotalCases.ToString("N0")</strong><small>Live database records</small></div>
+    <div class="metric"><span>Open</span><strong>@Model.State.OpenCases.ToString("N0")</strong><small>Ready for triage</small></div>
+    <div class="metric"><span>In progress</span><strong>@Model.State.InProgressCases.ToString("N0")</strong><small>Working toward a fix</small></div>
+    <div class="metric"><span>Resolved</span><strong class="teal">@Model.State.ResolvedCases.ToString("N0")</strong><small>Experience worth reusing</small></div>
+</div>
+@if (!Model.State.SearchReady)
+{
+    <div class="notice warning">Semantic search needs an embedding refresh. @Model.State.PendingEmbeddings case(s) pending. <a asp-page="/Environment">View readiness and refresh instructions</a>.</div>
+}
+<section class="panel">
+    <div class="panel-heading"><div><h2>Case queue</h2><p>Most recently updated first &middot; showing up to 100 matches</p></div><a asp-page="/Search">Find a previous resolution &rarr;</a></div>
+    <form method="get" class="filters">
+        <div><label asp-for="Status">Status</label><select asp-for="Status"><option value="">All statuses</option><option value="Open">Open</option><option value="InProgress">In progress</option><option value="Resolved">Resolved</option></select></div>
+        <div>
+            <div class="channel-label-line">
+                <label asp-for="Channel">Contact channel</label>
+                <span class="mask-help channel-json-help" tabindex="0" aria-label="How Contact channel uses JSON" aria-describedby="channel-json-tooltip">
+                    <span class="tag subtle">JSON FILTER</span>
+                    <span id="channel-json-tooltip" class="mask-tooltip" role="tooltip"><strong>A property inside native JSON</strong><span>Contact channel is the channel property in dbo.Cases.Details, not a separate column. SQL filters the document using:</span><code>JSON_VALUE(c.Details, '$.channel') = @("@Channel")</code></span>
+                </span>
+            </div>
+            <select asp-for="Channel"><option value="">All channels</option><option value="web">Web</option><option value="phone">Phone</option><option value="chat">Chat</option></select>
+        </div>
+        <span class="mask-help filter-query-help">
+            <button class="button primary" type="submit" aria-describedby="filter-query-tooltip">Apply filters</button>
+            <span id="filter-query-tooltip" class="mask-tooltip" role="tooltip"><strong>SQL filtering with JSON_VALUE</strong><span>Contact channel is read from dbo.Cases.Details using the JSON_VALUE T-SQL function. Status uses a regular column predicate. Selecting All channels skips the JSON predicate.</span><code>JSON_VALUE(c.Details, '$.channel') = @("@Channel")</code></span>
+        </span><a class="button quiet" asp-page="/Index">Reset</a>
+    </form>
+    <div asp-validation-summary="All" class="validation"></div>
+    <div class="table-scroll">
+        <table>
+            <thead><tr><th>Case / subject</th><th>Customer</th><th>Status</th><th>Priority</th><th>Channel</th><th>Updated (UTC)</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model.Cases)
+            {
+                <tr>
+                    <td><a class="case-link" asp-page="/Cases/Details" asp-route-id="@item.CaseId">@item.Title</a><small class="row-subtitle">#@item.CaseId.ToString("D4") <span>&middot;</span> @item.Topic</small></td>
+                    <td>@item.DisplayName</td><td><span class="badge @item.Status.ToLowerInvariant()">@(item.Status == "InProgress" ? "In progress" : item.Status)</span></td>
+                    <td><span class="priority @item.Priority.ToLowerInvariant()">@item.Priority</span></td><td>@item.Channel</td><td class="nowrap muted">@item.UpdatedAt.ToString("MMM d, HH:mm")</td>
+                </tr>
+            }
+            @if (Model.Cases.Count == 0 && ViewData.ModelState.IsValid)
+            {
+                <tr><td colspan="6" class="empty">No cases match these filters. Try another status or channel.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel-foot">@Model.Cases.Count matching records shown <span>Contact channel is filtered in SQL using JSON_VALUE.</span></div>
+</section>

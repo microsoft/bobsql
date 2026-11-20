@@ -1,0 +1,51 @@
+﻿@inject IConfiguration Configuration
+@inject CustomerServiceDesk.Data.DeskRepository Desk
+@{
+    var page = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    var engineVersion = page == "/Error" ? null
+        : (await Desk.GetEnvironmentAsync(Context.RequestAborted)).EngineVersion;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] | Service Desk</title>
+    <link rel="stylesheet" href="~/css/desk.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <aside class="sidebar">
+        <a class="brand" asp-page="/Index"><span class="brand-mark">S</span><span>Service Desk<small>CUSTOMER OPERATIONS</small></span></a>
+        <div class="nav-caption">WORKSPACE</div>
+        <nav aria-label="Main navigation">
+            <a class="@(page == "/Index" || page.StartsWith("/Cases/") ? "active" : "")" asp-page="/Index"><span aria-hidden="true">01</span> Case workspace</a>
+            <a class="@(page == "/Search" ? "active" : "")" asp-page="/Search"><span aria-hidden="true">02</span> Related cases</a>
+            <a class="@(page == "/Environment" ? "active" : "")" asp-page="/Environment"><span aria-hidden="true">03</span> Environment</a>
+        </nav>
+        <div class="sidebar-note"><span class="live-dot"></span> LOCAL TO CLOUD<p>Built on Azure SQL.<br />Synthetic data. Real queries.</p></div>
+    </aside>
+    <div class="app-shell">
+        <header class="topbar">
+            <span>Customer Service Desk <span class="muted">/ @ViewData["Title"]</span></span>
+            <div class="environment-status">
+                <span class="environment-chip">@Configuration["Desk:DeploymentLabel"]</span>
+                @if (engineVersion is not null)
+                {
+                    <div class="engine-version"><span class="engine-version-label">@("@@VERSION")</span><pre>@engineVersion</pre></div>
+                }
+            </div>
+        </header>
+        <main id="main">
+            @if (TempData["Notice"] is string notice)
+            {
+                <div class="notice success" role="status">@notice</div>
+            }
+            @RenderBody()
+        </main>
+        <footer>SYNTHETIC DEMO DATA ONLY <span>ASP.NET Core 10 &middot; Azure SQL engine</span></footer>
+    </div>
+    <script src="~/js/mask-tooltips.js" asp-append-version="true" defer></script>
+    <script src="~/js/related-cases.js" asp-append-version="true" defer></script>
+</body>
+</html>

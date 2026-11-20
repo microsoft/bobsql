@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>caldova-handsfree-indexing-local</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

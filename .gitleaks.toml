@@ -9,6 +9,30 @@ description = "Hard-coded database connection password"
 regex = '''(?i)\b(?:password|pwd)\s*=\s*N?['"]?([^\s;'"<>${}@]{4,})'''
 secretGroup = 1
 
+[[rules.allowlists]]
+description = "Local source password is read into a SecureString, not hard-coded"
+condition = "AND"
+paths = ['''^examples/sqldbcontainer/migration-studio/scripts/Studio\.Engine\.psm1$''']
+regexTarget = "line"
+regexes = ['''^\s*\$source\.password = \[Net\.NetworkCredential\]::new\('', \$settings\[0\]\.Substring\('MSSQL_SA_PASSWORD='\.Length\)\)\.SecurePassword$''']
+
+[[rules.allowlists]]
+description = "Migration tests use fixed non-credential fixtures and SecureString construction"
+condition = "AND"
+paths = ['''^examples/sqldbcontainer/migration-studio/tests/powershell/Studio\.Migration\.Tests\.ps1$''']
+regexTarget = "line"
+regexes = ['''^\s*Mock Get-StudioSource \{ @\{password=ConvertTo-SecureString '(?:never-logged|not-output)' -AsPlainText -Force\} \}$''']
+
+[[rules.allowlists]]
+description = "Exact dummy connection and exception text used to test rejection and redaction"
+condition = "AND"
+paths = ['''^examples/sqldbcontainer/migration-studio/tests/powershell/Studio\.Engine\.Tests\.ps1$''']
+regexTarget = "line"
+regexes = [
+    '''^\s*\$config\.connectionString='Server=elsewhere;Password=secret'$''',
+    '''^\s*try \{ throw 'Password=hidden; SELECT PrivateRow; bearer token' \} catch \{ \$safe=Get-StudioSafeError \$_ \}$''',
+]
+
 [[rules]]
 id = "sql-credential-secret"
 description = "Hard-coded SQL credential secret"
@@ -27,8 +51,39 @@ description = "Hard-coded SQL password variable"
 regex = '''(?i)[@$][a-z_]*password\s*=\s*N?['"]([^'"\r\n<>${}]{4,})['"]'''
 secretGroup = 1
 
+[[rules.allowlists]]
+description = "App password combines a complexity prefix with 24 cryptographically random bytes"
+condition = "AND"
+paths = ['''^examples/sqldbcontainer/setup-app\.ps1$''']
+regexTarget = "line"
+regexes = ['''^\s*\$appPassword = 'Aa1!' \+ \[Convert\]::ToHexString\(\[Security\.Cryptography\.RandomNumberGenerator\]::GetBytes\(24\)\)$''']
+
 [[rules]]
 id = "container-password"
 description = "Hard-coded SQL container password"
 regex = '''(?im)(?:^|[\s'"])(?:MSSQL_SA_PASSWORD|SA_PASSWORD|SQLCMDPASSWORD)\s*[:=]\s*['"]?([^\s;'"<>${}%?\[]{4,})'''
 secretGroup = 1
+
+[[rules.allowlists]]
+description = "Exact environment-variable name used to extract a runtime credential"
+condition = "AND"
+paths = [
+    '''^examples/sqldbcontainer/(?:build-database|setup-app|start-container)\.ps1$''',
+    '''^examples/sqldbcontainer/migration-studio/scripts/Studio\.Engine\.psm1$''',
+]
+regexTarget = "match"
+regexes = ['''^'MSSQL_SA_PASSWORD='\.Length\)\)\.SecurePassword\)?$''']
+
+[[rules.allowlists]]
+description = "Exact fake password value in the container lifecycle unit test"
+condition = "AND"
+paths = ['''^examples/sqldbcontainer/container\.Tests\.ps1$''']
+regexTarget = "match"
+regexes = ['''^'MSSQL_SA_PASSWORD=Unit-test-only-Password!42$''']
+
+[[rules.allowlists]]
+description = "Exact fake password value in the credential-isolation unit test"
+condition = "AND"
+paths = ['''^examples/sqldbcontainer/migration-studio/tests/powershell/Studio\.Engine\.Tests\.ps1$''']
+regexTarget = "match"
+regexes = ['''^"MSSQL_SA_PASSWORD=do-not-output$''']
